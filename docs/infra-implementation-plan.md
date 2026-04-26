@@ -28,7 +28,7 @@ Forward-looking implementation plan. No Terraform has been written yet. This doc
 1. ChatGPT.com / ChatGPT Apps developer mode can add `https://hackathon.example.com/mcp` as a custom remote MCP connector with `Authorization supported = None`, list tools, and invoke them — same surface contract used by hosted remote MCP servers.
 2. The MCP Lambda can reach a private Postgres RDS instance over a private subnet, and can invoke a separate fraud-mock Lambda.
 3. Everything is created by `terraform apply` from a single root module under `infra/`. The only pre-existing AWS object referenced is the Route 53 public hosted zone for `example.com` (data source).
-4. Cost-minimal hackathon posture: no NAT gateway by default, tiny single-AZ RDS, short log retention, easy `terraform destroy`.
+4. Demo-first hackathon posture: simple, cheap, and easy to debug beats production-grade hardening. Use a tiny single-AZ RDS instance, short log retention, and easy `terraform destroy`.
 5. Phase 1 is implementable and demoable in isolation (Lambda + API GW + custom domain + cert + DNS), without RDS or the fraud mock.
 
 ## Inputs and assumptions
@@ -184,24 +184,24 @@ Each entry lists the resource type, logical name, and the cross-file refs it dep
 - `aws_subnet.private[*]` — one per AZ; no public IP mapping.
 - `aws_route_table.private` + `aws_route_table_association.private[*]` — **no default route**; private subnets are isolated except via VPC endpoints.
 - No `aws_internet_gateway`, public subnets, or public route table by default. Add them only if the fallback architecture introduces NAT or an internet-facing ALB.
-- Optional endpoints, each gated separately:
+- Optional endpoints, each gated separately. Do not over-optimize this for security purity; add only what makes the demo work:
   - `aws_vpc_endpoint.secretsmanager` — interface type, in private subnets, SG = endpoint SG, `private_dns_enabled = true`; required in Phase 2 if the VPC-attached MCP Lambda reads Secrets Manager without NAT.
   - `aws_vpc_endpoint.lambda` — interface type, in private subnets, SG = endpoint SG, `private_dns_enabled = true`; required in Phase 3 if the MCP Lambda invokes the fraud-mock Lambda without NAT.
   - `aws_vpc_endpoint.s3` — gateway type, attached to private route table; optional only if application code later uses S3.
   - `aws_vpc_endpoint.logs` — interface type, optional only if application code explicitly calls the CloudWatch Logs API from inside the VPC. Lambda's normal stdout/stderr log delivery is handled by the Lambda service and should not require this endpoint.
 
 ### `security_groups.tf`
-- Prefer `aws_vpc_security_group_ingress_rule` / `aws_vpc_security_group_egress_rule` resources so Terraform does not silently retain a broad default egress rule.
-- `aws_security_group.mcp_lambda` — no ingress; start with explicit egress to the RDS SG on TCP 5432 and the VPCE SG on TCP 443 once Phase 2 exists. If temporarily left wide open during debugging, it still has no internet path because the private route table has no default route.
-- `aws_security_group.rds` — ingress TCP 5432 from `mcp_lambda` SG only; explicit egress none.
-- `aws_security_group.vpce` — interface VPC endpoint SG; ingress TCP 443 from `mcp_lambda` SG; explicit egress none.
+- Keep security groups understandable and demo-friendly. Do **not** spend hackathon time chasing perfect egress minimization unless something is clearly unsafe or broken.
+- `aws_security_group.mcp_lambda` — no ingress; allow broad outbound egress (`0.0.0.0/0`) for the demo, or at minimum egress to the RDS SG on TCP 5432 and TCP 443 to AWS/VPC endpoints. Broad egress is acceptable here because the route table still controls actual paths and the data is synthetic.
+- `aws_security_group.rds` — keep the one hard boundary: ingress TCP 5432 from `mcp_lambda` SG only; `publicly_accessible = false`. Default egress is fine.
+- `aws_security_group.vpce` — interface VPC endpoint SG; ingress TCP 443 from `mcp_lambda` SG. Default egress is fine.
 
 ### `iam.tf`
 - `aws_iam_role.mcp_lambda_exec` — assume role for `lambda.amazonaws.com`.
 - Inline / managed attachments on `mcp_lambda_exec`, added by phase:
   - Phase 1: AWS managed policy ARN `arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole` (logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents).
-  - Phase 2: AWS managed policy ARN `arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole` (manage ENIs) and custom policy `secretsmanager:GetSecretValue` on the specific DB secret ARN only.
-  - Phase 3: custom policy `lambda:InvokeFunction` on the specific fraud-mock Lambda ARN only.
+  - Phase 2: AWS managed policy ARN `arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole` (manage ENIs) and custom policy `secretsmanager:GetSecretValue`. Scoping to the specific DB secret ARN is preferred, but `ao-radar/*` is acceptable for demo speed.
+  - Phase 3: custom policy `lambda:InvokeFunction`. Scoping to the specific fraud-mock Lambda ARN is preferred, but `ao-radar-*` functions are acceptable for demo speed.
 - `aws_iam_role.fraud_lambda_exec` — assume role for `lambda.amazonaws.com`.
   - AWS managed policy ARN `arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole` only.
 - `aws_lambda_permission.api_invoke_mcp` — allows `apigateway.amazonaws.com` to invoke MCP Lambda; use `source_arn = "${aws_apigatewayv2_api.main.execution_arn}/*/*"` for the specific HTTP API while routes are still evolving. A route-specific ARN is acceptable later, but validate it with `aws lambda get-policy` because HTTP API route ARN patterns are easy to over-tighten.
@@ -256,7 +256,7 @@ Each entry lists the resource type, logical name, and the cross-file refs it dep
   - `filename = var.mcp_lambda_zip_path` and `source_code_hash = filebase64sha256(var.mcp_lambda_zip_path)` — Phase 1 may use a tiny placeholder zip with a stub handler returning `{"ok": true}` so `terraform apply` succeeds before app code exists.
   - `memory_size = var.lambda_memory_mb` (default 512).
   - `timeout = var.lambda_timeout_s` (default 25; must stay under API GW HTTP API 30s integration cap).
-  - `reserved_concurrent_executions = var.mcp_reserved_concurrency` (default 5).
+  - `reserved_concurrent_executions = var.mcp_reserved_concurrency` (default 10).
   - `vpc_config` — Phase 2 onward — `subnet_ids = aws_subnet.private[*].id`, `security_group_ids = [aws_security_group.mcp_lambda.id]`.
   - `environment.variables` are phase-gated to avoid Terraform references to resources that do not exist yet:
     - Phase 1: `LOG_LEVEL = "INFO"` only.
@@ -265,14 +265,14 @@ Each entry lists the resource type, logical name, and the cross-file refs it dep
 - `aws_lambda_function.fraud_mock`:
   - `function_name = "${name_prefix}-fraud-mock"`
   - `role = aws_iam_role.fraud_lambda_exec.arn`
-  - Same runtime; smaller memory (`256`); shorter timeout (`10s`); reserved concurrency `2`.
+  - Same runtime; smaller memory (`256`); shorter timeout (`10s`); reserved concurrency `5`.
   - **No `vpc_config`** by default. Stays out of the VPC.
 
 ### `api_gateway.tf`
 - `aws_apigatewayv2_api.main`:
   - `name = "${name_prefix}-http-api"`
   - `protocol_type = "HTTP"`
-  - `disable_execute_api_endpoint = var.disable_execute_api_endpoint`. Keep `false` only while debugging Phase 1 DNS/TLS, then set `true` before the public demo window so traffic must use the custom domain.
+  - `disable_execute_api_endpoint = var.disable_execute_api_endpoint`. Default `false` for the demo so the execute-api hostname remains available as a fallback if DNS/custom-domain setup is flaky. Turning it off is a production-hardening follow-up, not a demo blocker.
 - `aws_apigatewayv2_integration.mcp`:
   - `api_id = aws_apigatewayv2_api.main.id`
   - `integration_type = "AWS_PROXY"`
@@ -285,9 +285,9 @@ Each entry lists the resource type, logical name, and the cross-file refs it dep
 - `aws_apigatewayv2_stage.default`:
   - `name = "$default"`, `auto_deploy = true`.
   - `default_route_settings`:
-    - `throttling_burst_limit = var.api_throttle_burst` (default 20)
-    - `throttling_rate_limit = var.api_throttle_rate` (default 10)
-    - `detailed_metrics_enabled = true`
+    - `throttling_burst_limit = var.api_throttle_burst` (default 100)
+    - `throttling_rate_limit = var.api_throttle_rate` (default 50)
+    - `detailed_metrics_enabled = false` by default; enable only if useful while debugging
   - `access_log_settings`:
     - `destination_arn = aws_cloudwatch_log_group.api_access.arn`
     - `format` = JSON template with requestId, ip, requestTime, routeKey, status, responseLength, integrationLatency. Do **not** include request bodies, query strings, cookies, `Authorization`, or arbitrary headers in access logs.
@@ -354,7 +354,7 @@ After apply, validate:
 
 **Exit criterion:** ChatGPT Apps successfully discovers and calls the toy tool over the custom domain. **This is the most important validation gate in the whole plan** — if ChatGPT cannot connect to a Lambda+API GW MCP endpoint at all, jump to the Transport considerations fallback before continuing.
 
-After the custom domain, TLS, and ChatGPT connector gate pass, flip `disable_execute_api_endpoint = true` and re-apply before the public demo window. Keeping the execute-api hostname enabled is acceptable only for initial Phase 1 debugging.
+After the custom domain, TLS, and ChatGPT connector gate pass, keep `disable_execute_api_endpoint = false` unless there is a specific reason to remove the fallback hostname. For this demo, reliability beats tidiness.
 
 ### Phase 2 — VPC, RDS, Secrets Manager
 Files added: `networking.tf`, `security_groups.tf`, `secrets.tf`, `rds.tf`. Modify `lambda.tf` to attach MCP Lambda to private subnets. Modify `iam.tf` to add `AWSLambdaVPCAccessExecutionRole` and `secretsmanager:GetSecretValue` policy.
@@ -381,14 +381,14 @@ After apply, validate:
 
 **Exit criterion:** MCP Lambda can invoke fraud-mock Lambda from inside the VPC without a NAT gateway.
 
-### Phase 4 — Hardening for the demo window
-- Confirm `default_route_settings` throttle is in effect and access logs are landing in CloudWatch.
-- Confirm reserved concurrency on both Lambdas (cap blast radius and protect demo from a runaway client).
-- Tighten Lambda SG egress if not already tight — at minimum egress to RDS SG on 5432 and TCP 443 to VPC endpoint SG.
-- Confirm `disable_execute_api_endpoint = true` so only the custom domain is reachable.
-- Confirm log retention is `7` days on all groups.
-- Confirm API access logs do not include request bodies, raw query strings, cookies, `Authorization`, or arbitrary headers.
-- Confirm the exposed MCP tools remain synthetic/narrow. Any mutating tool added later should be treated as a new security decision, not covered by this unauthenticated infra plan by default.
+### Phase 4 — Demo readiness, not production hardening
+- Confirm the endpoint works from ChatGPT over the custom domain. If the execute-api hostname also works, that is acceptable for this demo.
+- Confirm basic API Gateway throttling is present, but do not make rate limits so tight that judging/demo retries get blocked.
+- Confirm reserved concurrency exists on both Lambdas, sized for a small live demo rather than a public launch.
+- Leave broad Lambda egress in place if it makes debugging simpler. Keep RDS private and SG-limited; that is the important boundary.
+- Confirm log retention is short (`7` days by default).
+- Access logs may include route/method/status/request ID and integration latency. Avoid logging credentials or real PII; synthetic request payload logging is acceptable temporarily if it materially helps debug the demo, but do not commit or publish those logs.
+- Confirm the exposed MCP tools remain synthetic/narrow. Mutation-like tools are acceptable if scoped to demo data and visibly auditable.
 - Add a one-page `infra/README.md` with `apply` / `destroy` instructions, the placeholder zip recipe, and a teardown reminder. (This README is a follow-up artifact, not part of this plan's "single markdown file" deliverable.)
 
 ## Transport considerations
@@ -420,37 +420,38 @@ The decision tree at Phase 1 exit:
 
 ## Security posture
 
-- **Public endpoint, no auth.** Acceptable because:
+This is a hackathon demo, not a production authorization boundary. The goal is: **nothing real, easy to debug, cheap to destroy**. Do not spend build time adding enterprise controls that do not improve the judge-facing demo.
+
+- **Public endpoint, no auth.** This is intentional and acceptable because:
   - Data is synthetic only.
   - Routes are narrow: `POST /mcp`, `GET /health`, optionally `GET /sse`.
-  - API Gateway throttle caps RPS and burst.
-  - Lambda reserved concurrency caps concurrent execution.
-  - `disable_execute_api_endpoint = true` before the public demo removes the default `*.execute-api.us-east-1.amazonaws.com` URL; only `hackathon.example.com` is reachable.
-  - Log retention is short and access logs are on for forensic visibility during the demo window.
-- **No WAF.** Out of scope for hackathon; mention as a production-hardening follow-up.
-- **IAM least-privilege:**
-  - MCP Lambda role: logs, VPC ENI management (managed policy), `secretsmanager:GetSecretValue` only on `${db_secret_arn}`, `lambda:InvokeFunction` only on `${fraud_lambda_arn}`.
-  - Fraud mock role: logs only.
-  - API Gateway → MCP Lambda permission: scoped to the specific HTTP API ARN.
+  - API Gateway throttle and Lambda reserved concurrency provide basic runaway protection.
+  - Keeping the default `*.execute-api.us-east-1.amazonaws.com` endpoint enabled is acceptable as a fallback during the demo. Prefer the custom domain in screenshots and ChatGPT config, but do not block launch on disabling the fallback hostname.
+  - Log retention is short. Logs are for debugging, not compliance.
+- **No WAF, no OAuth, no API keys, no JWTs, no IAM auth on API Gateway.** All are out of scope for this demo.
+- **IAM: pragmatic scoping, not perfection.**
+  - MCP Lambda role: logs, VPC ENI management, Secrets Manager read for the demo secret path, and Lambda invoke for the demo fraud function. Specific-ARN scoping is nice; `ao-radar/*` / `ao-radar-*` resource patterns are fine if they unblock implementation.
+  - Fraud mock role: logs only unless the app code proves it needs more.
+  - API Gateway → MCP Lambda permission can be scoped to the specific HTTP API ARN; do not sink time into route-perfect ARNs unless AWS complains.
 - **Security groups:**
-  - RDS SG: ingress TCP 5432 only from MCP Lambda SG. No public access. `publicly_accessible = false`.
-  - MCP Lambda SG: no ingress (Lambda doesn't accept inbound). Egress: at minimum the RDS SG on 5432 and TCP 443 to the VPCE SG. If egress is temporarily wide open, failures should be timeouts or connection errors rather than HTTP 404s; 404s are usually routing/application issues.
-  - VPCE SG: ingress TCP 443 from MCP Lambda SG; egress none.
+  - Keep RDS private: ingress TCP 5432 only from MCP Lambda SG and `publicly_accessible = false`. This is the boundary worth preserving.
+  - MCP Lambda SG: no ingress. Broad outbound egress is acceptable for the demo, especially while debugging VPC endpoints/SDK calls. Tighten later only if there is extra time.
+  - VPCE SG: allow TCP 443 from MCP Lambda SG. Default egress is fine.
 - **Secrets:**
   - DB master password is a `random_password`. Do not commit `terraform.tfstate`. Do not paste output that includes the password.
   - Secret stored in Secrets Manager with default AWS-managed key; CMK out of scope.
   - Never reference real credentials in variables, defaults, or examples.
 - **Request data hygiene:**
   - Do not put credentials, tokens, or sensitive test values in URLs or query strings.
-  - Do not log MCP request bodies by default. Lambda logs should record request IDs, route/method, status, and coarse error class only unless a temporary debug flag is intentionally enabled and removed before demo.
-- **No CloudTrail wiring, no GuardDuty, no Config rules**, no VPC flow logs — all out of scope.
+  - Synthetic MCP request payloads may be logged temporarily when debugging. Do not log real PII because there should be no real PII in the system. Do not publish logs.
+- **No CloudTrail wiring, no GuardDuty, no Config rules, no VPC flow logs, no KMS CMKs, no compliance monitoring.** All are out of scope.
 
 ## Cost guardrails
 
 - RDS `db.t4g.micro`, 20 GB gp3, single-AZ, no backups, no Performance Insights, no enhanced monitoring. Roughly cents per hour while running.
 - No NAT gateway.
 - Interface VPC endpoints: a few cents per hour each while the stack exists.
-- Lambda: pay per invocation; reserved concurrency caps blast radius.
+- Lambda: pay per invocation; reserved concurrency limits runaway traffic without choking the demo.
 - API Gateway HTTP API: per-request pricing; trivial at demo volume.
 - ACM cert: free.
 - Route 53 hosted zone: not managed by this stack; pre-existing.
@@ -480,10 +481,10 @@ Run after each phase (some commands only meaningful from Phase 2 / 3 onward).
 ### API Gateway / Lambda
 - `aws apigatewayv2 get-apis --region us-east-1 --query 'Items[?Name==`ao-radar-http-api`].[ApiId,ApiEndpoint,DisableExecuteApiEndpoint]'`
 - `aws apigatewayv2 get-domain-name --domain-name hackathon.example.com --region us-east-1`
-- After hardening, hitting the execute-api hostname directly should fail or be disabled; only the custom domain should succeed.
+- The custom domain should succeed. The execute-api hostname may also work as a demo fallback; that is acceptable.
 - `aws lambda get-function --function-name ao-radar-mcp --region us-east-1 --query 'Configuration.[FunctionName,Runtime,Timeout,MemorySize,ReservedConcurrentExecutions,VpcConfig.SubnetIds,VpcConfig.SecurityGroupIds]'`
 - `aws lambda get-function --function-name ao-radar-fraud-mock --region us-east-1 --query 'Configuration.[FunctionName,Runtime,Timeout,MemorySize,ReservedConcurrentExecutions]'`
-- `aws lambda get-policy --function-name ao-radar-mcp --region us-east-1` and confirm the API Gateway permission is scoped to this API's execution ARN, not `*`.
+- `aws lambda get-policy --function-name ao-radar-mcp --region us-east-1` and confirm API Gateway can invoke the function. Specific API ARN scoping is preferred, but do not over-debug ARN exactness if invocation works and the stack remains demo-only.
 
 ### Endpoint smoke tests
 - `curl -i https://hackathon.example.com/health`
@@ -564,23 +565,23 @@ Order matters; some resources block others.
 | `lambda_runtime`               | string   | `"python3.12"`                   | Adjust to match app team's runtime.                          |
 | `lambda_memory_mb`             | number   | `512`                            | MCP Lambda.                                                  |
 | `lambda_timeout_s`             | number   | `25`                             | Stay under API GW HTTP API 30 s cap.                         |
-| `mcp_reserved_concurrency`     | number   | `5`                              | Cap blast radius.                                            |
-| `fraud_reserved_concurrency`   | number   | `2`                              | Cap blast radius.                                            |
-| `api_throttle_rate`            | number   | `10`                             | Requests per second.                                         |
-| `api_throttle_burst`           | number   | `20`                             | Burst.                                                       |
+| `mcp_reserved_concurrency`     | number   | `10`                             | Enough for a small live demo; still caps runaway traffic.     |
+| `fraud_reserved_concurrency`   | number   | `5`                              | Enough for a small live demo; still caps runaway traffic.     |
+| `api_throttle_rate`            | number   | `50`                             | Requests per second; avoid blocking demo retries.             |
+| `api_throttle_burst`           | number   | `100`                            | Burst; avoid blocking demo retries.                          |
 | `log_retention_days`           | number   | `7`                              | Short, hackathon.                                            |
 | `enable_secretsmanager_vpce`   | bool     | `true` (Phase 2 onward)          | Required when VPC Lambda reads Secrets Manager without NAT.   |
 | `enable_lambda_vpce`           | bool     | `false` until Phase 3            | Required when VPC Lambda invokes fraud Lambda without NAT.    |
 | `enable_s3_gateway_endpoint`   | bool     | `false`                          | Enable only if code actually uses S3.                        |
 | `enable_logs_vpce`             | bool     | `false`                          | Only for direct CloudWatch Logs API calls from app code.      |
-| `disable_execute_api_endpoint` | bool     | `false` in Phase 1, then `true`  | Keep execute-api only for initial debugging.                  |
+| `disable_execute_api_endpoint` | bool     | `false`                          | Keep execute-api as a fallback for the demo.                  |
 | `enable_sse_route`             | bool     | `false`                          | Only enable if MCP transport requires it.                    |
 | `mcp_lambda_zip_path`          | string   | `"./build/mcp.zip"`              | Placeholder zip until app team owns build.                   |
 | `fraud_lambda_zip_path`        | string   | `"./build/fraud.zip"`            | Placeholder zip until app team owns build.                   |
 
 ## Appendix B — Outputs (expected)
 
-| Output                | a hosted remote MCP providermple                                                              |
+| Output                | Example                                                              |
 |-----------------------|----------------------------------------------------------------------|
 | `mcp_url`             | `https://hackathon.example.com/mcp`                              |
 | `health_url`          | `https://hackathon.example.com/health`                           |
