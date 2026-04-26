@@ -13,8 +13,7 @@ pytestmark = pytest.mark.e2e
 
 def test_e2e_oconus_cash_exchange_rate(mcp_base_url: str) -> None:
     pytest.skip(
-        "Pending deployed endpoint + seeded V-1007; this scenario walks "
-        "prepare_ao_review_brief and asserts a "
-        "cash_atm_or_exchange_reconstruction finding with "
-        "needs_human_review=true."
+        "Pending application Phase 2+ wiring of prepare_ao_review_brief. "
+        "The deployed endpoint and V-1007 seed are present, but tools "
+        "currently return the Phase 1 not_implemented stub."
     )

@@ -13,8 +13,7 @@ pytestmark = pytest.mark.e2e
 
 def test_e2e_ambiguous_loa_misclick_math(mcp_base_url: str) -> None:
     pytest.skip(
-        "Pending deployed endpoint + seeded V-1004; this scenario walks "
-        "prepare_ao_review_brief and record_ao_note, asserting findings "
-        "include ambiguous_loa_or_funding_reference, "
-        "miscategorized_line_item, and paperwork_or_math_inconsistency."
+        "Pending application Phase 2+ wiring of prepare_ao_review_brief and "
+        "record_ao_note. The deployed endpoint and V-1004 seed are present, "
+        "but tools currently return the Phase 1 not_implemented stub."
     )

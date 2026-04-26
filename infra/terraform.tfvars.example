@@ -38,7 +38,7 @@ az_count = 2
 
 db_instance_class    = "db.t4g.micro"
 db_allocated_storage = 20
-db_engine_version    = "16.3"
+db_engine_version    = "16.13"
 
 ############################################################
 # Lambda

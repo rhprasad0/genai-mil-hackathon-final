@@ -13,7 +13,8 @@ pytestmark = pytest.mark.e2e
 
 def test_deployed_blocked_status_values_refused_with_audit(mcp_base_url: str) -> None:
     pytest.skip(
-        "Pending deployed endpoint; this test will issue "
-        "set_voucher_review_status with each blocked value and assert a "
-        "matching refusal event lands in get_audit_trail."
+        "Pending application Phase 4+ wiring of set_voucher_review_status "
+        "and get_audit_trail. The deployed endpoint is present, but those "
+        "tools currently return the Phase 1 not_implemented stub instead "
+        "of refusal envelopes coupled to workflow_events."
     )

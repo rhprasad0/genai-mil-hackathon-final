@@ -51,18 +51,16 @@ def run_seed(*, reset: bool = False) -> dict[str, Any]:
     """Invoke the synthetic-data seed loader.
 
     Lazy import so the application package does not depend on
-    ``ops.seed`` (owned by the synthetic-data teammate).
+    ``ops.seed`` (owned by the synthetic-data teammate).  The package
+    ``__init__`` is documentation-only, so import the concrete loader module.
     """
 
     _ensure_synthetic_environment()
-    seed_module = importlib.import_module("ops.seed")
-    if reset:
-        if not hasattr(seed_module, "reset"):
-            raise DBOpsRefusal("ops.seed.reset is not defined")
-        return seed_module.reset()
-    if not hasattr(seed_module, "load"):
-        raise DBOpsRefusal("ops.seed.load is not defined")
-    return seed_module.load()
+    loader = importlib.import_module("ops.seed.load")
+    if not hasattr(loader, "run_load"):
+        raise DBOpsRefusal("ops.seed.load.run_load is not defined")
+    loader.run_load(reset=reset)
+    return {"status": "ok", "reset": reset}
 
 
 def dispatch(payload: dict[str, Any]) -> dict[str, Any]:

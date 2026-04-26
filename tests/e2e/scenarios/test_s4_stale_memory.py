@@ -13,7 +13,7 @@ pytestmark = pytest.mark.e2e
 
 def test_e2e_stale_memory_old_transaction(mcp_base_url: str) -> None:
     pytest.skip(
-        "Pending deployed endpoint + seeded V-1006; this scenario walks "
-        "prepare_ao_review_brief and asserts a "
-        "stale_memory_old_transaction finding."
+        "Pending application Phase 2+ wiring of prepare_ao_review_brief. "
+        "The deployed endpoint and V-1006 seed are present, but tools "
+        "currently return the Phase 1 not_implemented stub."
     )

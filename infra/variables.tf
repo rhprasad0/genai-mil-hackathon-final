@@ -71,7 +71,7 @@ variable "db_allocated_storage" {
 variable "db_engine_version" {
   description = "Postgres engine minor version. Verify it is currently orderable in the chosen region before apply."
   type        = string
-  default     = "16.3"
+  default     = "16.13"
 }
 
 ############################################################
