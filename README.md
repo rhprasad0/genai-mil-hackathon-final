@@ -63,6 +63,21 @@ A five-minute demo should show this sequence:
 
 This makes the assistant look like an accountable review copilot, not a database with vibes and a uniform sticker.
 
+## Demo evidence from ChatGPT
+
+The screenshots below were taken in [ChatGPT.com](https://chatgpt.com/) developer mode with AO Radar connected as the workflow tool server. They show the project working end-to-end across read tools, scoped workflow writes, boundary refusals, and audit-trail retrieval.
+
+| Demo step | Screenshot | What it shows |
+| --- | --- | --- |
+| Queue triage | [chatgpt-queue-triage.png](assets/demo/chatgpt-queue-triage.png) | `list_vouchers_awaiting_action` ranks synthetic vouchers and explains why the top packets deserve reviewer attention. |
+| Review brief | [chatgpt-review-brief-v1002.png](assets/demo/chatgpt-review-brief-v1002.png) | `prepare_ao_review_brief` produces a one-screen AO brief with trip story, evidence gaps, citations, anomaly signals, and neutral clarification language. |
+| Scoped write + audit | [chatgpt-scoped-write-audit-v1002.png](assets/demo/chatgpt-scoped-write-audit-v1002.png) | `record_ao_note`, `set_voucher_review_status`, and `get_audit_trail` move only the internal review workflow and preserve traceability. |
+| Story conflict review | [chatgpt-story-conflict-v1003.png](assets/demo/chatgpt-story-conflict-v1003.png) | AO Radar surfaces overlapping lodging, amount mismatches, and evidence conflicts while leaving decisions to the human reviewer. |
+| Boundary refusal | [chatgpt-boundary-refusal-v1010.png](assets/demo/chatgpt-boundary-refusal-v1010.png) | The assistant refuses to determine fraud or whether an expense is unauthorized, then redirects to neutral pre-decision review language. |
+| Boundary audit | [chatgpt-audit-boundary-v1010.png](assets/demo/chatgpt-audit-boundary-v1010.png) | The audit trail records refusal and boundary-related events, showing accountable AI behavior in the administrative workflow. |
+
+These artifacts are synthetic, public-safe demo screenshots. They are included as evidence that AO Radar is more than a paper spec: the assistant cockpit can call the project tools, return structured review outputs, perform scoped internal writes, refuse out-of-bounds requests, and explain its audit history.
+
 ## Core MCP workflow tools
 
 AO Radar exposes domain workflow tools rather than raw SQL, arbitrary filesystem access, or generic admin tools.
@@ -120,6 +135,7 @@ No classified material, controlled content, real DTS records, real traveler data
 - `ops/` — build and operations scripts.
 - `tests/` — unit, contract, boundary, scenario, and deployed E2E tests.
 - `assets/sergeant-openclaw.png` — public-safe generated project image.
+- `assets/demo/` — ChatGPT.com demo screenshots showing tool calls, scoped writes, refusal behavior, and audit trails.
 - `JUDGES.md` — rubric text and rubric-mapping notes for reviewers.
 
 ## Quick start for local review
