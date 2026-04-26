@@ -64,6 +64,7 @@ AO Radar adapts that challenge framing to the travel-voucher review side of the 
 ## Deliverables in this repository
 
 - `docs/spec.md` — implementation-neutral capability and system specification for AO Radar.
+- `docs/infra-implementation-plan.md` — canonical public-safe Terraform/AWS infrastructure implementation plan.
 - `assets/sergeant-openclaw.png` — public-safe generated project image.
 
 ## Acknowledgments
