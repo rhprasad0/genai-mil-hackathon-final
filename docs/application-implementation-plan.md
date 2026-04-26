@@ -46,10 +46,11 @@ behind the API Gateway endpoint described in
 
 ### Non-goals
 
-- Detailed synthetic data / seed scenario design. That is deferred to a
-  separate document. This plan defines only the application contracts needed
-  to consume synthetic data; it does not enumerate voucher narratives,
-  persona names, policy excerpt corpora, or per-scenario fraud-mock recipes.
+- Detailed synthetic data / seed scenario design. That lives in
+  `docs/synthetic-data-implementation-plan.md`. This plan defines only the
+  application contracts needed to consume synthetic data; it does not
+  enumerate voucher narratives, persona names, or per-scenario fraud-mock
+  recipes.
 - Formal test plans, TDD plans, or coverage targets. A short manual demo
   verification checklist is in section 13; that is not a test plan.
 - Choosing or implementing a reviewer-facing UI. The reviewer cockpit is
@@ -70,6 +71,10 @@ behind the API Gateway endpoint described in
   represent workflow state include or point to the human-authority boundary
   reminder. Low-level liveness responses and MCP protocol metadata do not
   need to repeat the full reminder.
+- Hackathon reference retrieval uses the synthetic demo reference corpus only.
+  The application must not load real DoD, JTR, DTMO, checklist, or
+  government-system excerpts unless later approved corpus-review work changes
+  the scope.
 
 ---
 
@@ -154,7 +159,9 @@ src/
       get_external_anomaly_signals.py
       analyze_voucher_story.py
       get_policy_citation.py
+      get_policy_citations.py
       prepare_ao_review_brief.py
+      export_review_brief.py
       record_ao_note.py
       mark_finding_reviewed.py
       record_ao_feedback.py
@@ -198,12 +205,18 @@ src/
     handler.py                   # Lambda entrypoint
     deterministic.py             # synthetic signal generation per voucher_id
 
+  ao_radar_db_ops/               # private migration/seed Lambda package
+    __init__.py
+    handler.py                   # Lambda entrypoint for migrate/seed/reset
+    operations.py                # calls ops/scripts and ops/seed safely
+
 ops/
   migrations/                    # Postgres migrations (per schema plan)
   seed/                          # synthetic seed routine (separate plan)
   build/                         # zip packaging scripts
     build_mcp_zip.sh
     build_fraud_zip.sh
+    build_db_ops_zip.sh
   scripts/
     run_migrations.py            # idempotent migration runner
 
@@ -222,6 +235,8 @@ Notes on the layout:
 - `fraud_client/` is the only domain-level outbound integration. The MCP
   Lambda may also use AWS SDK clients for Secrets Manager and Lambda Invoke
   as described by the infra plan, but there is no general HTTP client.
+- `ao_radar_db_ops/` is not public and is not connected to API Gateway. It is
+  the Terraform-managed path for migrations and seed/reset inside the VPC.
 - `repository/` exposes only domain-shaped methods. There is no
   `execute_sql`, no `query`, no string-templated query builder available to
   upstream code.
@@ -248,7 +263,7 @@ injected by Terraform per `docs/infra-implementation-plan.md`.
 | `MCP_SERVER_NAME` | FastMCP server identifier returned in `initialize`. | `ao-radar-mcp` |
 | `MCP_SERVER_VERSION` | FastMCP server version returned in `initialize`. | `0.1.0` |
 | `DEMO_DATA_ENVIRONMENT` | Hard guard: must equal `synthetic_demo`; the application refuses to start otherwise. | `synthetic_demo` |
-| `BOUNDARY_REMINDER_TEXT` | Optional override for the human-authority boundary reminder; default uses the constant in `safety/authority_boundary.py`. | unset by default |
+| `BOUNDARY_REMINDER_TEXT` | Optional local/test override for the human-authority boundary reminder. Production/demo Terraform should leave it unset and use `HUMAN_AUTHORITY_BOUNDARY_TEXT` from `safety/authority_boundary.py`. If set, startup fails unless every required boundary clause is still present. | unset by default |
 
 ### Fraud-mock Lambda
 
@@ -256,6 +271,18 @@ injected by Terraform per `docs/infra-implementation-plan.md`.
 |---|---|---|
 | `LOG_LEVEL` | Structured-log level. | `INFO` |
 | `DEMO_DATA_ENVIRONMENT` | Hard guard, same semantics as above. | `synthetic_demo` |
+| `FRAUD_SIGNAL_SOURCE_LABEL` | Synthetic source label emitted on every signal. | `synthetic_compliance_service_demo` |
+| `FRAUD_DETERMINISTIC_SEED` | Fixed seed string for deterministic demo signal generation; never secret. | `ao-radar-synthetic-v1` |
+
+### DB-ops Lambda
+
+| Env var | Purpose | Placeholder |
+|---|---|---|
+| `LOG_LEVEL` | Structured-log level. | `INFO` |
+| `DB_SECRET_ARN` | ARN of Secrets Manager JSON containing DB connection fields. | same DB secret ARN |
+| `DB_CONNECT_TIMEOUT_S` | Postgres connect timeout. | `5` |
+| `DB_STATEMENT_TIMEOUT_MS` | Postgres `statement_timeout` per session. | `15000` |
+| `DEMO_DATA_ENVIRONMENT` | Hard guard: must equal `synthetic_demo`. | `synthetic_demo` |
 
 Configuration loading rules:
 
@@ -269,6 +296,13 @@ Configuration loading rules:
 - The `DEMO_DATA_ENVIRONMENT` value is also asserted at every database
   connection by setting an application-name session parameter and by
   cross-checking the schema-level `data_environment` CHECK on read.
+- `safety/authority_boundary.py` defines
+  `HUMAN_AUTHORITY_BOUNDARY_TEXT` exactly as the schema plan section 6.6
+  canonical string. If `BOUNDARY_REMINDER_TEXT` is present, config validation
+  rejects it unless it contains required clauses for no approve, deny, certify,
+  return, cancel, amend, submit, entitlement determination, payability
+  determination, fraud accusation, and contact with external parties. Do not
+  allow an override that weakens the reminder.
 
 ---
 
@@ -373,10 +407,11 @@ should return non-empty results from a freshly seeded database.
 Implementation: read any persisted signals from
 `external_anomaly_signals` for the voucher, then call the fraud-mock
 Lambda for any deterministic synthetic supplement defined by the contract
-in section 9. Persist new signals append-only, avoid duplicating an
-already-persisted deterministic signal, write a retrieval audit event when
-the tool invokes the mock or persists a signal, label everything with the
-spec-required `is_official_finding = false` /
+in section 9. Persist new signals through an idempotent
+`(voucher_id, signal_key)` upsert, avoid duplicating an already-persisted
+deterministic signal, write a retrieval audit event when the tool invokes
+the mock or persists a signal, label everything with the spec-required
+`is_official_finding = false` /
 `not_sufficient_for_adverse_action = true` markers, and return.
 
 ### Step D — Story analysis and fusion
@@ -415,11 +450,15 @@ In an order that lets the demo flow naturally:
     `kind = ao_feedback` on `ao_notes`.
 15. `get_audit_trail(voucher_id)` — read of `workflow_events` ordered by
     `occurred_at`.
+16. `export_review_brief(voucher_id or brief_id, format)` — resolves the
+    latest brief for a voucher, or the requested `brief_id`, returns a
+    portable `markdown` or `json` payload with the canonical boundary
+    reminder, and writes `workflow_events.event_type = export`.
 
 After step E the MCP application covers the scoped tool-surface behavior in
 `docs/spec.md` section 5. Final demo acceptance still depends on the
-separate synthetic data plan, the selected cockpit's presentation/export
-path, and a manual smoke pass.
+separate synthetic data plan, the selected cockpit's presentation path, and
+a manual smoke pass.
 
 ---
 
@@ -508,11 +547,19 @@ the following:
     `repeated_correction_pattern`, `peer_baseline_outlier`,
     `traveler_baseline_outlier`).
   - `synthetic_source_label` (e.g. `synthetic_compliance_service_demo`).
+  - `signal_key`, deterministic within a voucher using the synthetic-data
+    plan format `<signal_type>:<scenario_slug>:<ordinal>`.
+  - `signal_id`, derived from `voucher_id` and `signal_key` using the
+    schema plan format.
   - `rationale_text` written in neutral, non-accusatory language.
   - `confidence` from the schema enum (`low | medium | high`).
   - The two boolean markers above.
   - A timestamp the MCP Lambda rewrites to `received_at` on persist.
-- Determinism is implemented by hashing the `voucher_id` and a fixed seed.
+- Determinism is implemented by hashing the `voucher_id`, `signal_key`, and
+  a fixed seed. `(voucher_id, signal_key)` is the idempotence boundary; if
+  the repository sees a unique-key conflict while persisting a fraud-mock
+  supplement, it treats the conflict as a successful replay and returns the
+  stored row.
 
 ### MCP-side handling
 
@@ -673,18 +720,20 @@ defines the artifacts the infra plan consumes and the deploy contract.
   containing the `ao_radar_fraud_mock` package. The fraud mock has no
   third-party runtime dependencies beyond the Lambda Python runtime, so
   this zip is intentionally tiny.
-- Both scripts are idempotent and produce a deterministic zip when given
-  the same source tree, so `filebase64sha256` in Terraform changes only
-  when the source changes.
+- `ops/build/build_db_ops_zip.sh` produces `infra/build/db_ops.zip`
+  containing the private `ao_radar_db_ops` package plus the migration and
+  seed code it invokes.
+- All build scripts are idempotent and produce a deterministic zip when
+  given the same source tree, so `filebase64sha256` in Terraform changes
+  only when the source changes.
 - Build scripts do not embed secrets, environment values, or
   account-specific identifiers.
 
 ### Handler entrypoints
 
-- MCP Lambda: `handler = "ao_radar_mcp.handler.lambda_handler"`. The infra
-  plan currently shows `app.handler` as a placeholder; switch to this
-  fully qualified path once application code lands.
+- MCP Lambda: `handler = "ao_radar_mcp.handler.lambda_handler"`.
 - Fraud-mock Lambda: `handler = "ao_radar_fraud_mock.handler.lambda_handler"`.
+- DB-ops Lambda: `handler = "ao_radar_db_ops.handler.lambda_handler"`.
 
 ### Environment variables (per infra phase)
 
@@ -696,18 +745,19 @@ The infra plan phases env vars to avoid forward references:
   `DB_CONNECT_TIMEOUT_S`, `DB_STATEMENT_TIMEOUT_MS`.
 - **Phase 3 (fraud mock attached):** add `FRAUD_FUNCTION_NAME`,
   `FRAUD_INVOKE_TIMEOUT_S`.
+- **DB-ops Lambda:** `LOG_LEVEL`, `DB_SECRET_ARN`,
+  `DB_CONNECT_TIMEOUT_S`, `DB_STATEMENT_TIMEOUT_MS`,
+  `DEMO_DATA_ENVIRONMENT`.
 
 ### Migration runner
 
 - `ops/scripts/run_migrations.py` is a small script that reads
   `DB_SECRET_ARN` from the environment, applies migrations from
   `ops/migrations/`, and exits.
-- For the hackathon demo, the migration runner is invoked from a one-off
-  VPC-attached probe/migration Lambda, or from a developer environment that
-  has explicitly configured private connectivity to the RDS subnets. It is
-  not assumed to run directly from an arbitrary laptop against a private RDS
-  endpoint. The infra plan does not own migrations, and this plan does not
-  introduce a new Terraform construct to run them.
+- For the hackathon demo, the migration runner is invoked through the
+  Terraform-managed, VPC-attached `db_ops` Lambda. Local developer commands
+  may use the same code for tests, but deployed migration/seed/reset must
+  not rely on manually created one-off AWS resources.
 - The runner asserts the `data_environment = synthetic_demo` guard before
   applying any migration.
 
@@ -718,12 +768,16 @@ The infra plan phases env vars to avoid forward references:
   `reset_demo()` routine exists, runs only when
   `data_environment = synthetic_demo`, and preserves the audit-event
   invariants for any seeded workflow state.
+- Deployed seed and reset operations are exposed only as `db_ops` Lambda
+  operation payloads such as `{"operation":"seed"}` and
+  `{"operation":"seed","reset":true}`. They are never MCP tools.
 
 ### What the infra plan should expect from the application
 
-- Two Lambda zip paths, set via `var.mcp_lambda_zip_path` and
-  `var.fraud_lambda_zip_path` per the infra plan's Appendix A.
-- Two handler strings (above).
+- Three Lambda zip paths, set via `var.mcp_lambda_zip_path`,
+  `var.fraud_lambda_zip_path`, and `var.db_ops_lambda_zip_path` per the
+  infra plan's Appendix A.
+- Three handler strings (above).
 - The env-var matrix in section 5, scoped by phase.
 - No additional API Gateway routes, IAM policies, or VPC endpoints
   beyond those the infra plan already enumerates.
@@ -754,7 +808,7 @@ the boundary the spec requires.
 - [ ] `get_traveler_profile` and `list_prior_voucher_summaries` return
   synthetic context with the demo markers visible.
 - [ ] `get_policy_citation` and `get_policy_citations` return verbatim
-  excerpts with source identifiers.
+  synthetic demo reference-corpus excerpts with source identifiers.
 
 ### Fraud-mock integration
 
@@ -763,6 +817,9 @@ the boundary the spec requires.
   `not_sufficient_for_adverse_action = true`.
 - [ ] Calling it twice with the same input returns the same synthetic
   signal set.
+- [ ] Every returned signal has a deterministic `signal_key`, a derived
+  `signal_id`, and no duplicate `(voucher_id, signal_key)` row after
+  repeated calls.
 
 ### Fusion
 
@@ -774,6 +831,9 @@ the boundary the spec requires.
 - [ ] A new `review_briefs` row exists with version monotonically
   incremented for that voucher, plus a corresponding
   `event_type = generation` row in `workflow_events`.
+- [ ] `export_review_brief` returns the latest brief, or a requested
+  `brief_id`, in `markdown` and `json`, includes the canonical boundary
+  reminder, and writes one `event_type = export` audit row.
 
 ### Scoped writes
 
@@ -827,7 +887,8 @@ are easy.
 - Add a minimal `pyproject.toml` (or equivalent) so packaging is
   reproducible.
 - Wire `ops/build/build_mcp_zip.sh` and `ops/build/build_fraud_zip.sh`
-  to produce empty-but-valid zips that import-check at Lambda cold start.
+  and `ops/build/build_db_ops_zip.sh` to produce empty-but-valid zips that
+  import-check at Lambda cold start.
 
 **Exit criterion:** zips build deterministically; both Lambdas can be
 deployed by Terraform Phase 1 with placeholder handlers that return 200.
@@ -858,7 +919,8 @@ has been implemented.
 ### Phase 3 — Fraud-mock Lambda and signal tool
 
 - Implement `ao_radar_fraud_mock` with deterministic synthetic output per
-  the high-level contract in section 9.
+  the high-level contract in section 9, including stable `signal_key` and
+  derived `signal_id` values.
 - Implement `fraud_client/client.py` and bind
   `get_external_anomaly_signals` to it with append-only persistence.
 
@@ -872,11 +934,14 @@ signals; storing and re-reading them produces the same results.
 - Implement `domain/brief_assembly.py` and bind
   `prepare_ao_review_brief`. Persist `review_briefs` and the
   `event_type = generation` audit event in one transaction.
+- Bind `export_review_brief` so it resolves an existing brief, emits a
+  portable artifact, and writes `event_type = export`.
 
 **Exit criterion:** with synthetic fixture data present, a non-control
 voucher produces a brief with non-empty `policy_hooks`, `signal_hooks`,
 `finding_hooks`, and `missing_information_hooks`, and a versioned row in
-`review_briefs`.
+`review_briefs`; exporting that brief returns the requested format and logs
+an export event.
 
 ### Phase 5 — Scoped audited writes
 

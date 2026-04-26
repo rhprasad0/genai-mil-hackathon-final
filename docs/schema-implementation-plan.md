@@ -2,11 +2,10 @@
 
 A coding-agent-ready plan for the persistence layer that supports the AO Radar
 prototype described in `docs/spec.md`. This document is **plan only**: it does
-not introduce migrations, application code, or any commitments to a specific
-database product. It is written so that a downstream coding agent can take the
-plan, choose a concrete database, and produce migrations, seed fixtures, a
-scoped data-access layer, and tests without re-deriving any of the design
-decisions here.
+not introduce migrations or application code. It makes Postgres 16 the
+canonical database target so a downstream coding agent can produce migrations,
+seed fixtures, a scoped data-access layer, and tests without re-deriving any
+of the design decisions here.
 
 The plan incorporates sanitized practitioner-derived observations about how
 travel voucher review actually fails in practice, expressed entirely as
@@ -56,8 +55,9 @@ next. Bias the work toward concrete, testable artifacts.
 
 ### Out of scope
 
-- Choosing a specific database product, ORM, migration tool, or hosting
-  environment. The plan is implementation-neutral; the coding agent decides.
+- Choosing a database product. Postgres 16 is canonical for the hackathon
+  implementation. The coding agent may choose the Python migration runner
+  implementation details, but migrations must target Postgres 16.
 - The retrieval pipeline, the reasoning component, and the reviewer-facing
   surface, except where their inputs and outputs touch the schema.
 - Any integration with the real Defense Travel System, real GTCC data, real
@@ -153,9 +153,9 @@ policy_citations  (corpus, read-only at runtime)
 - **prior_voucher_summaries** — short synthetic summaries of earlier vouchers
   for the same traveler, used for baseline comparison only. No intent
   inference.
-- **policy_citations** — the approved reference repository as data:
-  source identifier, verbatim excerpt text, retrieval anchor, applicability
-  note. Read-only at runtime.
+- **policy_citations** — the approved synthetic demo reference corpus as
+  data: source identifier, verbatim excerpt text, retrieval anchor,
+  applicability note. Read-only at runtime.
 - **external_anomaly_signals** — synthetic risk indicators per voucher with
   type, rationale, synthetic source label, confidence, and an explicit
   not-an-official-finding marker.
@@ -334,6 +334,10 @@ coding agent can pick concrete types for the chosen database.
   - `evidence_ref_id` (text, PK)
   - `voucher_id` (text, FK → vouchers.voucher_id)
   - `line_item_id` (text, nullable, FK → voucher_line_items.line_item_id)
+  - `packet_level_role` (enum nullable: `trip_itinerary`,
+    `authorization_snapshot`, `packet_justification`,
+    `funding_reference_attachment`, `none_attached_summary`; required when
+    `line_item_id` is NULL)
   - `content_type_indicator` (enum: `receipt_image_demo`,
     `receipt_pdf_demo`, `itinerary_pdf_demo`, `boarding_pass_image_demo`,
     `handwritten_local_paper_demo`, `email_confirmation_text_demo`,
@@ -351,9 +355,12 @@ coding agent can pick concrete types for the chosen database.
   - `currency_code_on_face` (text, nullable)
   - `notes` (text)
 - **Constraints / checks:**
-  - At least one of (`line_item_id` IS NOT NULL) OR (a documented
-    packet-level role) — packet-level evidence is allowed but should be the
-    minority of rows.
+  - At least one of (`line_item_id` IS NOT NULL) OR
+    (`packet_level_role` IS NOT NULL). Packet-level evidence is allowed but
+    should be the minority of rows.
+  - If `line_item_id` IS NULL, `packet_level_role` must be one of the enum
+    values above. If `line_item_id` IS NOT NULL, `packet_level_role` may be
+    NULL unless the row also intentionally describes a packet-level artifact.
   - `content_type_indicator` and the three cue columns CHECK against their
     enums.
   - When `content_type_indicator` = `none_attached_demo`, the cue columns
@@ -394,9 +401,10 @@ coding agent can pick concrete types for the chosen database.
 
 ### 5.6 policy_citations
 
-- **Purpose:** the approved reference repository as data. Read-only at
-  runtime. Excerpts are stored verbatim with a source identifier and an
-  applicability note so that flags can cite without paraphrasing.
+- **Purpose:** the approved synthetic demo reference corpus as data. Read-only
+  at runtime. Hackathon excerpts are stored verbatim with a source identifier
+  and an applicability note so that flags can cite without paraphrasing, but
+  they are synthetic text only.
 - **Key columns:**
   - `citation_id` (text, PK, e.g. `CITE-RECEIPT-001`)
   - `source_identifier` (text, e.g. `synthetic_dtmo_checklist_demo_v1`)
@@ -413,23 +421,25 @@ coding agent can pick concrete types for the chosen database.
   - `created_at` (timestamp)
 - **Constraints / checks:**
   - `topic` CHECK against the enum.
+  - `source_identifier` must start with `synthetic_dtmo_checklist_demo_` or
+    `synthetic_demo_reference_` for the hackathon implementation.
   - Do not apply the section 6.4 blocked-status CHECK to `excerpt_text`.
-    Policy or checklist excerpts may legitimately contain words such as
-    "approval" or "return" as part of source text. Seed/demo excerpt text is
-    instead validated by the fixture validator so it cannot present itself as
-    an official determination for a specific voucher.
+    Synthetic policy/checklist-shaped excerpts may legitimately contain words
+    such as "approval" or "return" as part of source-shaped text. Seed/demo
+    excerpt text is instead validated by the fixture validator so it cannot
+    present itself as an official determination for a specific voucher.
 - **Indexes:**
   - Index on `topic`.
   - Optional full-text or trigram index on `retrieval_anchor` if the chosen
     database supports one cheaply. Not required for the demo.
-- **Seed-data role:** a small but topic-complete demo reference corpus. Do
-  not invent real DoD citations or quote unverified policy text. For the
-  public hackathon seed, use short excerpts clearly labeled as
-  `synthetic_demo_reference` to demonstrate citation mechanics; any later
-  pilot that uses real public excerpts must load them through an approved
-  reference-corpus review. Each topic in the enum gets at least one citation,
-  and the corpus must be sufficient to ground every flag category that the
-  seed scenarios exercise.
+- **Seed-data role:** a small but topic-complete synthetic demo reference
+  corpus. Do not invent real DoD citations, quote real JTR/DTMO/checklist
+  text, or load any government-system excerpt for the hackathon build. Use
+  short excerpts clearly labeled as `synthetic_demo_reference` to demonstrate
+  citation mechanics; any later pilot that uses real public excerpts must
+  load them through an approved reference-corpus review. Each topic in the
+  enum gets at least one citation, and the corpus must be sufficient to
+  ground every flag category that the seed scenarios exercise.
 - **Spec alignment:** section 3.7 (Reference Excerpt), FR-5, FR-8, NFR-3
   (grounding discipline), TR-5, TR-6, AC-2.
 
@@ -439,8 +449,12 @@ coding agent can pick concrete types for the chosen database.
   or anomaly service. Each row is explicitly framed as a review prompt, not
   an official finding, and not sufficient for adverse action.
 - **Key columns:**
-  - `signal_id` (text, PK)
+  - `signal_id` (text, PK; deterministic, e.g.
+    `SIG-V-1003-duplicate_payment_risk-lodging_overlap_1`)
   - `voucher_id` (text, FK → vouchers.voucher_id)
+  - `signal_key` (text, deterministic per voucher, e.g.
+    `duplicate_payment_risk:lodging_overlap_1`; stable across seed and
+    fraud-mock generation)
   - `signal_type` (enum: `duplicate_payment_risk`, `high_risk_mcc_demo`,
     `unusual_amount`, `date_location_mismatch`, `split_disbursement_oddity`,
     `repeated_correction_pattern`, `peer_baseline_outlier`,
@@ -452,12 +466,21 @@ coding agent can pick concrete types for the chosen database.
   - `not_sufficient_for_adverse_action` (boolean, CHECK = true)
   - `received_at` (timestamp)
 - **Constraints / checks:**
+  - Unique `(voucher_id, signal_key)`. This is the idempotence boundary for
+    seeded signals and fraud-mock supplements.
   - `is_official_finding` CHECK equals false.
   - `not_sufficient_for_adverse_action` CHECK equals true.
   - `signal_type`, `confidence` CHECK against their enums.
-- **Indexes:** FK index on `voucher_id`; index on `signal_type`.
+- **Indexes:** FK index on `voucher_id`; index on `signal_type`; unique index
+  on `(voucher_id, signal_key)`.
 - **Seed-data role:** zero to four signals per voucher, with at least one
   voucher carrying multiple signal types so fusion has something to do.
+- **Fraud-mock ownership rule:** seeded fixtures own the canonical synthetic
+  signal set. The fraud-mock Lambda must either mirror those deterministic
+  rows using the same `signal_key` values or supplement only missing
+  deterministic demo signals. It must never create duplicates for a
+  `(voucher_id, signal_key)` pair and must treat unique-constraint conflicts as
+  successful idempotent replays.
 - **Spec alignment:** section 3.7 (External Anomaly Signal), FR-1, FR-4,
   FR-8, TR-3, AC-14.
 
@@ -549,13 +572,15 @@ coding agent can pick concrete types for the chosen database.
   - `finding_hooks` (json array of finding ids actually used)
   - `missing_information_hooks` (json array of missing_item ids)
   - `brief_uncertainty` (enum: `low`, `medium`, `high`)
-  - `human_authority_boundary_text` (text, fixed reminder line; CHECK that
-    it is non-empty)
+  - `human_authority_boundary_text` (text, fixed reminder line equal to the
+    canonical value in section 6.6 unless a longer approved variant passes the
+    required-clause validator)
   - `is_partial` (boolean, true when retrieval failed or sources conflict)
   - `partial_reason` (text, nullable)
 - **Constraints / checks:**
   - Unique `(voucher_id, version)`.
-  - `human_authority_boundary_text` length ≥ 1.
+  - `human_authority_boundary_text` must pass the section 6.6 boundary
+    validator. For hackathon fixtures, store the exact canonical string.
   - `brief_uncertainty` CHECK against its enum.
   - `draft_clarification_note` and `priority_rationale` are validated by the
     fixture/generation validator for unsafe assertions and official
@@ -635,15 +660,17 @@ coding agent can pick concrete types for the chosen database.
   - `rationale_metadata` (json; arbitrary structured context, e.g.
     refusal reason, requested action, draft text length, citation ids
     surfaced)
-  - `human_authority_boundary_reminder` (text, fixed reminder; CHECK
-    non-empty)
+  - `human_authority_boundary_reminder` (text, fixed reminder equal to the
+    canonical value in section 6.6 unless a longer approved variant passes the
+    required-clause validator)
 - **Constraints / checks:**
   - `event_type`, `target_kind` CHECK against their enums.
   - `tool_name` IS NOT NULL when `event_type = scoped_write`.
   - `resulting_status` CHECK rejects prohibited values whenever it is set and
     allows only the union of section 6.1 voucher statuses and section 6.3
     finding review states.
-  - `human_authority_boundary_reminder` length ≥ 1.
+  - `human_authority_boundary_reminder` must pass the section 6.6 boundary
+    validator. For hackathon fixtures, store the exact canonical string.
 - **Indexes:**
   - FK index on `voucher_id`.
   - Index on `(voucher_id, occurred_at)` for ordered audit retrieval.
@@ -802,6 +829,9 @@ system-authored text must clearly state that the request was refused.
   `currency_exchange`, `other_demo`.
 - `voucher_line_items.payment_instrument_indicator`: `gtcc_like_demo`,
   `personal_card_demo`, `cash_demo`, `unknown_demo`.
+- `evidence_refs.packet_level_role`: `trip_itinerary`,
+  `authorization_snapshot`, `packet_justification`,
+  `funding_reference_attachment`, `none_attached_summary`.
 - `evidence_refs.content_type_indicator`,
   `evidence_refs.legibility_cue`, `evidence_refs.itemization_cue`,
   `evidence_refs.payment_evidence_cue`: as listed in 5.4.
@@ -816,6 +846,20 @@ system-authored text must clearly state that the request was refused.
   `needs_human_review_label`, `retrieval`, `generation`, `edit`, `export`.
 - `workflow_events.target_kind`: `voucher`, `finding`, `note`, `brief`,
   `signal`, `citation`, `missing_item`, `none`.
+
+### 6.6 Canonical human-authority boundary reminder
+
+Use this exact string in seeded `review_briefs.human_authority_boundary_text`
+and `workflow_events.human_authority_boundary_reminder`:
+
+`AO Radar is a synthetic pre-decision review aid. It does not approve, deny, certify, return, cancel, amend, submit, determine entitlement, determine payability, accuse fraud, or contact external parties. The human Approving Official remains accountable for every official action in the official travel system.`
+
+Application code may define a longer deployment-specific string only if it
+passes a required-clause validator. The validator fails startup, seeding, and
+tests when the configured text omits any clause covering no approve, deny,
+certify, return, cancel, amend, submit, entitlement determination, payability
+determination, fraud accusation, or contact with external parties. Do not make
+this a weak environment override.
 
 ---
 
@@ -1128,6 +1172,25 @@ available.
 
 ---
 
+## 7.7 Migration Style and Execution Target
+
+Postgres 16 is the canonical database target. Migrations are forward-only SQL
+files under `ops/migrations/`, named with a four-digit sequence and a short
+verb phrase:
+
+- `0001_create_tables.sql`
+- `0002_add_constraints_and_indexes.sql`
+- `0003_seed_support_objects.sql` if helper views/functions are truly needed
+
+Each migration must be safe to run through the Terraform-managed `db_ops`
+Lambda described in the infra and application plans. The runner records applied
+migration filenames in a small `schema_migrations` table and refuses to run
+when `DEMO_DATA_ENVIRONMENT != synthetic_demo`. Do not require a manually
+created database host, bastion, SSH tunnel, or ad hoc AWS resource to apply
+hackathon migrations.
+
+---
+
 ## 8. Implementation Phases for Coding Agent
 
 Each phase is small and individually verifiable. Bias toward landing each
@@ -1135,6 +1198,8 @@ phase as its own change so review and rollback are easy.
 
 ### Phase 1 — Migration / table creation
 
+- Target Postgres 16.
+- Create `ops/migrations/0001_create_tables.sql`.
 - Create `travelers`, `vouchers`, `voucher_line_items`, `evidence_refs`,
   `prior_voucher_summaries`, `policy_citations`,
   `external_anomaly_signals`, `story_findings`,
@@ -1145,6 +1210,7 @@ phase as its own change so review and rollback are easy.
 
 ### Phase 2 — Constraints and indexes
 
+- Create `ops/migrations/0002_add_constraints_and_indexes.sql`.
 - Add CHECK constraints for every enumeration in section 6.
 - Add the hard blocked-status/value CHECKs on
   `vouchers.review_status`, `story_findings.review_state`, and
@@ -1168,7 +1234,8 @@ phase as its own change so review and rollback are easy.
 - Provide a `reset_demo()` routine that drops and re-seeds. Guard it
   with an explicit `data_environment` check so it can never run against
   any environment other than the synthetic demo. `reset_demo()` is a local
-  developer/test command, not an MCP or assistant-facing workflow tool.
+  developer/test command and a `db_ops` Lambda operation, not an MCP or
+  assistant-facing workflow tool.
 
 ### Phase 4 — Repository / data-access layer
 
@@ -1221,6 +1288,7 @@ this matrix rather than relying on prose.
 | `draft_return_comment` | Append `ao_notes(kind = draft_clarification)` | `event_type = scoped_write`, `target_kind = note`, `target_id = note_id` |
 | `request_traveler_clarification` | Set `vouchers.review_status = awaiting_traveler_clarification` and append `ao_notes(kind = synthetic_clarification_request)` | `event_type = scoped_write`, `target_kind = voucher`, `target_id = voucher_id`, `resulting_status = awaiting_traveler_clarification` |
 | `set_voucher_review_status` | Update `vouchers.review_status` | `event_type = scoped_write`, `target_kind = voucher`, `target_id = voucher_id`, `resulting_status = review_status` |
+| `export_review_brief` | No domain data change beyond audit | `event_type = export`, `target_kind = brief`, `target_id = brief_id`, `rationale_metadata.format = format` |
 | Any refused tool call | No domain write | `event_type = refusal`, target set to the rejected object when known |
 | Any generated or seeded needs-human-review label | Create or update `story_findings.needs_human_review = true` | `event_type = needs_human_review_label`, `target_kind = finding`, `target_id = finding_id` |
 
@@ -1266,11 +1334,14 @@ this matrix rather than relying on prose.
   7. Calls `get_audit_trail` against V-1003 and confirms the events are
      returned in chronological order and that the human-authority
      boundary reminder is non-empty on every row.
-  8. Confirms every `needs_human_review = true` finding has a
+  8. Calls `export_review_brief(brief_id, markdown)` for the latest V-1003
+     brief and confirms the export contains the canonical boundary reminder
+     and produces `workflow_events.event_type = export`.
+  9. Confirms every `needs_human_review = true` finding has a
      `needs_human_review_label` audit event.
-  9. Confirms the section 7.6 seed coverage map is complete.
-  10. Runs the free-text fixture/generation validator from section 6.4.
-  11. Confirms that no MCP tool surface exposes raw SQL, generic
+  10. Confirms the section 7.6 seed coverage map is complete.
+  11. Runs the free-text fixture/generation validator from section 6.4.
+  12. Confirms that no MCP tool surface exposes raw SQL, generic
       database execution, arbitrary filesystem reads, or arbitrary
       network fetch.
 
@@ -1307,6 +1378,9 @@ spec demands. Every test is deterministic against the seed fixtures.
 - For each `story_findings` row with `needs_human_review = true`, assert a
   matching `workflow_events` row exists with
   `event_type = needs_human_review_label`.
+- Calling `export_review_brief` creates exactly one `workflow_events` row with
+  `event_type = export`, the resolved `brief_id`, and the requested format in
+  `rationale_metadata`.
 
 ### 9.3 No generic data access through the tool layer
 
@@ -1333,6 +1407,9 @@ spec demands. Every test is deterministic against the seed fixtures.
     and `not_sufficient_for_adverse_action = true`.
   - `brief_uncertainty` is set.
   - `human_authority_boundary_text` is non-empty.
+  - `human_authority_boundary_text` equals the section 6.6 canonical string
+    in seeded fixtures and contains every required clause if an approved
+    longer variant is configured.
   - `draft_clarification_note` passes the section 6.4 unsafe wording
     validator.
 
@@ -1347,6 +1424,9 @@ spec demands. Every test is deterministic against the seed fixtures.
 - Assert at least one finding has `needs_human_review = true` and the
   brief that consumes it surfaces it as a needs-human-review item
   (AC-13).
+- Assert every `external_anomaly_signals` row has a deterministic
+  `signal_key`, and `(voucher_id, signal_key)` is unique across seeded rows
+  and any fraud-mock supplements.
 - Assert that V-1011's brief has `is_partial = true` (NFR-8).
 - Assert that the two seeded refusals from 7.4 are present in
   `workflow_events`.
@@ -1365,6 +1445,9 @@ spec demands. Every test is deterministic against the seed fixtures.
   test, not a CHECK.
 - Run the section 6.4 unsafe wording validator across seeded generated text
   and synthetic clarification request bodies.
+- Assert every `policy_citations.source_identifier` uses a synthetic prefix
+  and no seeded excerpt quotes real DoD, JTR, DTMO, checklist, or
+  government-system text.
 
 ### 9.7 Queue prioritization is workload guidance, not disposition
 
@@ -1403,7 +1486,7 @@ are marked accordingly.
 | FR-9 Queue Prioritization | `vouchers.review_status` and `demo_packet_submitted_at` indexes, plus `review_briefs.priority_score` and `priority_rationale`. | Application labels the view as workload guidance. |
 | FR-10 Refusal and Redirect | `workflow_events.event_type = refusal`. | Application must write the row before returning the refusal. |
 | FR-11 Audit Log | `workflow_events`. | Audit-event invariant test (9.2) holds the application accountable. |
-| FR-12 Export | `review_briefs` and the human-authority boundary text. | Export format and channel are application concerns. |
+| FR-12 Export | `review_briefs`, the human-authority boundary text, and `workflow_events.event_type = export`. | Application exposes `export_review_brief(voucher_id or brief_id, format)` and writes the export audit event. |
 | FR-13 Needs-Human-Review State | `story_findings.needs_human_review` boolean, distinct from `missing_information_items` and from `workflow_events.event_type = refusal`. | Brief assembly must surface the boolean. |
 | FR-14 Fused AO Review Brief | `review_briefs` with `policy_hooks`, `signal_hooks`, `finding_hooks`, `missing_information_hooks`. | Application performs fusion; schema enforces shape. |
 | FR-15 Scoped Workflow Writes | `ao_notes` including `synthetic_clarification_request`, controlled write semantics on `vouchers.review_status` and `story_findings.review_state`. | Repository layer must refuse generic writes and every write must follow the section 8 audit invariant matrix. |
@@ -1430,7 +1513,7 @@ are marked accordingly.
 | AC-6 Refusal Demonstration | Section 7.4 seeded refusals; section 9.8 test. | — |
 | AC-7 Out-of-Scope Refusal | Application path; schema produces the workflow event. | Application work. |
 | AC-8 Queue Prioritization | `review_status`, `demo_packet_submitted_at` indexes; brief priority columns. | Application labels the view. |
-| AC-9 Export | `review_briefs` content, including the boundary statement. | Export format is application work. |
+| AC-9 Export | `review_briefs` content, including the boundary statement, plus `workflow_events.event_type = export`. | `export_review_brief` is application work. |
 | AC-10 Audit Trail | `workflow_events`. | — |
 | AC-11 Public-Safety Verification | `data_environment` CHECK and demo-marker constraints. | Demo narrative is application work. |
 | AC-12 Trust-Boundary Statement | `review_briefs.human_authority_boundary_text`. | — |
@@ -1502,8 +1585,8 @@ recommended simplification for each.
 
 Use this list as the work order. Each box is small and verifiable.
 
-- [ ] Choose a concrete database product. Document the choice in the PR
-  description and in the migration tool's README.
+- [ ] Use Postgres 16. Document the exact minor version in the PR description
+  and migration runner README.
 - [ ] Phase 1: write migrations creating the twelve baseline tables plus
   `finding_signal_links`. Commit.
 - [ ] Phase 2: add CHECK constraints for every enumeration in section 6
@@ -1527,6 +1610,9 @@ Use this list as the work order. Each box is small and verifiable.
 - [ ] Phase 8: implement the `demo-validate` script described in
   section 8 and confirm it runs end-to-end against a freshly seeded
   database. Commit.
+- [ ] Confirm migrations and seed/reset run through the Terraform-managed
+  `db_ops` Lambda path as well as local tests; do not require manually created
+  AWS resources.
 - [ ] Confirm that the running implementation does not expose
   `query_database`, raw SQL, free-form filesystem readers, or arbitrary
   HTTP fetch through any tool surface, as required by `docs/spec.md`

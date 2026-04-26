@@ -12,13 +12,18 @@ Forward-looking implementation plan. No Terraform has been written yet. This doc
 
 ## Scope
 
-**In scope:** All AWS infrastructure to expose a public, unauthenticated remote MCP HTTPS endpoint at `https://hackathon.example.com/mcp` backed by Lambda, with a private RDS Postgres instance and a separate fraud-mock microservice, all created fresh via Terraform.
+**In scope:** All AWS infrastructure to expose a public, unauthenticated remote MCP HTTPS endpoint at `https://hackathon.example.com/mcp` backed by Lambda, with a private RDS Postgres 16 instance, a separate fraud-mock microservice, and a private DB-ops Lambda for deployed migration/seed/reset, all created fresh via Terraform.
 
 **Out of scope:**
 - Application code (MCP server implementation, FastMCP handlers, tool logic).
 - MCP tool schemas beyond the *transport* contract API Gateway must support.
-- Database schema, migrations, seed data — covered (or to be covered) in the application spec.
+- Database schema, migrations, seed data — covered by the schema,
+  application, and synthetic-data plans. Terraform owns only the private
+  execution path for deployed migration/seed/reset.
 - Real DTS / GenAI.mil / PII / GTCC / EFT data of any kind. Synthetic only.
+  For the hackathon build, reference-corpus rows are synthetic demo excerpts
+  only; do not load real DoD, JTR, DTMO, checklist, or government-system
+  excerpts into fixtures or database seed data.
 - Production hardening: WAF, multi-AZ RDS, KMS CMKs, VPC flow logs, GuardDuty, CloudTrail wiring, monitoring/alerting, blue/green deploy tooling.
 - Public-facing spec text or marketing copy.
 - Reuse of existing unrelated infrastructure; stand up everything new except the public hosted zone data source.
@@ -26,10 +31,12 @@ Forward-looking implementation plan. No Terraform has been written yet. This doc
 ## Goals
 
 1. ChatGPT.com / ChatGPT Apps developer mode can add `https://hackathon.example.com/mcp` as a custom remote MCP connector with `Authorization supported = None`, list tools, and invoke them — same surface contract used by hosted remote MCP servers.
-2. The MCP Lambda can reach a private Postgres RDS instance over a private subnet, and can invoke a separate fraud-mock Lambda.
+2. The MCP Lambda can reach a private Postgres 16 RDS instance over a private subnet, and can invoke a separate fraud-mock Lambda.
 3. Everything is created by `terraform apply` from a single root module under `infra/`. The only pre-existing AWS object referenced is the Route 53 public hosted zone for `example.com` (data source).
 4. Demo-first hackathon posture: simple, cheap, and easy to debug beats production-grade hardening. Use a tiny single-AZ RDS instance, short log retention, and easy `terraform destroy`.
 5. Phase 1 is implementable and demoable in isolation (Lambda + API GW + custom domain + cert + DNS), without RDS or the fraud mock.
+6. Deployed migration, seed, and reset run through the Terraform-managed
+   `db_ops` Lambda. Do not create manual probe, migration, or seed Lambdas.
 
 ## Inputs and assumptions
 
@@ -40,6 +47,12 @@ Forward-looking implementation plan. No Terraform has been written yet. This doc
 - Existing Route 53 public hosted zone:
   - Domain: `example.com.`
   - Zone ID: `Z_PUBLIC_HOSTED_ZONE_ID`
+  - Example `terraform.tfvars` values stay placeholder-only:
+    ```hcl
+    domain_root    = "example.com"
+    hosted_zone_id = "Z_PUBLIC_HOSTED_ZONE_ID"
+    subdomain      = "hackathon"
+    ```
   - Reference by hosted-zone ID as a data source only — Terraform must not manage the zone itself and must not rely on a loose name lookup if another public zone with the same name ever exists:
     ```hcl
     data "aws_route53_zone" "root" {
@@ -56,6 +69,9 @@ These are the contract points the infra must satisfy. Application behavior beyon
   - Outbound TCP 5432 to the RDS instance, on a private subnet, via the RDS security group.
   - Ability to read a JSON Secrets Manager secret named like `ao-radar/db/master` containing `{username, password, host, port, dbname, engine}`.
   - Ability to invoke the fraud-mock Lambda by ARN (AWS SDK call), or alternatively reach an explicitly documented HTTP route if Phase 3 rejects the SDK invoke path.
+- The DB-ops Lambda is VPC-attached, private, and not integrated with API
+  Gateway. It uses the same DB secret and runs only explicit operation
+  payloads for `migrate`, `seed`, and `reset`/`seed` with reset.
 - The fraud-mock Lambda is deterministic, stateless, and synthetic. It needs no database, no Secrets Manager access, and no VPC attachment for the default AWS SDK Invoke path; the MCP Lambda reaches the Lambda service through the Lambda interface VPC endpoint.
 - The MCP endpoint is **unauthenticated** at the edge. ChatGPT Apps connects with `Authorization supported = None`.
 
@@ -89,6 +105,12 @@ ACM-terminated TLS  →  API Gateway HTTP API (regional)
         │              │  ao-radar-pg           │
         │              └────────────────────────┘
         │                        ▲
+        │                        │  migrate/seed/reset (operator invoke)
+        │              ┌────────────────────────┐
+        │              │  DB Ops Lambda         │  (VPC-attached, no API GW)
+        │              │  ao-radar-db-ops       │
+        │              └────────────────────────┘
+        │                        ▲
         │                        │  Secrets Manager (interface VPC endpoint)
         │              ┌────────────────────────┐
         │              │  Secrets Manager       │
@@ -110,6 +132,8 @@ ACM-terminated TLS  →  API Gateway HTTP API (regional)
 Key structural points:
 - The **API Gateway HTTP API is public** and managed; it sits outside the VPC and proxies into Lambda.
 - The **MCP Lambda is VPC-attached** to private subnets so it can talk to RDS over private IPs.
+- The **DB-ops Lambda is VPC-attached** and private. It is the only
+  deployed path for migrations, seed, and reset.
 - There is **no NAT gateway**, no public subnet, and no Internet Gateway by default. Outbound AWS API calls from the VPC-attached Lambda go through **interface VPC endpoints** for only the AWS APIs it actually calls.
 - The **fraud-mock Lambda is not VPC-attached** — it exists as an independent microservice the MCP Lambda invokes via the AWS SDK.
 
@@ -140,11 +164,11 @@ Single root module under `infra/`. No submodules. Hackathon speed > modular poli
 | `locals.tf`           | Derived names, AZ list, common tag merges, CIDR blocks.                                  |
 | `networking.tf`       | VPC, private isolated subnets, private route table, optional VPC endpoints.              |
 | `security_groups.tf`  | Lambda SG (MCP), RDS SG, VPC endpoint SG.                                                |
-| `iam.tf`              | Lambda execution roles (MCP, fraud mock), policies (logs, VPC ENI, secrets, invoke).     |
-| `logs.tf`             | CloudWatch log groups for both Lambdas and API Gateway access logs.                      |
+| `iam.tf`              | Lambda execution roles (MCP, fraud mock, DB ops), policies (logs, VPC ENI, secrets, invoke). |
+| `logs.tf`             | CloudWatch log groups for all Lambdas and API Gateway access logs.                       |
 | `secrets.tf`          | `random_password` for DB master, Secrets Manager secret + version with DB JSON.          |
 | `rds.tf`              | DB subnet group, `aws_db_instance` Postgres tiny.                                        |
-| `lambda.tf`           | Both `aws_lambda_function` resources, `aws_lambda_permission` for API GW invoke.         |
+| `lambda.tf`           | MCP, fraud-mock, and DB-ops `aws_lambda_function` resources; API GW invoke permission for MCP only. |
 | `api_gateway.tf`      | HTTP API, integration, routes (`/mcp`, `/health`, optional `/sse`), stage, throttle.    |
 | `dns.tf`              | ACM cert, DNS validation records, custom domain, API mapping, Route53 A/AAAA aliases.    |
 | `outputs.tf`          | Public URL, API ID, Lambda names/ARNs, RDS endpoint (no password), secret ARN.           |
@@ -167,7 +191,7 @@ Each entry lists the resource type, logical name, and the cross-file refs it dep
 - `provider "aws"` — `region = var.region`, `default_tags { tags = local.common_tags }`.
 
 ### `variables.tf` (see Appendix A for defaults)
-- `region`, `name_prefix`, `domain_root`, `hosted_zone_id`, `subdomain`, `vpc_cidr`, `az_count`, `db_instance_class`, `db_allocated_storage`, `db_engine_version`, `lambda_runtime`, `lambda_memory_mb`, `lambda_timeout_s`, `mcp_reserved_concurrency`, `fraud_reserved_concurrency`, `api_throttle_rate`, `api_throttle_burst`, `log_retention_days`, `enable_secretsmanager_vpce` (bool), `enable_lambda_vpce` (bool), `enable_s3_gateway_endpoint` (bool), `enable_logs_vpce` (bool), `disable_execute_api_endpoint` (bool), `enable_sse_route` (bool, default false), `mcp_lambda_zip_path` (placeholder zip for first apply), `fraud_lambda_zip_path` (placeholder zip).
+- `region`, `name_prefix`, `domain_root`, `hosted_zone_id`, `subdomain`, `vpc_cidr`, `az_count`, `db_instance_class`, `db_allocated_storage`, `db_engine_version`, `lambda_runtime`, `lambda_memory_mb`, `lambda_timeout_s`, `mcp_reserved_concurrency`, `fraud_reserved_concurrency`, `db_ops_reserved_concurrency`, `api_throttle_rate`, `api_throttle_burst`, `log_retention_days`, `enable_secretsmanager_vpce` (bool), `enable_lambda_vpce` (bool), `enable_s3_gateway_endpoint` (bool), `enable_logs_vpce` (bool), `disable_execute_api_endpoint` (bool), `enable_sse_route` (bool, default false), `mcp_lambda_zip_path` (placeholder zip for first apply), `fraud_lambda_zip_path` (placeholder zip), `db_ops_lambda_zip_path` (placeholder zip).
 
 ### `locals.tf`
 - `common_tags`
@@ -193,8 +217,14 @@ Each entry lists the resource type, logical name, and the cross-file refs it dep
 ### `security_groups.tf`
 - Keep security groups understandable and demo-friendly. Do **not** spend hackathon time chasing perfect egress minimization unless something is clearly unsafe or broken.
 - `aws_security_group.mcp_lambda` — no ingress; allow broad outbound egress (`0.0.0.0/0`) for the demo, or at minimum egress to the RDS SG on TCP 5432 and TCP 443 to AWS/VPC endpoints. Broad egress is acceptable here because the route table still controls actual paths and the data is synthetic.
-- `aws_security_group.rds` — keep the one hard boundary: ingress TCP 5432 from `mcp_lambda` SG only; `publicly_accessible = false`. Default egress is fine.
-- `aws_security_group.vpce` — interface VPC endpoint SG; ingress TCP 443 from `mcp_lambda` SG. Default egress is fine.
+- `aws_security_group.db_ops_lambda` — no ingress; outbound to the RDS SG
+  on TCP 5432 and TCP 443 to Secrets Manager. It may reuse `mcp_lambda`
+  for hackathon speed only if the rules stay understandable.
+- `aws_security_group.rds` — keep the one hard boundary: ingress TCP 5432
+  from `mcp_lambda` SG and `db_ops_lambda` SG only;
+  `publicly_accessible = false`. Default egress is fine.
+- `aws_security_group.vpce` — interface VPC endpoint SG; ingress TCP 443
+  from `mcp_lambda` SG and `db_ops_lambda` SG. Default egress is fine.
 
 ### `iam.tf`
 - `aws_iam_role.mcp_lambda_exec` — assume role for `lambda.amazonaws.com`.
@@ -204,11 +234,19 @@ Each entry lists the resource type, logical name, and the cross-file refs it dep
   - Phase 3: custom policy `lambda:InvokeFunction`. Scoping to the specific fraud-mock Lambda ARN is preferred, but `ao-radar-*` functions are acceptable for demo speed.
 - `aws_iam_role.fraud_lambda_exec` — assume role for `lambda.amazonaws.com`.
   - AWS managed policy ARN `arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole` only.
+- `aws_iam_role.db_ops_lambda_exec` — assume role for
+  `lambda.amazonaws.com`.
+  - Attach `AWSLambdaBasicExecutionRole`, `AWSLambdaVPCAccessExecutionRole`,
+    and a scoped `secretsmanager:GetSecretValue` policy for the DB secret.
+  - Do not grant API Gateway invoke permissions; operators invoke this
+    function explicitly through AWS CLI/SDK with normal AWS credentials.
 - `aws_lambda_permission.api_invoke_mcp` — allows `apigateway.amazonaws.com` to invoke MCP Lambda; use `source_arn = "${aws_apigatewayv2_api.main.execution_arn}/*/*"` for the specific HTTP API while routes are still evolving. A route-specific ARN is acceptable later, but validate it with `aws lambda get-policy` because HTTP API route ARN patterns are easy to over-tighten.
 
 ### `logs.tf`
 - `aws_cloudwatch_log_group.mcp_lambda` — name `/aws/lambda/${name_prefix}-mcp`, retention `var.log_retention_days` (default 7).
 - `aws_cloudwatch_log_group.fraud_lambda` — name `/aws/lambda/${name_prefix}-fraud-mock`, retention 7.
+- `aws_cloudwatch_log_group.db_ops_lambda` — name
+  `/aws/lambda/${name_prefix}-db-ops`, retention 7.
 - `aws_cloudwatch_log_group.api_access` — name `/aws/apigatewayv2/${name_prefix}`, retention 7.
 
 ### `secrets.tf`
@@ -252,21 +290,54 @@ Each entry lists the resource type, logical name, and the cross-file refs it dep
   - `function_name = "${name_prefix}-mcp"`
   - `role = aws_iam_role.mcp_lambda_exec.arn`
   - `runtime = var.lambda_runtime` (e.g. `"python3.12"`)
-  - `handler = "app.handler"` (placeholder; app team owns)
+  - `handler = "ao_radar_mcp.handler.lambda_handler"` after application code
+    lands; Phase 1 may temporarily use a placeholder handler in the
+    placeholder zip.
   - `filename = var.mcp_lambda_zip_path` and `source_code_hash = filebase64sha256(var.mcp_lambda_zip_path)` — Phase 1 may use a tiny placeholder zip with a stub handler returning `{"ok": true}` so `terraform apply` succeeds before app code exists.
   - `memory_size = var.lambda_memory_mb` (default 512).
   - `timeout = var.lambda_timeout_s` (default 25; must stay under API GW HTTP API 30s integration cap).
   - `reserved_concurrent_executions = var.mcp_reserved_concurrency` (default 10).
   - `vpc_config` — Phase 2 onward — `subnet_ids = aws_subnet.private[*].id`, `security_group_ids = [aws_security_group.mcp_lambda.id]`.
   - `environment.variables` are phase-gated to avoid Terraform references to resources that do not exist yet:
-    - Phase 1: `LOG_LEVEL = "INFO"` only.
-    - Phase 2: add `DB_SECRET_ARN = aws_secretsmanager_secret.db_master.arn`.
-    - Phase 3: add `FRAUD_FUNCTION_NAME = aws_lambda_function.fraud_mock.function_name`.
+    - Phase 1: `LOG_LEVEL = "INFO"`,
+      `MCP_SERVER_NAME = "ao-radar-mcp"`,
+      `MCP_SERVER_VERSION = "0.1.0"`,
+      `DEMO_DATA_ENVIRONMENT = "synthetic_demo"`.
+    - Phase 2: add `DB_SECRET_ARN = aws_secretsmanager_secret.db_master.arn`,
+      `DB_CONNECT_TIMEOUT_S = "5"`,
+      `DB_STATEMENT_TIMEOUT_MS = "15000"`.
+    - Phase 3: add `FRAUD_FUNCTION_NAME = aws_lambda_function.fraud_mock.function_name`,
+      `FRAUD_INVOKE_TIMEOUT_S = "5"`.
+    - Do not set `BOUNDARY_REMINDER_TEXT` in Terraform for the demo. The
+      application uses its canonical constant and rejects any override that
+      omits required authority-boundary clauses.
 - `aws_lambda_function.fraud_mock`:
   - `function_name = "${name_prefix}-fraud-mock"`
   - `role = aws_iam_role.fraud_lambda_exec.arn`
   - Same runtime; smaller memory (`256`); shorter timeout (`10s`); reserved concurrency `5`.
+  - `handler = "ao_radar_fraud_mock.handler.lambda_handler"`.
+  - Environment: `LOG_LEVEL = "INFO"`,
+    `DEMO_DATA_ENVIRONMENT = "synthetic_demo"`,
+    `FRAUD_SIGNAL_SOURCE_LABEL = "synthetic_compliance_service_demo"`,
+    `FRAUD_DETERMINISTIC_SEED = "ao-radar-synthetic-v1"`.
   - **No `vpc_config`** by default. Stays out of the VPC.
+- `aws_lambda_function.db_ops`:
+  - `function_name = "${name_prefix}-db-ops"`
+  - `role = aws_iam_role.db_ops_lambda_exec.arn`
+  - `runtime = var.lambda_runtime`
+  - `handler = "ao_radar_db_ops.handler.lambda_handler"`.
+  - `filename = var.db_ops_lambda_zip_path` and
+    `source_code_hash = filebase64sha256(var.db_ops_lambda_zip_path)`.
+  - Memory `512`, timeout `60s`, reserved concurrency
+    `var.db_ops_reserved_concurrency` (default 1).
+  - `vpc_config` uses the private subnets and DB-ops Lambda SG.
+  - Environment: `LOG_LEVEL = "INFO"`,
+    `DB_SECRET_ARN = aws_secretsmanager_secret.db_master.arn`,
+    `DB_CONNECT_TIMEOUT_S = "5"`,
+    `DB_STATEMENT_TIMEOUT_MS = "15000"`,
+    `DEMO_DATA_ENVIRONMENT = "synthetic_demo"`.
+  - This function is canonical for deployed migration/seed/reset. Do not
+    create ad hoc probe, migration, or seed Lambdas outside Terraform.
 
 ### `api_gateway.tf`
 - `aws_apigatewayv2_api.main`:
@@ -344,7 +415,7 @@ Each phase ends in a working `terraform apply` and a meaningful validation step.
 ### Phase 1 — Public MCP endpoint (no VPC, no DB, no fraud mock)
 Files added: `iam.tf` (only `mcp_lambda_exec` + `AWSLambdaBasicExecutionRole`), `logs.tf` (mcp + api_access groups), `lambda.tf` (only `aws_lambda_function.mcp`, **no `vpc_config` yet**, placeholder zip), `api_gateway.tf`, `dns.tf`.
 
-Lambda placeholder zip: a single-file Python handler that responds to `GET /health` with `{"ok": true}` and to `POST /mcp` with a minimal MCP-compatible `tools/list` reply listing one toy tool (e.g. `echo`). The zip is built outside Terraform (one-line `zip` command in a README); Terraform just references its path. This is a transport smoke-test fixture only. If a handwritten stub fails ChatGPT's MCP handshake, swap in the smallest real MCP server package and keep Terraform unchanged; do not treat the stub response shape as the application contract.
+Lambda placeholder zip: a single-file Python handler that responds to `GET /health` with `{"ok": true}` and to `POST /mcp` with a minimal MCP-compatible `tools/list` reply listing one toy tool (e.g. `echo`). The zip is built outside Terraform (one-line `zip` command in a README); Terraform just references its path. This is a transport smoke-test fixture only. The toy `echo` catalog is never the AO Radar tool catalog and must be replaced by the spec section 4.5 tool list as soon as the FastMCP application package is deployed. If a handwritten stub fails ChatGPT's MCP handshake, swap in the smallest real MCP server package and keep Terraform unchanged; do not treat the stub response shape as the application contract.
 
 After apply, validate:
 - `dig +short hackathon.example.com` returns the API GW alias target.
@@ -352,21 +423,26 @@ After apply, validate:
 - `curl -i -X POST https://hackathon.example.com/mcp -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'` returns the toy tool list.
 - In ChatGPT Apps developer mode, add the connector with `Authorization supported = None`, list tools, invoke the toy tool, see a response.
 
-**Exit criterion:** ChatGPT Apps successfully discovers and calls the toy tool over the custom domain. **This is the most important validation gate in the whole plan** — if ChatGPT cannot connect to a Lambda+API GW MCP endpoint at all, jump to the Transport considerations fallback before continuing.
+**Exit criterion:** ChatGPT Apps successfully discovers and calls the toy tool over the custom domain, or, after the application Phase 1 package replaces the toy stub, discovers the full spec section 4.5 catalog and receives safe `not_implemented` responses from each tool. **This is the most important validation gate in the whole plan** — if ChatGPT cannot connect to a Lambda+API GW MCP endpoint at all, jump to the Transport considerations fallback before continuing.
 
 After the custom domain, TLS, and ChatGPT connector gate pass, keep `disable_execute_api_endpoint = false` unless there is a specific reason to remove the fallback hostname. For this demo, reliability beats tidiness.
 
-### Phase 2 — VPC, RDS, Secrets Manager
-Files added: `networking.tf`, `security_groups.tf`, `secrets.tf`, `rds.tf`. Modify `lambda.tf` to attach MCP Lambda to private subnets. Modify `iam.tf` to add `AWSLambdaVPCAccessExecutionRole` and `secretsmanager:GetSecretValue` policy.
+### Phase 2 — VPC, RDS, Secrets Manager, DB ops
+Files added: `networking.tf`, `security_groups.tf`, `secrets.tf`, `rds.tf`. Modify `lambda.tf` to attach MCP Lambda to private subnets and add `aws_lambda_function.db_ops`. Modify `iam.tf` to add `AWSLambdaVPCAccessExecutionRole` and `secretsmanager:GetSecretValue` policies for MCP and DB ops.
 
 Set `enable_secretsmanager_vpce = true` so the VPC-attached Lambda can reach Secrets Manager without a NAT gateway. Leave `enable_lambda_vpce = false` until Phase 3 unless you intentionally accept the extra endpoint cost early.
 
 After apply, validate:
 - `aws rds describe-db-instances --db-instance-identifier ao-radar-pg --region us-east-1 --query 'DBInstances[0].[DBInstanceStatus,PubliclyAccessible,Endpoint.Address]'` shows `available`, `false`, and a private endpoint.
 - `aws secretsmanager get-secret-value --secret-id ao-radar/db/master --region us-east-1 --query SecretString` returns valid JSON (contains host/port matching RDS).
-- The MCP Lambda (with a small probe handler) can fetch the secret and open a TCP connection to the RDS endpoint. Probe is application work; infra-side validation is ENI presence in the private subnets and successful Secrets Manager fetch in CloudWatch logs.
+- The DB-ops Lambda can run a `{"operation":"migrate","dry_run":true}`
+  or equivalent application-supported probe that fetches the secret and
+  opens a TCP connection to the RDS endpoint. Do not create a separate
+  one-off probe Lambda.
+- The MCP Lambda can fetch the secret and open a TCP connection to the RDS
+  endpoint once the application package has a DB probe or read tool.
 
-**Exit criterion:** MCP Lambda, attached to private subnets, can read its DB secret and reach the RDS endpoint privately.
+**Exit criterion:** DB ops and MCP Lambdas, attached to private subnets, can read the DB secret and reach the RDS endpoint privately.
 
 ### Phase 3 — Fraud-mock Lambda
 Files modified: `iam.tf` (add `fraud_lambda_exec` + `lambda:InvokeFunction` policy on MCP role scoped to fraud-mock ARN), `logs.tf` (add fraud_lambda group), `lambda.tf` (add `aws_lambda_function.fraud_mock`), `networking.tf` (enable Lambda interface VPC endpoint).
@@ -384,11 +460,14 @@ After apply, validate:
 ### Phase 4 — Demo readiness, not production hardening
 - Confirm the endpoint works from ChatGPT over the custom domain. If the execute-api hostname also works, that is acceptable for this demo.
 - Confirm basic API Gateway throttling is present, but do not make rate limits so tight that judging/demo retries get blocked.
-- Confirm reserved concurrency exists on both Lambdas, sized for a small live demo rather than a public launch.
+- Confirm reserved concurrency exists on all three Lambdas, sized for a small live demo rather than a public launch.
 - Leave broad Lambda egress in place if it makes debugging simpler. Keep RDS private and SG-limited; that is the important boundary.
 - Confirm log retention is short (`7` days by default).
 - Access logs may include route/method/status/request ID and integration latency. Avoid logging credentials or real PII; synthetic request payload logging is acceptable temporarily if it materially helps debug the demo, but do not commit or publish those logs.
 - Confirm the exposed MCP tools remain synthetic/narrow. Mutation-like tools are acceptable if scoped to demo data and visibly auditable.
+- Confirm migrations, seed, and reset have run only through `db_ops` for the
+  deployed stack; there should be no manual probe, migration, or seed Lambda
+  resources outside Terraform.
 - Add a one-page `infra/README.md` with `apply` / `destroy` instructions, the placeholder zip recipe, and a teardown reminder. (This README is a follow-up artifact, not part of this plan's "single markdown file" deliverable.)
 
 ## Transport considerations
@@ -408,6 +487,13 @@ The decision tree at Phase 1 exit:
 1. ChatGPT connects + `tools/list` works + tool invocation returns → continue with Lambda+API GW.
 2. ChatGPT connects + `tools/list` works + tool invocation hangs/times out → check Streamable vs SSE in the server config; do not change infra yet.
 3. ChatGPT cannot connect at all to a Lambda-backed MCP URL even with the toy tool → decide between REST API response streaming, Function URL + CloudFront, or ECS/Fargate; do not point Route 53 directly at a bare Function URL and assume custom TLS will work.
+
+Fallback acceptance checks are the same regardless of which path is chosen:
+`GET /health` returns server identity, `POST /mcp initialize` returns the
+configured `MCP_SERVER_NAME`/`MCP_SERVER_VERSION`, `tools/list` returns the
+spec catalog once the app package is deployed, one read-only tool invocation
+returns inside the client timeout, and unknown routes still return 404 over
+the public custom domain.
 
 ## Networking decisions
 
@@ -467,6 +553,9 @@ Run after each phase (some commands only meaningful from Phase 2 / 3 onward).
 - `cd infra && terraform fmt -recursive`
 - `terraform init` (once)
 - `terraform validate`
+- Before `plan`, create a local, uncommitted `terraform.tfvars` from the
+  Appendix A placeholders and set only public-safe values such as
+  `domain_root`, `hosted_zone_id`, and `subdomain`. Do not commit the file.
 - `terraform plan -out=tfplan`
 - `terraform apply tfplan`
 - `terraform output`
@@ -484,6 +573,7 @@ Run after each phase (some commands only meaningful from Phase 2 / 3 onward).
 - The custom domain should succeed. The execute-api hostname may also work as a demo fallback; that is acceptable.
 - `aws lambda get-function --function-name ao-radar-mcp --region us-east-1 --query 'Configuration.[FunctionName,Runtime,Timeout,MemorySize,ReservedConcurrentExecutions,VpcConfig.SubnetIds,VpcConfig.SecurityGroupIds]'`
 - `aws lambda get-function --function-name ao-radar-fraud-mock --region us-east-1 --query 'Configuration.[FunctionName,Runtime,Timeout,MemorySize,ReservedConcurrentExecutions]'`
+- `aws lambda get-function --function-name ao-radar-db-ops --region us-east-1 --query 'Configuration.[FunctionName,Runtime,Handler,Timeout,ReservedConcurrentExecutions,VpcConfig.SubnetIds,VpcConfig.SecurityGroupIds]'`
 - `aws lambda get-policy --function-name ao-radar-mcp --region us-east-1` and confirm API Gateway can invoke the function. Specific API ARN scoping is preferred, but do not over-debug ARN exactness if invocation works and the stack remains demo-only.
 
 ### Endpoint smoke tests
@@ -496,7 +586,10 @@ Run after each phase (some commands only meaningful from Phase 2 / 3 onward).
 - `aws rds describe-db-instances --db-instance-identifier ao-radar-pg --region us-east-1 --query 'DBInstances[0].[DBInstanceStatus,PubliclyAccessible,MultiAZ,StorageEncrypted,DeletionProtection,Endpoint.Address,Endpoint.Port]'`
 - `aws secretsmanager describe-secret --secret-id ao-radar/db/master --region us-east-1`
 - Do not paste `aws secretsmanager get-secret-value` output into tickets, chat, or logs; use it only locally to confirm JSON shape.
-- (Optional) From a one-off VPC-attached probe Lambda: fetch the secret and `psql` the RDS endpoint; verify connection succeeds. Application work, not infra; mention only.
+- Invoke DB ops for the deployed migration/seed path, once the application
+  package supports it:
+  `aws lambda invoke --function-name ao-radar-db-ops --payload '{"operation":"migrate","dry_run":true}' --cli-binary-format raw-in-base64-out --region us-east-1 /tmp/ao-radar-db-ops.json`.
+  Do not create a one-off VPC-attached probe Lambda.
 
 ### CloudWatch
 - `aws logs describe-log-groups --log-group-name-prefix /aws/lambda/ao-radar --region us-east-1`
@@ -505,7 +598,9 @@ Run after each phase (some commands only meaningful from Phase 2 / 3 onward).
 
 ### ChatGPT Apps connect
 - ChatGPT.com → developer mode → add MCP connector → URL `https://hackathon.example.com/mcp`, `Authorization supported = None`, `Authorization used = None`.
-- Confirm tool list refresh shows the toy tool in Phase 1, real tools in Phase 2+.
+- Confirm tool list refresh shows the toy tool only during the infra
+  transport smoke test. After the application Phase 1 package is deployed,
+  it must show the spec section 4.5 catalog, not `echo`.
 - Invoke a tool; confirm a non-error response and a corresponding entry in `/aws/lambda/ao-radar-mcp` logs.
 
 ## Teardown / rollback
@@ -530,7 +625,9 @@ Order matters; some resources block others.
 
 - Application code (MCP server, FastMCP/python implementation, tool dispatch).
 - MCP tool input/output schemas beyond what makes API Gateway routing decisions.
-- Database schema, migrations, fixtures, seed data.
+- Database schema, migration contents, fixtures, and seed data contents.
+  Terraform still owns the private DB-ops Lambda that executes the deployed
+  migrate/seed/reset operations.
 - Real user data of any kind.
 - Auth (OAuth, API keys, JWTs, IAM auth on API GW). Endpoint is intentionally unauthenticated.
 - WAF, GuardDuty, CloudTrail, Config, VPC flow logs, multi-AZ HA, KMS CMKs, monitoring/alerting.
@@ -567,6 +664,7 @@ Order matters; some resources block others.
 | `lambda_timeout_s`             | number   | `25`                             | Stay under API GW HTTP API 30 s cap.                         |
 | `mcp_reserved_concurrency`     | number   | `10`                             | Enough for a small live demo; still caps runaway traffic.     |
 | `fraud_reserved_concurrency`   | number   | `5`                              | Enough for a small live demo; still caps runaway traffic.     |
+| `db_ops_reserved_concurrency`  | number   | `1`                              | Prevent concurrent migrate/seed/reset operations.             |
 | `api_throttle_rate`            | number   | `50`                             | Requests per second; avoid blocking demo retries.             |
 | `api_throttle_burst`           | number   | `100`                            | Burst; avoid blocking demo retries.                          |
 | `log_retention_days`           | number   | `7`                              | Short, hackathon.                                            |
@@ -578,6 +676,7 @@ Order matters; some resources block others.
 | `enable_sse_route`             | bool     | `false`                          | Only enable if MCP transport requires it.                    |
 | `mcp_lambda_zip_path`          | string   | `"./build/mcp.zip"`              | Placeholder zip until app team owns build.                   |
 | `fraud_lambda_zip_path`        | string   | `"./build/fraud.zip"`            | Placeholder zip until app team owns build.                   |
+| `db_ops_lambda_zip_path`       | string   | `"./build/db_ops.zip"`           | Private migration/seed/reset Lambda artifact.                 |
 
 ## Appendix B — Outputs (expected)
 
@@ -591,6 +690,8 @@ Order matters; some resources block others.
 | `mcp_lambda_arn`      | `arn:aws:lambda:us-east-1:<acct>:function:ao-radar-mcp`              |
 | `fraud_lambda_name`   | `ao-radar-fraud-mock`                                                |
 | `fraud_lambda_arn`    | `arn:aws:lambda:us-east-1:<acct>:function:ao-radar-fraud-mock`       |
+| `db_ops_lambda_name`  | `ao-radar-db-ops`                                                    |
+| `db_ops_lambda_arn`   | `arn:aws:lambda:us-east-1:<acct>:function:ao-radar-db-ops`           |
 | `rds_endpoint`        | `ao-radar-pg.<id>.us-east-1.rds.amazonaws.com:5432`                  |
 | `db_secret_arn`       | `arn:aws:secretsmanager:us-east-1:<acct>:secret:ao-radar/db/master-*`|
 | `vpc_id`              | `vpc-0xxxxxxxxxxxxxxxx`                                              |

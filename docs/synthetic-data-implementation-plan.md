@@ -76,7 +76,7 @@ hints at and the rows that land in Postgres.
 | `docs/spec.md` | Capability spec, OV-1, SSS, action contract, prohibited actions, refusal behavior, controlled vocabularies, acceptance criteria. | Tool names, prohibited actions, controlled review statuses, acceptance criteria. |
 | `docs/schema-implementation-plan.md` | Tables, columns, enums, CHECKs, audit-event invariant matrix, the section 7 corpus structure (travelers, twelve vouchers, coverage map, volume guidance), and the section 6.4 unsafe-wording / blocked-status rules. | Every table/column name, every enum value, the canonical scenario list. This plan does **not** redefine them; it only specifies the values that go into them. |
 | `docs/application-implementation-plan.md` | Application layout, FastMCP wiring, Lambda handlers, repository contracts, build/deploy handoff. | Where `ops/seed/` plugs in (section 12 of the application plan), and which read tools first need non-empty data (Phase 2 onward). |
-| `docs/infra-implementation-plan.md` | Terraform, RDS, VPC, Secrets Manager, Lambdas, API Gateway. | Where to run the loader from (a VPC-attached probe/migration Lambda or a developer environment with documented private connectivity), per the application plan section 12. |
+| `docs/infra-implementation-plan.md` | Terraform, RDS, VPC, Secrets Manager, Lambdas, API Gateway, and the private `db_ops` Lambda. | The canonical migration/seed execution path. Terraform creates the VPC-attached `db_ops` Lambda; operators invoke it for migrations and seed/reset instead of creating manual AWS resources. |
 | This document | Story-card workflow, hero stories, fixture artifact layout, generation/load/validate commands, load order, post-Postgres runbook, acceptance criteria. | — |
 
 If a contradiction surfaces between this plan and a companion document, the
@@ -363,6 +363,26 @@ If schema plan section 7.2 is later edited to make per-voucher signal counts
 exact rather than minimum anchors, update this table in the same change so the
 volume target and story cards stay consistent.
 
+### External signal IDs and fraud-mock ownership
+
+The seed generator owns the canonical deterministic signal inventory for the
+demo. For every signal row:
+
+- `signal_key` is deterministic within the voucher, formatted as
+  `<signal_type>:<scenario_slug>:<ordinal>`, for example
+  `duplicate_payment_risk:lodging_overlap:01`.
+- `signal_id` is derived from the voucher and key, formatted as
+  `SIG-<voucher_id>-<slugified_signal_key>`.
+- `(voucher_id, signal_key)` is unique and is the idempotence key used by the
+  loader, repository, and fraud-mock integration.
+
+The fraud-mock Lambda must mirror the seeded deterministic signals when asked
+for a seeded voucher, using the same `signal_key` values, or supplement only a
+missing deterministic demo signal that the seed did not already persist. It
+must not create a duplicate for an existing `(voucher_id, signal_key)`.
+Repository upsert logic treats a unique-key conflict as a successful replay
+and returns the already stored row.
+
 ---
 
 ## 8. Synthetic Identity Conventions
@@ -400,15 +420,21 @@ These are the exact value patterns the generator emits. The validator (section
   marked as synthetic.
 - **`external_anomaly_signals.synthetic_source_label`:**
   `synthetic_compliance_service_demo`.
+- **`external_anomaly_signals.signal_key`:**
+  `<signal_type>:<scenario_slug>:<ordinal>`, stable across the seed generator
+  and the fraud-mock Lambda.
+- **`external_anomaly_signals.signal_id`:**
+  `SIG-<voucher_id>-<slugified_signal_key>`, derived from `signal_key`.
 - **`ao_notes.actor_label`:** `demo_ao_user_1` (the seeded demo identity).
 - **`workflow_events.actor_label`:** the same `demo_ao_user_1` for seeded
   reviewer-side events; `synthetic_demo_seed` for system-side events created at
   load time.
-- **`workflow_events.human_authority_boundary_reminder`:** the same constant
-  string used by `src/ao_radar_mcp/safety/authority_boundary.py` (application
-  plan section 4). If the seed package lands before the application package,
-  define the string once in `ops/seed/constants.py` and have the application
-  import or copy that exact value when its safety module is created.
+- **`workflow_events.human_authority_boundary_reminder`:** the exact canonical
+  string from schema plan section 6.6 and
+  `src/ao_radar_mcp/safety/authority_boundary.py`. If the seed package lands
+  before the application package, define the string once in
+  `ops/seed/constants.py` and have the application import or copy that exact
+  value when its safety module is created.
 - **Dates:** all dates fall inside `FY26` (2025-10-01 through 2026-09-30) so the
   corpus is internally consistent. The V-1006 stale-memory case uses
   `expense_date` values weeks before `demo_packet_submitted_at`, all still
@@ -743,6 +769,14 @@ place.
 Every command exits non-zero on failure with a structured error pointing to the
 specific card, row, or invariant that failed.
 
+Local commands are for unit/integration development. The deployed hackathon
+path is the Terraform-managed `db_ops` Lambda. It receives an operation payload
+such as `{"operation":"migrate"}`, `{"operation":"seed"}`, or
+`{"operation":"seed","reset":true}` and runs the same migration or seed code
+inside the VPC with `DB_SECRET_ARN` and `DEMO_DATA_ENVIRONMENT=synthetic_demo`
+injected by Terraform. Do not create ad hoc probe, migration, or seed Lambdas
+outside Terraform.
+
 ### DB connection guard for load/reset
 
 `load`, `load --reset`, and `reset` fail closed unless all of these are true:
@@ -812,6 +846,13 @@ checks, each runnable in isolation:
   such as `approved` or `fraudulent` for traceability, but the validator must
   ensure it is typed as rejected input and not presented as system-authored
   narrative.
+- `authority_boundary.py` — asserts every seeded brief/export/event boundary
+  field equals the schema plan section 6.6 canonical string and contains the
+  required no approve, deny, certify, return, cancel, amend, submit,
+  entitlement, payability, fraud, and external-contact clauses.
+- `signal_keys.py` — asserts every `external_anomaly_signals` row has a
+  deterministic `signal_key`, that `(voucher_id, signal_key)` is unique, and
+  that the generated `signal_id` matches the key formatting rule in section 8.
 - `coverage.py` — walks `coverage_map.yaml` and asserts every required
   practitioner case resolves to at least one voucher with at least one
   `story_findings` row, at least one `packet_evidence_pointer`, and either a
@@ -823,9 +864,9 @@ checks, each runnable in isolation:
   produce the matching `workflow_events` row in the generator output.
 - `fk_and_volume.py` — every FK in the generated rowset resolves; row counts
   fall inside the schema plan section 7.5 ranges; every `evidence_refs` row
-  has either a `line_item_id` or a documented packet-level role; `is_partial =
-  true` appears on at least one brief (V-1011); the spread of seeded
-  `review_status` values matches schema plan section 7.3.
+  has either a `line_item_id` or a `packet_level_role`; `is_partial = true`
+  appears on at least one brief (V-1011); the spread of seeded `review_status`
+  values matches schema plan section 7.3.
 
 Failure messages from any validator point at a specific card path and field so
 a coding agent can fix the source without spelunking through the generator.
@@ -911,14 +952,13 @@ infra plan and the schema plan migrations are in place. Each step is small,
 explicit, and verifiable.
 
 1. **Confirm prerequisites.**
-   - Infra plan Phase 2 is applied; RDS is reachable from the chosen execution
-     environment (a VPC-attached probe/migration Lambda or a developer
-     environment with documented private connectivity, per application plan
-     section 12).
+   - Infra plan Phase 2 is applied; RDS is reachable from the
+     Terraform-managed, VPC-attached `db_ops` Lambda.
    - `DB_SECRET_ARN` and `DEMO_DATA_ENVIRONMENT=synthetic_demo` are exported
-     in the execution environment.
+     in the `db_ops` Lambda environment.
    - Schema plan Phase 1 (tables) and Phase 2 (constraints/indexes) have been
-     applied via `ops/scripts/run_migrations.py`.
+     applied through the `db_ops` migration operation, which calls
+     `ops/scripts/run_migrations.py`.
 
 2. **Sanity-check the schema.**
    - Confirm the `data_environment = synthetic_demo` CHECK exists on
@@ -950,13 +990,17 @@ explicit, and verifiable.
    generator output.
 
 6. **Load the corpus.**
-   - First-ever load against a freshly migrated database:
+   - First-ever load against a freshly migrated database, through `db_ops`:
      ```
-     python -m ops.seed.load
+     aws lambda invoke --function-name ao-radar-db-ops \
+       --payload '{"operation":"seed"}' \
+       --cli-binary-format raw-in-base64-out /tmp/ao-radar-seed.json
      ```
-   - Subsequent loads (or re-loads after a card edit):
+   - Subsequent loads (or re-loads after a card edit), through `db_ops`:
      ```
-     python -m ops.seed.load --reset
+     aws lambda invoke --function-name ao-radar-db-ops \
+       --payload '{"operation":"seed","reset":true}' \
+       --cli-binary-format raw-in-base64-out /tmp/ao-radar-seed.json
      ```
    The loader runs the connection guard in section 11, runs the validator stack
    one final time, performs the DB preflight, then runs the inserts in section
@@ -987,10 +1031,9 @@ explicit, and verifiable.
    first call.
 
 9. **(Optional) Pre-demo regeneration.**
-   Before the live walkthrough, re-run `python -m ops.seed.load --reset` so
-   the demo opens against a known clean state. Run it from the same operator
-   environment used for migrations or seeding; do not add a cockpit-facing
-   reset tool.
+   Before the live walkthrough, re-run the `db_ops` seed operation with
+   `reset = true` so the demo opens against a known clean state. Do not add a
+   cockpit-facing reset tool.
 
 If any spot-check in step 7 fails, the validator should have caught it earlier;
 treat the failure as a validator gap and fix the validator before re-running
@@ -1104,6 +1147,9 @@ true. A coding agent should treat this as the checklist for sign-off.
 - [ ] At least one `external_anomaly_signals.signal_type` value of each enum
       member exists across the corpus; V-1001, V-1005, V-1009, and V-1010 may
       still have zero signals as prescribed by schema plan section 7.2.
+- [ ] Every signal has a deterministic `signal_key`; `(voucher_id,
+      signal_key)` is unique; fraud-mock supplements replay or fill missing
+      deterministic keys without duplicates.
 - [ ] V-1011's brief has `is_partial = true`.
 - [ ] Both seeded refusals from schema plan section 7.4 are present in
       `workflow_events`.
@@ -1117,7 +1163,8 @@ true. A coding agent should treat this as the checklist for sign-off.
 - [ ] Every `story_findings` row with `needs_human_review = true` has a
       matching `needs_human_review_label` event.
 - [ ] Every `workflow_events` row has a non-empty
-      `human_authority_boundary_reminder`.
+      `human_authority_boundary_reminder` equal to the schema plan section 6.6
+      canonical string.
 
 ### Authority boundary
 
@@ -1168,17 +1215,17 @@ remainder of the application plan can proceed.
   YAML wins on readability of the long narrative blocks; TOML wins on
   unambiguous types. Default is YAML; revisit only if YAML's typing causes
   validator pain.
-- Should the loader run inside a one-off VPC-attached "seed" Lambda, or as a
-  developer-side script with documented private connectivity to the RDS
-  subnets? The application plan section 12 leaves this to the implementer;
-  this plan recommends the same one-off Lambda used by the migration runner
-  to keep the trust posture simple.
+- Should the loader run through the Terraform-managed `db_ops` Lambda or a
+  developer-side script? Resolved for hackathon scope: `db_ops` is canonical
+  for deployed migration/seed/reset. Developer-side scripts remain local test
+  conveniences only.
 - Should `policy_citations.excerpt_text` carry short synthetic excerpts
   (default), or should the seed leave the excerpt empty and have the
   application populate it from a separate retrieval-side corpus loader?
   Default is "short synthetic excerpts" so the read tools have something to
-  return immediately; the application plan can swap to a richer corpus later
-  without changing the seed contract.
+  return immediately. The application plan may swap to a richer corpus later
+  only after approved reference-corpus review; real DoD/JTR/DTMO excerpts are
+  not loaded for the hackathon build.
 - Should the demo regenerate one brief at runtime to exercise versioning
   (schema plan section 5.10), and which voucher? Default is V-1003 because
   the dual-lodging needs-human-review label is a natural narrative beat the

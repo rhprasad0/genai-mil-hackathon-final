@@ -67,6 +67,9 @@ AO Radar adapts that challenge framing to the travel-voucher review side of the 
 - `docs/infra-implementation-plan.md` — canonical public-safe Terraform/AWS infrastructure implementation plan.
 - `docs/schema-implementation-plan.md` — coding-agent-ready persistence-schema implementation plan for the AO Radar Postgres layer.
 - `docs/application-implementation-plan.md` — coding-agent-ready application implementation plan for the Python/FastMCP Lambda that exposes the AO Radar workflow tools.
+- `docs/synthetic-data-implementation-plan.md` — coding-agent-ready plan for deterministic synthetic demo fixtures, seed loading, and validators.
+- `docs/testing-plan.md` — coding-agent-ready test strategy covering schema, application, boundary, deployed MCP, and public-safety checks.
+- `docs/claude-agent-teams-execution-plan.md` — bounded Claude Code Agent Teams handoff plan for coordinating the implementation safely.
 - `assets/sergeant-openclaw.png` — public-safe generated project image.
 
 ## Acknowledgments
@@ -79,9 +82,22 @@ This repository is public by design. It should contain only public-safe material
 
 - synthetic voucher examples, not real DTS records;
 - synthetic traveler context, not real personal data;
-- public or approved reference material only;
+- synthetic demo reference-corpus excerpts only for the hackathon implementation;
 - no secrets, tokens, credentials, private notes, transcripts, or raw research artifacts; and
 - no claims that prototype outputs are official determinations.
+
+Do not commit local state or generated operational artifacts. Terraform local
+state under `infra/terraform.tfstate` can contain the generated RDS master
+password and other sensitive resource details; keep it out of git, do not paste
+it into issues or chats, and delete it before sharing a working tree. The same
+rule applies to `.env` files, Lambda zip/build outputs, seed snapshots, exported
+briefs, logs, probe outputs, and any Secrets Manager JSON copied during local
+debugging.
+
+For the hackathon build, the reference corpus is synthetic by design. Do not
+load real DoD, JTR, DTMO, checklist, or other government-system excerpts into
+the seed data or committed fixtures. Later work may add real public excerpts
+only after an approved reference-corpus review.
 
 Cybersecurity concerns are acknowledged as important but are intentionally deferred from the competition submission. They should be addressed in the specification after the competition, when there is time for a more careful treatment of threat models, access controls, deployment boundaries, data handling, and audit requirements.
 

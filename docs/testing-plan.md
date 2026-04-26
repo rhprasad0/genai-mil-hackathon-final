@@ -53,9 +53,9 @@ under test, not afterthoughts.
 |---|---|---|
 | `docs/spec.md` | Capability spec, OV-1, SSS, action contract, prohibited actions, refusal behavior, controlled vocabularies, acceptance criteria. | FR/AC numbering, tool names, prohibited-action set, controlled review statuses. |
 | `docs/schema-implementation-plan.md` | Tables, enums, CHECK constraints, audit-event invariant matrix, seed coverage map, blocked-status list, unsafe-wording rules. | Table/column names, enum values, audit invariants, blocklist source of truth. |
-| `docs/infra-implementation-plan.md` | Terraform, RDS, VPC, Secrets Manager, Lambda, API Gateway, custom domain, `/mcp` and `/health` routes. | Lambda handler entrypoints, deployed endpoint URL shape, env-var injection, transport choice. |
+| `docs/infra-implementation-plan.md` | Terraform, Postgres 16 RDS, VPC, Secrets Manager, MCP/fraud/DB-ops Lambdas, API Gateway, custom domain, `/mcp` and `/health` routes. | Lambda handler entrypoints, deployed endpoint URL shape, env-var injection, transport choice, DB-ops migration/seed/reset path. |
 | `docs/application-implementation-plan.md` | Application package layout, FastMCP wiring, tool dispatch, repository, refusal validators, build/deploy handoff. | Module paths, tool implementation order, env-var matrix, manual demo checklist. |
-| `docs/synthetic-data-implementation-plan.md` (if present) | Story-first fixture authoring, story cards, generators, validators, hero stories, seed loader. | Where seed fixtures come from. This plan does not redefine card schema or hero list; it consumes them. |
+| `docs/synthetic-data-implementation-plan.md` | Story-first fixture authoring, story cards, generators, validators, hero stories, seed loader. | Where seed fixtures come from. This plan does not redefine card schema or hero list; it consumes them. |
 | This document | Test layers, test names, test commands, CI tiers, coverage/traceability, exit criteria. | — |
 
 If a contradiction surfaces between this plan and a companion document, the
@@ -75,7 +75,9 @@ section 6 so the principle cannot quietly erode.
 - **Public-safety posture.** Tests use only synthetic data with the demo
   markers from the schema and synthetic-data plans. No real PII, no real DTS
   records, no real GTCC numbers, no real bank routing, no real unit names,
-  no real vendor names, no real LOA strings, no real interview content.
+  no real vendor names, no real LOA strings, no real interview content, and
+  no real DoD, JTR, DTMO, checklist, or government-system reference
+  excerpts.
 - **Synthetic-only at every layer.** Test fixtures, snapshots, recorded
   responses, and CI artifacts must all carry the synthetic markers
   (`(Synthetic Demo)`, `Demo`, `LOA-DEMO-`, `synthetic_compliance_service_demo`,
@@ -88,6 +90,9 @@ section 6 so the principle cannot quietly erode.
   brief-assembly outputs are deterministic given the same inputs. Tests assert
   that re-running produces byte-identical structured output (modulo
   intentionally regenerated timestamps/version fields).
+- **Deterministic signal identity.** Every external anomaly signal has a
+  stable `signal_key` and derived `signal_id`; `(voucher_id, signal_key)` is
+  unique across seeded rows and fraud-mock supplements.
 - **No paper coverage.** Every test claim in this document maps to a real
   test file and a runnable command. If a suite is descoped, the gap is
   documented honestly in section 12 rather than silently dropped.
@@ -124,8 +129,8 @@ The test suite covers every link in this chain:
  get_traveler_profile, list_prior_voucher_summaries,
  get_external_anomaly_signals, analyze_voucher_story,
  get_policy_citation / get_policy_citations, prepare_ao_review_brief,
- record_ao_note, mark_finding_reviewed, record_ao_feedback,
- draft_return_comment, request_traveler_clarification,
+ export_review_brief, record_ao_note, mark_finding_reviewed,
+ record_ao_feedback, draft_return_comment, request_traveler_clarification,
  set_voucher_review_status, get_audit_trail]
         |
         | FastMCP server (tools/list + tools/call dispatch)
@@ -167,8 +172,9 @@ no IO. Catch logic regressions in milliseconds.
   allowed-status value accepted.
 - `safety/unsafe_wording.py` — context-aware rejection of unsafe assertions;
   legitimate boundary wording (e.g. "not an official approval") accepted.
-- `safety/authority_boundary.py` — boundary text constant non-empty and
-  stable.
+- `safety/authority_boundary.py` — boundary text equals the canonical
+  reminder from the spec/schema plans and rejects overrides missing any
+  required no-action clause.
 - `domain/story_analysis.py` — story reconstruction from synthetic line-item
   + evidence inputs.
 - `domain/missing_information.py` — gap detection from declared-vs-attached
@@ -177,8 +183,9 @@ no IO. Catch logic regressions in milliseconds.
   hooks resolve to the inputs they were given.
 - `domain/priority.py` — composite priority score is workload-only and never
   emits approval/payment language.
-- `fraud_client/contract.py` — request/response models validate; deterministic
-  signal generation given fixed seed.
+- `fraud_client/contract.py` — request/response models validate;
+  deterministic signal generation given fixed seed, with stable
+  `signal_key` and derived `signal_id`.
 - `transport.py` — API Gateway v2.0 event decoded correctly (including the
   base64-encoded body case) and response shape correct.
 
@@ -189,12 +196,14 @@ no IO. Catch logic regressions in milliseconds.
 - `test_allowed_review_status_values_accepted`
 - `test_unsafe_wording_rejects_recommend_approve_phrase`
 - `test_unsafe_wording_allows_negative_boundary_phrase`
-- `test_authority_boundary_text_non_empty`
+- `test_authority_boundary_text_equals_canonical_constant`
+- `test_authority_boundary_override_requires_all_clauses`
 - `test_story_analysis_flags_out_of_window_expense`
 - `test_missing_information_detects_no_lodging_receipt`
 - `test_brief_assembly_hooks_match_inputs`
 - `test_priority_score_uses_workload_language_only`
 - `test_fraud_mock_deterministic_for_voucher_id`
+- `test_fraud_mock_signal_keys_and_ids_are_stable`
 - `test_transport_decodes_base64_body`
 - `test_transport_returns_apigw_v2_response_shape`
 
@@ -209,7 +218,7 @@ pytest tests/unit/domain/test_brief_assembly.py -q
 ### 5.2 Schema / data tests
 
 **Purpose.** Prove the database enforces the constraints the spec
-requires, against a real Postgres instance (test container or local
+requires, against a real Postgres 16 instance (test container or local
 service). Mocks are forbidden at this level.
 
 **What to cover.**
@@ -222,11 +231,17 @@ service). Mocks are forbidden at this level.
   `travelers` and `vouchers`.
 - `external_anomaly_signals.is_official_finding` CHECK is `false` and
   `not_sufficient_for_adverse_action` CHECK is `true`.
-- `review_briefs.human_authority_boundary_text` length ≥ 1 enforced.
+- Unique `(voucher_id, signal_key)` on `external_anomaly_signals` rejects
+  duplicate seeded/fraud-mock signals.
+- `review_briefs.human_authority_boundary_text` equals the canonical
+  boundary reminder, or a longer approved variant that passes required
+  clause validation.
 - `story_findings.packet_evidence_pointer` requires at least one of
   `line_item_id` or `evidence_ref_id`.
 - `evidence_refs` cue columns reduce to `not_applicable` when
   `content_type_indicator = none_attached_demo`.
+- Packet-level `evidence_refs` rows with no `line_item_id` require
+  `packet_level_role`.
 - FK cascade behavior matches plan (e.g. `voucher_line_items` on
   `vouchers` delete).
 - Unique `(voucher_id, version)` on `review_briefs`.
@@ -239,9 +254,11 @@ service). Mocks are forbidden at this level.
 - `test_review_status_check_accepts_in_review`
 - `test_data_environment_check_rejects_prod_value`
 - `test_signal_is_official_finding_must_be_false`
-- `test_brief_authority_boundary_text_required`
+- `test_signal_key_unique_per_voucher`
+- `test_brief_authority_boundary_text_matches_canonical`
 - `test_finding_evidence_pointer_requires_at_least_one_id`
 - `test_evidence_refs_none_attached_forces_not_applicable_cues`
+- `test_packet_level_evidence_refs_require_packet_level_role`
 - `test_brief_version_unique_per_voucher`
 - `test_audit_resulting_status_rejects_blocked_values`
 
@@ -269,8 +286,8 @@ transport uses.
   `get_voucher_packet`, `get_traveler_profile`,
   `list_prior_voucher_summaries`, `get_external_anomaly_signals`,
   `analyze_voucher_story`, `get_policy_citation`, `get_policy_citations`,
-  `prepare_ao_review_brief`, `record_ao_note`, `mark_finding_reviewed`,
-  `record_ao_feedback`, `draft_return_comment`,
+  `prepare_ao_review_brief`, `export_review_brief`, `record_ao_note`,
+  `mark_finding_reviewed`, `record_ao_feedback`, `draft_return_comment`,
   `request_traveler_clarification`, `set_voucher_review_status`,
   `get_audit_trail`.
 - No tool name matches generic-data-access patterns: `query_database`,
@@ -278,6 +295,10 @@ transport uses.
   `fetch_url`, `http_get`, `eval`, `shell`.
 - Each tool input schema validates the expected shape and rejects
   unexpected fields.
+- `export_review_brief` accepts `voucher_id` or `brief_id` plus a controlled
+  `format` enum, and its response schema contains `brief_id`, `voucher_id`,
+  `format`, `content`, `content_type`, `exported_at`, and the canonical
+  boundary reminder.
 - Each tool description references the human-authority boundary in plain
   language.
 - Refusal responses carry a `reason` code drawn from the documented set
@@ -299,6 +320,7 @@ transport uses.
 - `test_tool_descriptions_mention_human_authority_boundary`
 - `test_tools_call_dispatch_contract_for_every_spec_tool`
 - `test_tools_call_unknown_tool_returns_jsonrpc_error`
+- `test_export_review_brief_schema_accepts_voucher_or_brief_id`
 - `test_set_voucher_review_status_input_schema_rejects_unknown_field`
 - `test_refusal_response_carries_reason_code`
 - `test_jsonrpc_envelope_round_trips_id_and_error_code`
@@ -322,6 +344,9 @@ itself.
 
 - `GET /health` returns 200 with `server` and `version` fields and does
   not touch the database or fraud mock.
+- The handler reads `MCP_SERVER_NAME`, `MCP_SERVER_VERSION`, and
+  `DEMO_DATA_ENVIRONMENT`; startup fails closed when the data environment is
+  not `synthetic_demo`.
 - `POST /mcp` with an `initialize` JSON-RPC request returns the configured
   server identity and protocol capabilities.
 - `POST /mcp` with a `tools/list` request returns the spec catalog.
@@ -341,10 +366,14 @@ itself.
 - API Gateway integration timeout cap (30s) is honored: any tool that
   approaches the cap fails fast with a recognizable error rather than
   hanging.
+- The Streamable HTTP path is the default. If a FastMCP/API Gateway fallback
+  is selected, the same tests must pass over the chosen public URL before the
+  fallback is accepted.
 
 **Example test names.**
 
 - `test_lambda_handler_health_returns_200_no_db_calls`
+- `test_lambda_handler_requires_synthetic_demo_environment`
 - `test_lambda_handler_post_mcp_initialize_returns_server_identity`
 - `test_lambda_handler_post_mcp_tools_list_returns_full_catalog`
 - `test_lambda_handler_post_mcp_tools_call_get_voucher_packet`
@@ -386,6 +415,9 @@ resources required.
 - `prepare_ao_review_brief(V-1003)` produces a brief whose `policy_hooks`,
   `signal_hooks`, `finding_hooks`, and `missing_information_hooks` each
   resolve to existing rows.
+- `export_review_brief(brief_id, markdown)` returns the assembled brief
+  content plus the canonical boundary reminder and writes exactly one
+  `workflow_events` row with `event_type = export`.
 - A scoped write through `set_voucher_review_status(V-1003, in_review)`
   writes the row and the matching audit event in a single transaction.
 - Every scoped write tool (`record_ao_note`, `mark_finding_reviewed`,
@@ -398,10 +430,11 @@ resources required.
 - DB-backed refusals block the requested action, leave the domain row
   unchanged, and write one sanitized `event_type = refusal` event.
 - `get_audit_trail(V-1003)` returns events in chronological order with
-  the human-authority boundary reminder set on every row.
+  the canonical human-authority boundary reminder set on every row.
 - Audit-event invariant matrix from schema plan section 8 holds for every
   successful write tool path on freshly seeded data.
-- Fraud-mock client returns deterministic signals for the same input.
+- Fraud-mock client returns deterministic signals for the same input and
+  repeated calls do not create duplicate `(voucher_id, signal_key)` rows.
 - `request_traveler_clarification` flips the voucher status to
   `awaiting_traveler_clarification` and writes the synthetic clarification
   request note plus the audit event in a single transaction; no external
@@ -413,13 +446,15 @@ resources required.
 - `test_seed_loader_emits_two_seeded_refusals`
 - `test_list_vouchers_awaiting_action_returns_seeded_queue`
 - `test_prepare_ao_review_brief_v1003_hooks_resolve`
+- `test_export_review_brief_writes_export_event`
 - `test_set_voucher_review_status_writes_audit_event_in_same_txn`
 - `test_each_scoped_write_returns_resolvable_audit_event_id`
 - `test_scoped_write_rolls_back_domain_write_when_audit_insert_fails`
 - `test_refusal_blocks_domain_write_and_records_sanitized_event`
 - `test_audit_invariant_matrix_holds_after_write`
-- `test_get_audit_trail_returns_events_in_order_with_boundary_reminder`
+- `test_get_audit_trail_returns_events_in_order_with_canonical_boundary_reminder`
 - `test_fraud_mock_deterministic_across_invocations`
+- `test_fraud_mock_replay_does_not_duplicate_signal_keys`
 - `test_request_traveler_clarification_does_not_call_external`
 
 **Example commands.**
@@ -450,6 +485,9 @@ assert against responses plus audit-trail effects.
 - `prepare_ao_review_brief(V-1002)` returns a brief with at least one
   finding, one missing-information item, one citation, and the
   human-authority boundary reminder visible.
+- `export_review_brief` against that brief returns `markdown` and `json`
+  shapes with the same `brief_id`, the canonical boundary reminder, and a
+  follow-up audit event with `event_type = export`.
 - The brief's `voucher_id`, `brief_id`, citation IDs, finding IDs,
   missing-information IDs, signal IDs, evidence refs, and packet line-item
   refs round-trip through the actual read tools rather than only through
@@ -468,6 +506,7 @@ assert against responses plus audit-trail effects.
 - `test_deployed_initialize_returns_server_identity`
 - `test_deployed_tools_list_returns_full_catalog`
 - `test_deployed_prepare_brief_v1002_hero_path`
+- `test_deployed_export_review_brief_records_export_event`
 - `test_deployed_cross_component_ids_round_trip_through_tools`
 - `test_deployed_scoped_write_produces_audit_event`
 - `test_deployed_approve_request_refuses_with_audit_event`
@@ -526,8 +565,9 @@ tests, exactly one matching `workflow_events` row exists with the right
 `tool_name`, `target_kind`, `target_id`, and `resulting_status`.
 The response returns or exposes a resolvable audit event ID, and a
 follow-up `get_audit_trail` call must return that same event. Refusals do
-the same with `event_type = refusal`. Missing rows, duplicate rows, or
-domain writes that survive a failed audit insert fail the test.
+the same with `event_type = refusal`; exports do the same with
+`event_type = export`. Missing rows, duplicate rows, or domain writes that
+survive a failed audit insert fail the test.
 
 **Test names.** `test_audit_invariant_matrix_holds_after_write`,
 `test_each_scoped_write_returns_resolvable_audit_event_id`,
@@ -545,7 +585,8 @@ fraud/misuse/misconduct, determined entitlement/payability, modified an
 amount, submitted anything, or contacted an external party. The same
 words **are** allowed in:
 
-- `policy_citations.excerpt_text` (verbatim approved-corpus excerpts).
+- `policy_citations.excerpt_text` (verbatim synthetic demo
+  reference-corpus excerpts).
 - Negative boundary statements on briefs and exports (e.g. "this is not
   an official approval").
 - Refusal `rationale_metadata` payloads that quote the rejected request
@@ -597,13 +638,24 @@ and citation source identifier in returned data carries a `Demo` /
 fails this is a public-safety bug, not a cosmetic one. A repository
 scanner also fails on local workstation paths, chat-platform channel identifiers,
 non-public repository identifiers, unredacted source-note artifacts, obvious credential
-markers, and unresolved placeholder markers in committed test fixtures,
-snapshots, and docs generated by the test suite.
+markers, real DoD/JTR/DTMO/checklist excerpt text, and unresolved
+placeholder markers in committed test fixtures, snapshots, and docs
+generated by the test suite.
 
 **Test names.** `test_returned_data_carries_synthetic_markers`,
 `test_public_safety_scanner_blocks_private_artifacts`.
 
-### G8. The descoped-test honesty guardrail
+### G8. The deterministic-signal guardrail
+
+**Rule.** Seeded external anomaly signals and fraud-mock supplements share
+the same identity contract. Every signal has a deterministic `signal_key`;
+`signal_id` is derived from `voucher_id` and `signal_key`; repeated
+fraud-mock calls are idempotent for `(voucher_id, signal_key)`.
+
+**Test names.** `test_signal_keys_unique_and_ids_derived`,
+`test_fraud_mock_replay_does_not_duplicate_signal_keys`.
+
+### G9. The descoped-test honesty guardrail
 
 **Rule.** Test names referenced from this plan must resolve to real test
 files. A separate suite walks the matrix in section 7 and asserts every
@@ -618,7 +670,7 @@ same change to record the gap.
 
 Mapping of areas to test types, real boundaries exercised, expected files,
 and example commands. The implementation agent uses this matrix to
-generate the suite and to keep the traceability test (G8) honest.
+generate the suite and to keep the traceability test (G9) honest.
 
 | Area | Test type | Real boundary | Expected file(s) | Example command |
 |---|---|---|---|---|
@@ -633,14 +685,18 @@ generate the suite and to keep the traceability test (G8) honest.
 | Malformed JSON handling | Boundary | `lambda_handler()` | `tests/lambda_boundary/test_payload_shapes.py` | `pytest tests/lambda_boundary/test_payload_shapes.py -q` |
 | Base64 body decoding | Boundary | `lambda_handler()` | `tests/lambda_boundary/test_payload_shapes.py` | `pytest tests/lambda_boundary/test_payload_shapes.py -q` |
 | Brief assembly hooks resolve | Integration | Postgres + tools | `tests/integration/test_brief_assembly.py` | `pytest tests/integration/test_brief_assembly.py -q` |
+| Export brief audit event | Integration + E2E | Postgres + tools, `https://<host>/mcp` | `tests/integration/test_export_review_brief.py`, `tests/e2e/test_export_review_brief_deployed.py` | `pytest tests/integration/test_export_review_brief.py -q` |
 | Brief on hero V-1002 (deployed) | E2E | `https://<host>/mcp` | `tests/e2e/test_hero_v1002.py` | `AO_RADAR_MCP_BASE_URL=... pytest tests/e2e/test_hero_v1002.py -q` |
 | Audit-event invariants | Integration | Postgres + tools | `tests/integration/test_audit_invariants.py` | `pytest tests/integration/test_audit_invariants.py -q` |
 | Refusal produces audit event | Integration | Postgres + tools | `tests/integration/test_refusal_audit.py` | `pytest tests/integration/test_refusal_audit.py -q` |
 | Refusal over the wire | E2E | `https://<host>/mcp` | `tests/e2e/test_refusal_deployed.py` | `AO_RADAR_MCP_BASE_URL=... pytest tests/e2e/test_refusal_deployed.py -q` |
 | Fraud-mock determinism | Unit + Integration | In-proc + Lambda invoke | `tests/unit/test_fraud_mock.py`, `tests/integration/test_fraud_mock_invoke.py` | `pytest tests/unit/test_fraud_mock.py tests/integration/test_fraud_mock_invoke.py -q` |
+| Signal key/id idempotence | Schema + Integration | Postgres unique key + fraud mock | `tests/schema/test_signal_keys.py`, `tests/integration/test_fraud_mock_idempotence.py` | `pytest tests/schema/test_signal_keys.py tests/integration/test_fraud_mock_idempotence.py -q` |
+| DB-ops migration/seed path | Integration + Deployed | `ao-radar-db-ops` Lambda invoke | `tests/integration/test_db_ops_contract.py`, `tests/e2e/test_db_ops_deployed.py` | `AO_RADAR_DB_OPS_FUNCTION=... pytest tests/e2e/test_db_ops_deployed.py -q` |
 | Story analysis logic | Unit | Pure functions | `tests/unit/domain/test_story_analysis.py` | `pytest tests/unit/domain/test_story_analysis.py -q` |
 | Missing-information detection | Unit | Pure functions | `tests/unit/domain/test_missing_information.py` | `pytest tests/unit/domain/test_missing_information.py -q` |
 | Unsafe-wording validator | Unit | Pure functions | `tests/unit/safety/test_unsafe_wording.py` | `pytest tests/unit/safety/test_unsafe_wording.py -q` |
+| Authority-boundary validator | Unit + Schema | Pure functions + Postgres constraints | `tests/unit/safety/test_authority_boundary.py`, `tests/schema/test_authority_boundary.py` | `pytest tests/unit/safety/test_authority_boundary.py tests/schema/test_authority_boundary.py -q` |
 | Static vocabulary scanner | Meta | Generated text + static metadata | `tests/meta/test_vocabulary_scanner.py` | `pytest tests/meta/test_vocabulary_scanner.py -q` |
 | Public-safety artifact scanner | Meta | Repo test artifacts | `tests/meta/test_public_safety_scanner.py` | `pytest tests/meta/test_public_safety_scanner.py -q` |
 | Synthetic markers in fixtures | Fixture validator | Generator output | `tests/fixtures/test_synthetic_markers.py` | `pytest tests/fixtures/test_synthetic_markers.py -q` |
@@ -672,15 +728,15 @@ meals receipt, and a prior-pattern signal labeled as a review prompt.
 
 **Steps.**
 
-1. `prepare_ao_review_brief(<voucher_id>)` over the deployed endpoint.
+1. `prepare_ao_review_brief(V-1002)` over the deployed endpoint.
 2. Assert the brief carries at least one `missing_receipt` finding, at
    least one `weak_or_local_paper_receipt` or `evidence_quality_concern`
    finding, at least one `valid_receipt` citation, and the
    human-authority boundary reminder.
 3. Assert any prior-pattern signal is labeled as a review prompt only,
    not an official finding and not sufficient for adverse action.
-4. Call `set_voucher_review_status(<voucher_id>, awaiting_traveler_clarification)`.
-5. `get_audit_trail(<voucher_id>)` and assert the new
+4. Call `set_voucher_review_status(V-1002, awaiting_traveler_clarification)`.
+5. `get_audit_trail(V-1002)` and assert the new
    `scoped_write` event is present with the right `resulting_status`.
 
 **Test name.** `test_e2e_missing_receipt_local_paper`.
@@ -693,27 +749,27 @@ miscategorized lodging line, and paperwork math that does not reconcile.
 
 **Steps.**
 
-1. `prepare_ao_review_brief(<voucher_id>)`.
+1. `prepare_ao_review_brief(V-1004)`.
 2. Assert findings include `ambiguous_loa_or_funding_reference`,
    `miscategorized_line_item`, and `paperwork_or_math_inconsistency`.
 3. Assert the forced-audit cue is treated as a reason to inspect the
    packet, not as an official finding.
 4. Assert the brief does not state the line is approved/denied/payable
    and does not allege misconduct.
-5. Call `record_ao_note(<voucher_id>, <neutral note text>)` and assert
+5. Call `record_ao_note(V-1004, <neutral note text>)` and assert
    the audit event lands.
 
 **Test name.** `test_e2e_ambiguous_loa_misclick_math`.
 
 ### S3. OCONUS cash / exchange-rate reconstruction
 
-**Voucher.** An austere OCONUS packet with `cash_atm` and
+**Voucher.** Support voucher V-1007: an austere OCONUS packet with `cash_atm` and
 `currency_exchange` lines, foreign-currency line items with
 `exchange_rate_to_usd`, mostly handwritten local-paper evidence.
 
 **Steps.**
 
-1. `prepare_ao_review_brief(<voucher_id>)`.
+1. `prepare_ao_review_brief(V-1007)`.
 2. Assert at least one finding of category
    `cash_atm_or_exchange_reconstruction` with `needs_human_review = true`.
 3. Assert at least one signal of `signal_type = split_disbursement_oddity`
@@ -726,12 +782,13 @@ miscategorized lodging line, and paperwork math that does not reconcile.
 
 ### S4. Stale-memory old transaction reconstruction
 
-**Voucher.** A packet whose `demo_packet_submitted_at` is many weeks
-after the latest `expense_date`, with weakly itemized evidence.
+**Voucher.** Support voucher V-1006: a packet whose
+`demo_packet_submitted_at` is many weeks after the latest `expense_date`,
+with weakly itemized evidence.
 
 **Steps.**
 
-1. `prepare_ao_review_brief(<voucher_id>)`.
+1. `prepare_ao_review_brief(V-1006)`.
 2. Assert the brief explicitly notes the gap between expense dates and
    the synthetic packet submission timestamp.
 3. Assert at least one `stale_memory_old_transaction` finding.
@@ -742,13 +799,13 @@ after the latest `expense_date`, with weakly itemized evidence.
 
 ### S5. Clean control packet
 
-**Voucher.** One of the two clean control packets seeded by the corpus
+**Voucher.** Control voucher V-1001: a clean packet seeded by the corpus
 (status `ready_for_human_decision`, zero signals, zero findings, zero
 missing-information items).
 
 **Steps.**
 
-1. `prepare_ao_review_brief(<voucher_id>)`.
+1. `prepare_ao_review_brief(V-1001)`.
 2. Assert zero findings, zero missing-information items, low brief
    uncertainty, and the standard human-authority boundary reminder.
 3. Assert the draft clarification note does not invent a clarification
@@ -841,10 +898,14 @@ dropped.
 - Every vendor label includes the `Demo` substring.
 - Every citation `source_identifier` carries a synthetic prefix
   (`synthetic_dtmo_checklist_demo_` / `synthetic_demo_reference_`).
+- No citation row contains real DoD, JTR, DTMO, checklist, or
+  government-system excerpt text for the hackathon fixture set.
 - Every external anomaly signal carries
   `synthetic_compliance_service_demo` source label,
   `is_official_finding = false`, and
   `not_sufficient_for_adverse_action = true`.
+- Every external anomaly signal has deterministic `signal_key` and
+  `signal_id` values, and `(voucher_id, signal_key)` is unique.
 - Story-card sourced narrative text passes the unsafe-wording validator.
 - Determinism: running the generator twice from the same cards produces
   identical structured output (modulo intentionally regenerated id and
@@ -869,7 +930,9 @@ dropped.
 - `test_vouchers_carry_loa_demo_prefix`
 - `test_vendor_labels_carry_demo_marker`
 - `test_citations_carry_synthetic_source_prefix`
+- `test_citations_do_not_contain_real_government_excerpt_text`
 - `test_signals_carry_demo_source_and_check_flags`
+- `test_signal_keys_unique_and_ids_derived`
 - `test_story_card_narrative_passes_unsafe_wording_validator`
 - `test_generator_output_is_deterministic`
 - `test_public_safety_scanner_blocks_private_artifacts`
@@ -1025,6 +1088,9 @@ final pass.
 - [ ] Calling `prepare_ao_review_brief` on a hero voucher returns a
   brief with at least one finding, one missing-information item, one
   citation, and the human-authority boundary reminder.
+- [ ] Calling `export_review_brief` on that brief returns the requested
+  format, preserves the same `brief_id`, includes the canonical boundary
+  reminder, and adds an `event_type = export` audit event.
 
 ### Scoped writes
 
@@ -1054,8 +1120,12 @@ final pass.
   domain email, or other obvious real-data shape.
 - [ ] Every traveler `display_name` returned in the demo carries the
   `(Synthetic Demo)` marker.
+- [ ] Every citation source and excerpt is from the synthetic demo
+  reference corpus; no real DoD/JTR/DTMO/checklist excerpt is present.
 - [ ] Every brief and exported artifact shows the human-authority
   boundary reminder.
+- [ ] Deployed seed/reset, if rerun for the demo, was invoked through the
+  Terraform-managed `ao-radar-db-ops` Lambda, not a manual one-off Lambda.
 
 If every box is checked, the demo is ready. Anything unchecked points
 back into the matching companion document for the fix.
@@ -1095,7 +1165,7 @@ access) and G4 (vocabulary) guardrails are live.
 
 - Implement Tier 2 schema tests against a Postgres test container.
 - Implement fixture-validator tests (synthetic markers, coverage map,
-  determinism).
+  determinism, signal-key uniqueness, synthetic reference-corpus posture).
 - Wire schema migrations into the test container fixture so each test
   file starts on a clean database.
 
@@ -1107,6 +1177,8 @@ access) and G4 (vocabulary) guardrails are live.
   `lambda_handler` with constructed API Gateway v2.0 events.
 - Implement `tests/integration/` tests that walk the audit-event
   invariant matrix on a freshly seeded database.
+- Implement the `export_review_brief` integration test and the DB-ops
+  contract test for `migrate`, `seed`, and reset payloads.
 
 **Exit criterion.** Tier 2 + boundary tests green; G3 (audit invariant)
 and G6 (cross-component refs) guardrails live.
@@ -1117,6 +1189,8 @@ and G6 (cross-component refs) guardrails live.
 - Implement the five E2E scenarios (S1–S5) under
   `tests/e2e/scenarios/`.
 - Implement the deployed refusal suite under `tests/e2e/refusal/`.
+- Implement deployed export and DB-ops acceptance tests, gated on
+  `AO_RADAR_MCP_BASE_URL` and `AO_RADAR_DB_OPS_FUNCTION`.
 
 **Exit criterion.** Tier 4 passes against the deployed stack; G1
 (deployed boundary) and G5 (blocked-status round-trip) guardrails live.

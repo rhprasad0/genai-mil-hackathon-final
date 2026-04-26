@@ -30,7 +30,7 @@ travel-and-expense story, compares that story to the submitted evidence, draws
 on prior traveler context and synthetic external anomaly signals, and produces
 a structured review brief: highlighted breaks in coherence, missing or weak
 evidence, possible clarification or return considerations, citations into an
-approved reference repository, needs-human-review labels, and a draft
+approved synthetic demo reference corpus, needs-human-review labels, and a draft
 clarification note the reviewer can adapt.
 
 AO Radar is explicitly bounded as a triage, fusion, and evidence-packaging aid.
@@ -53,7 +53,7 @@ remains the human decision-maker.
 | Position in workflow | Pre-decision cockpit before final human action and before post-approval compliance loops; adjacent to and complementary with TPCT, VICM/GTCC controls, and DFAS post-pay review, not a replacement for them. |
 | Primary user | A DTS Approving Official acting as the accountable human reviewer of a submitted voucher packet. |
 | Workflow target | Pre-decision review of one submitted DTS-like travel voucher packet at a time, with optional queue-level prioritization across pending packets. |
-| Environment assumption | Public-safe / unclassified prototype using synthetic voucher data and synthetic external anomaly signals. No live DTS integration. No real PII. No real Government Travel Charge Card data. |
+| Environment assumption | Public-safe / unclassified prototype using synthetic voucher data, synthetic external anomaly signals, and a synthetic demo reference corpus. No live DTS integration. No real PII. No real Government Travel Charge Card data. No real DoD/JTR/DTMO excerpts in hackathon fixtures. |
 | Out of scope | Approving, denying, certifying, returning, cancelling, amending, or submitting any DTS document; recommending the official disposition of a voucher; determining entitlement or payability; modifying payment amounts; accusing fraud; contacting investigators, command, or law enforcement; processing real traveler data; replacing existing post-approval compliance tooling; pretending to be deployed inside DTS. |
 
 ---
@@ -151,10 +151,11 @@ When the capability is in place:
 - **Coherence and anomaly checks** for dates, locations, amounts, duplicates,
   multiple-charge patterns, cash and currency-exchange edge cases, and
   expense-versus-trip-window alignment.
-- **Controlled retrieval** from an approved reference repository (policy
-  excerpts, traveler regulation paragraphs, service-level checklists, valid
-  receipt definitions, and similar publicly approved sources) to support
-  policy-facing flags and prompts with source hooks the reviewer can verify.
+- **Controlled retrieval** from the approved synthetic demo reference corpus
+  for hackathon scope. The corpus contains short, clearly synthetic excerpts
+  that demonstrate citation mechanics without quoting real DoD, JTR, DTMO,
+  service-level checklist, or government-system text. Later real public
+  excerpts require an approved reference-corpus review before loading.
 - **Fusion into a pre-decision review brief** that combines packet evidence,
   traveler profile, prior voucher summaries, external anomaly signals,
   story-coherence analysis, and policy citations into a single auditable
@@ -283,9 +284,11 @@ packet has enough information for official action.
 - **AO Radar (the system)** — ingests the packet, fuses packet evidence with
   traveler context, external anomaly signals, and policy citations, and
   produces the pre-decision review brief.
-- **Approved reference repository** — a controlled set of policy excerpts,
-  reference paragraphs, valid-receipt definitions, and service-level checklist
-  items, sourced from publicly available DoD travel guidance.
+- **Approved reference repository** — for hackathon scope, a controlled
+  synthetic demo reference corpus. It may mimic the shape of policy excerpts,
+  reference paragraphs, valid-receipt definitions, and checklist items, but it
+  does not quote real DoD, JTR, DTMO, service-level, or government-system text.
+  Later real public excerpts are allowed only after approved corpus review.
 - **External anomaly signal source (synthetic)** — a stand-in compliance or
   anomaly service that produces risk indicators (duplicate-payment risk,
   high-risk merchant category, unusual amount, date/location mismatch,
@@ -343,7 +346,7 @@ official DTS state, or contact anyone outside the demo.
     | 5. Pulls historical traveler context (profile + prior voucher summaries)
     | 6. Pulls external anomaly signals (synthetic) as risk indicators
     | 7. Runs evidence-quality, coherence, and anomaly checks
-    | 8. Retrieves supporting excerpts from the approved reference repository
+    | 8. Retrieves supporting excerpts from the synthetic demo reference corpus
     | 9. Fuses the above into a single pre-decision review brief
     | 10. Lists missing-information items
     | 11. Drafts neutral reviewer-prompt language
@@ -395,7 +398,7 @@ official DTS state, or contact anyone outside the demo.
 
 - The Radar may read a submitted packet and may draft suggestions; it may not
   take any official action on the packet.
-- The Radar may cite excerpts from the approved reference repository; it may
+- The Radar may cite excerpts from the approved synthetic demo reference corpus; it may
   not invent citations or paraphrase policy as if it were the authority.
 - The Radar may write only internal review artifacts through scoped workflow
   tools; it may not write official DTS state, modify payment-bearing data, or
@@ -420,8 +423,8 @@ official DTS state, or contact anyone outside the demo.
 - External anomaly signals: synthetic risk indicators produced by a stand-in
   compliance/anomaly service, labeled as review prompts and not as official
   findings.
-- The approved reference repository: policy excerpts, valid-receipt
-  definitions, and service-level checklist items.
+- The approved reference repository: synthetic demo excerpts that mimic
+  policy, valid-receipt, and checklist shapes for citation mechanics only.
 - Optional reviewer context: prior notes the reviewer has captured on the
   same packet, reviewer-set rule overrides for the component, and prior AO
   feedback on similar findings.
@@ -487,7 +490,8 @@ AO Radar: Pre-Decision Review Fusion for DTS Approving Officials.
 The system shall assist an authorized Approving Official in reviewing a
 submitted DTS-like travel voucher packet by fusing packet evidence, historical
 traveler context, synthetic external anomaly signals, and approved reference
-citations into an auditable pre-decision review brief; reconstructing an
+citations from a synthetic demo reference corpus into an auditable
+pre-decision review brief; reconstructing an
 internally coherent travel-and-expense story; flagging breaks against attached
 evidence; identifying missing information; drafting neutral reviewer prompts;
 and exposing scoped workflow writes that move review work forward without
@@ -503,8 +507,10 @@ The prototype shall support:
 - Ingest of synthetic historical traveler context (profile and prior voucher
   summaries) and synthetic external anomaly signals.
 - Generation of a single fused pre-decision review brief artifact per packet.
-- Retrieval from a controlled approved reference repository populated with
-  publicly available DoD travel guidance excerpts.
+- Retrieval from a controlled approved synthetic demo reference corpus. For
+  hackathon implementation, this corpus must not contain real DoD, JTR, DTMO,
+  checklist, or government-system excerpts. Later real public excerpts require
+  approved corpus review before loading.
 - Scoped workflow writes (notes, finding-review status, AO feedback, draft
   clarification text, traveler-clarification request, internal review
   status) with audit-event production.
@@ -562,11 +568,14 @@ ATM, or currency-exchange items that require reviewer reconstruction. Each
 item shall be labeled as a review indicator, not as an official determination.
 
 **FR-5: Controlled Reference Retrieval.**
-The system shall retrieve excerpts from the approved reference repository for
-policy-facing flags and reviewer prompts. Each retrieved excerpt shall be
-displayed verbatim with a source identifier the reviewer can verify. If no
-supporting excerpt is available, the system shall mark the issue as ungrounded
-or needs human review rather than inventing support.
+The system shall retrieve excerpts from the approved synthetic demo reference
+corpus for policy-facing flags and reviewer prompts. Each retrieved excerpt
+shall be displayed verbatim with a source identifier the reviewer can verify.
+For hackathon implementation, retrieved excerpts are synthetic and clearly
+labeled; no real DoD, JTR, DTMO, checklist, or government-system text is
+loaded. If no supporting excerpt is available, the system shall mark the issue
+as ungrounded or needs human review rather than inventing support. Later real
+public excerpts require approved corpus review before use.
 
 **FR-6: Missing-Information Detection.**
 The system shall produce an explicit checklist of items that the packet does
@@ -609,7 +618,9 @@ The system shall produce an exportable review brief in a portable text-based
 format that the reviewer can attach to a unit-side record. The export shall
 preserve flag categories, citations, missing-information items, the draft
 clarification note, uncertainty annotations, and a clear statement that the
-brief is not an official action.
+brief is not an official action. The implementation-neutral export action is
+`export_review_brief(voucher_id or brief_id, format)`, where `format` is a
+small controlled set such as `markdown` or `json`.
 
 **FR-13: Needs-Human-Review State.**
 The system shall provide a distinct needs-human-review state for ambiguous,
@@ -650,7 +661,8 @@ explicit confidence or uncertainty annotation.
 **NFR-3: Grounding Discipline.**
 The system shall prefer refusal over fabrication. If the approved reference
 repository does not support a claim, the system shall say so rather than
-generate plausible-sounding text.
+generate plausible-sounding text. For hackathon implementation, the only
+approved repository content is the synthetic demo reference corpus.
 
 **NFR-4: Latency.**
 The system should produce an initial review brief within a target latency
@@ -693,10 +705,11 @@ or with any classified source.
 - **Voucher Packet Intake Interface.** A defined input contract that accepts a
   structured voucher packet plus its attached evidence references, in
   synthetic form for the prototype.
-- **Approved Reference Repository Interface.** A read interface against a
-  controlled set of approved reference excerpts. Implementation form
-  (file-based corpus, search index, retrieval pipeline) is left to the
-  implementer.
+- **Approved Reference Repository Interface.** A read interface against the
+  approved synthetic demo reference corpus. Implementation form (file-based
+  corpus, search index, retrieval pipeline) is left to the implementer, but
+  hackathon fixtures must not load real DoD, JTR, DTMO, checklist, or
+  government-system excerpts.
 - **Reasoning and Drafting Interface.** A component used for story
   reconstruction, evidence-quality reasoning, and prompt drafting.
   Implementation form is left to the implementer.
@@ -731,7 +744,8 @@ or hosting environment is required by this specification.
   legibility-cue annotations, itemization-cue annotations, payment-evidence-cue
   annotations.
 - **Reference Excerpt.** Source identifier, excerpt text, retrieval anchor,
-  applicability note.
+  applicability note. Hackathon reference excerpts are synthetic and clearly
+  labeled.
 - **Traveler Profile.** Synthetic role and typical trip-pattern context used
   for comparison only, with no real PII.
 - **Prior Voucher Summary.** Synthetic summary of an earlier voucher for the
@@ -807,7 +821,10 @@ brief level. Hidden uncertainty is not permitted.
 
 **TR-8: Synthetic-Only Prototype Data.**
 The prototype shall operate only on synthetic packets, synthetic evidence,
-and publicly available reference excerpts.
+synthetic traveler context, synthetic external anomaly signals, and the
+synthetic demo reference corpus. Real public DoD, JTR, DTMO, checklist, or
+government-system excerpts are out of scope for the hackathon implementation
+and require approved corpus review before any later use.
 
 **TR-9: Auditability.**
 The system shall maintain an audit log sufficient to reconstruct, after the
@@ -848,7 +865,7 @@ behavior, and trust boundary are preserved.
 - Read synthetic traveler profile and prior voucher summaries for baseline
   comparison.
 - Read synthetic external anomaly signals as review prompts only.
-- Read excerpts from the approved reference repository.
+- Read excerpts from the approved synthetic demo reference corpus.
 - Read the reviewer's optional context and rule overrides.
 - Read prior audit entries for the same packet to provide continuity.
 
@@ -871,7 +888,8 @@ behavior, and trust boundary are preserved.
 - Annotate confidence, uncertainty, needs-human-review labels, and refusals on
   every output.
 - Emit an exportable review brief outside the system, clearly labeled as a
-  review aid.
+  review aid, and record a `workflow_events` entry with
+  `event_type = export`.
 
 ## 4.3 Prohibited Actions (Hard Constraints)
 
@@ -924,6 +942,20 @@ The system shall refuse, with a brief and actionable reason, when:
 A refusal or needs-human-review label is itself an output. It shall be logged
 and shall be visible to the reviewer.
 
+## 4.4.1 Canonical Human-Authority Boundary Reminder
+
+All briefs, exports, workflow events, and refusal responses that point to the
+authority boundary shall use this canonical reminder unless a deployment
+requires a longer approved variant:
+
+`AO Radar is a synthetic pre-decision review aid. It does not approve, deny, certify, return, cancel, amend, submit, determine entitlement, determine payability, accuse fraud, or contact external parties. The human Approving Official remains accountable for every official action in the official travel system.`
+
+Any implementation that permits a longer boundary-text override shall validate
+that the override still contains clauses covering no approve, deny, certify,
+return, cancel, amend, submit, entitlement determination, payability
+determination, fraud accusation, and contact with external parties. Omitting
+any clause is a startup/configuration failure, not a warning.
+
 ## 4.5 Implementation-Neutral Tool Catalog
 
 The following tool names define the implementation-neutral surface a coding
@@ -954,9 +986,8 @@ tool.
   reconstructed trip-and-expense narrative, evidence/story gaps, why each
   gap matters, suggested AO question, and a `review_prompt_only` marker.
 - `get_policy_citation(citation_id)` / `get_policy_citations(query)` — return
-  verbatim excerpts from the approved reference repository with source
-  identifiers. Refuse rather than fabricate when no excerpt supports the
-  query.
+  verbatim synthetic demo reference-corpus excerpts with source identifiers.
+  Refuse rather than fabricate when no excerpt supports the query.
 - `prepare_ao_review_brief(voucher_id)` — the main fusion tool. Combines
   `get_voucher_packet`, `get_traveler_profile`,
   `list_prior_voucher_summaries`, `get_external_anomaly_signals`,
@@ -967,6 +998,10 @@ tool.
   question, policy/checklist hooks, uncertainty, and a human-authority
   boundary statement. The brief packages evidence for AO review and leaves
   official action to the accountable human.
+- `export_review_brief(voucher_id or brief_id, format)` — emit the latest
+  brief for a voucher, or a specific `brief_id`, in a controlled portable
+  text-based format such as `markdown` or `json`. The export includes the
+  canonical boundary reminder and writes `workflow_events.event_type = export`.
 
 ### 4.5.2 Scoped Workflow Write Tools (Audited)
 
@@ -1017,6 +1052,8 @@ Every workflow write shall produce or reference an audit event with at
 minimum:
 
 - event ID
+- event type (for example `scoped_write`, `refusal`, `retrieval`,
+  `generation`, `needs_human_review_label`, `edit`, or `export`)
 - actor (the human reviewer or demo identity, never invented)
 - timestamp
 - voucher ID
@@ -1061,9 +1098,10 @@ shown end-to-end against a synthetic voucher packet.
 **AC-1: Single-Packet Brief.**
 A reviewer can load one synthetic voucher packet and see a one-screen review
 brief fused from packet evidence, synthetic traveler context, synthetic
-external anomaly signals, and approved references. The brief includes the
-reconstructed story, at least one flagged break, at least one
-missing-information item, and at least one cited reference excerpt.
+external anomaly signals, and the approved synthetic demo reference corpus.
+The brief includes the reconstructed story, at least one flagged break, at
+least one missing-information item, and at least one cited synthetic reference
+excerpt.
 
 **AC-2: Provenance.**
 Each flag in the brief points to specific in-packet evidence and, when
@@ -1099,9 +1137,11 @@ that is labeled as workload guidance and that does not imply any approval or
 denial, return, payability, or readiness-for-payment decision.
 
 **AC-9: Export.**
-The reviewer can export the brief in a portable text-based format that
-preserves flags, citations, missing-information items, the draft note, and
-the not-an-official-action statement.
+The reviewer can call `export_review_brief(voucher_id or brief_id, format)`
+to export the brief in a portable text-based format that preserves flags,
+citations, missing-information items, the draft note, uncertainty, and the
+not-an-official-action statement. The export writes a `workflow_events` row
+with `event_type = export`.
 
 **AC-10: Audit Trail.**
 The system records inputs, retrievals, generated outputs, reviewer edits,
@@ -1110,8 +1150,9 @@ at least one full review cycle.
 
 **AC-11: Public-Safety Verification.**
 The demonstration uses only synthetic packets, synthetic evidence, and
-publicly available reference excerpts, and the demonstration narrative
-states this on screen and in any written submission.
+synthetic demo reference-corpus excerpts, and the demonstration narrative
+states this on screen and in any written submission. No real DoD, JTR, DTMO,
+checklist, or government-system excerpts are loaded for the hackathon demo.
 
 **AC-12: Trust-Boundary Statement.**
 The brief and the export both display a clear statement that the system
@@ -1218,6 +1259,11 @@ The following public, unclassified source areas informed the problem framing in
 this specification. They are validation hooks for reviewers and implementers,
 not system output and not a substitute for checking current source text before
 making public claims.
+
+These hooks are not the hackathon reference corpus. The hackathon
+implementation uses only synthetic demo reference-corpus excerpts. Loading real
+public excerpts from any of the source areas below is deferred until an
+approved reference-corpus review.
 
 - **Approving Official as accountable Certifying Officer.** Validate against
   the DoD Financial Management Regulation, Volume 5, Chapter 5, and current
