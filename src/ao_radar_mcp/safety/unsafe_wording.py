@@ -88,9 +88,14 @@ _ENTITLEMENT_PAYABILITY_PATTERNS: Final[tuple[re.Pattern[str], ...]] = tuple(
     re.compile(p, re.IGNORECASE)
     for p in (
         r"\bsystem\s+(?:has\s+)?determined\s+(?:entitlement|payability)\b",
-        r"\bdetermined\s+to\s+be\s+(?:payable|nonpayable|entitled|"
+        r"\bdetermined\s+to\s+be\s+(?:payable|nonpayable|not\s+payable|entitled|"
         r"not\s+entitled|payment\s+ready)\b",
-        r"\bofficially\s+(?:entitled|not\s+entitled|payable|nonpayable)\b",
+        r"\bofficially\s+(?:entitled|not\s+entitled|payable|nonpayable|not\s+payable)\b",
+        r"\b(?:this|the)\s+(?:voucher|packet|claim|expense|line\s+item)\s+is\s+"
+        r"(?:payable|nonpayable|not\s+payable|entitled|not\s+entitled)\b",
+        r"\b(?:traveler|claimant)\s+is\s+(?:entitled|not\s+entitled)\b",
+        r"\bnot\s+payable\b",
+        r"\bnot\s+entitled\b",
     )
 )
 
@@ -186,6 +191,14 @@ def check(text: str) -> UnsafeWordingResult:
                 return UnsafeWordingResult(
                     is_safe=False,
                     reason=_REASON_EXTERNAL_CONTACT,
+                    matched_phrase=match.group(0),
+                )
+        for pattern in _ENTITLEMENT_PAYABILITY_PATTERNS:
+            match = pattern.search(candidate)
+            if match:
+                return UnsafeWordingResult(
+                    is_safe=False,
+                    reason=_REASON_ENTITLEMENT_PAYABILITY,
                     matched_phrase=match.group(0),
                 )
         return UnsafeWordingResult(is_safe=True, reason=None, matched_phrase=None)

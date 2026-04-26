@@ -48,6 +48,9 @@ def test_fraud_allegations_rejected(phrase: str) -> None:
         "System has determined entitlement.",
         "Determined to be payable.",
         "Officially entitled to reimbursement.",
+        "This expense is not payable.",
+        "The traveler is not entitled to reimbursement.",
+        "This is not payable and the traveler is not entitled to reimbursement.",
     ],
 )
 def test_entitlement_payability_rejected(phrase: str) -> None:
