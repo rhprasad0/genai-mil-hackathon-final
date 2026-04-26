@@ -200,3 +200,9 @@ The judging rubric weights novelty, technical difficulty, potential national imp
 ## Acknowledgments
 
 Special thanks to Sabastian Mandell for helping sharpen the problem frame and for his service.
+
+I wrote this without writing or reading a single line of code, and I am about to demo this live in 10 minutes. On the way here, it dawned on me that I really do not know much about this project other than that it works. 
+
+This strikes me as more of a clever stunt that happens to have worked. I would hesitate to push this to production where people's lives could actually be impacted.
+
+There are a lot of students participating in the hackathon, and am troubled at the thought of someone new to the field emulating me. Someone could get hurt.
