@@ -110,6 +110,9 @@ across the trust boundary.
 
 ## 4. ERD / Entity Overview
 
+The diagram is illustrative only. The canonical implementation choices are the
+table and enum definitions that follow in sections 5 and 6.
+
 ```
 travelers (1) ────< (M) vouchers
    │                     │
@@ -181,9 +184,16 @@ under section 5.13.
 - **finding_signal_links** — many-to-many between `story_findings` and
   `external_anomaly_signals`. A flag often draws on several signals; a signal
   may inform several flags.
+- **Canonical evidence pointer choice** — keep
+  `story_findings.packet_evidence_pointer` as the hackathon evidence hook. It
+  points to one primary line item or evidence row for provenance, while
+  `finding_signal_links` handles only signal fan-out. Do not implement a
+  second evidence-link source of truth unless the coding agent deliberately
+  replaces the json pointer before the first migration.
 - A typed `kind` column on **ao_notes** so AO notes, draft clarification
-  notes, and AO feedback share one shape without losing their distinct
-  semantics. This avoids inventing two more tables for hackathon scope.
+  notes, synthetic clarification request messages, and AO feedback share one
+  shape without losing their distinct semantics. This avoids inventing three
+  more tables for hackathon scope.
 - A `data_environment` column on **travelers** and **vouchers** with a CHECK
   constraint allowing only `synthetic_demo`. This expresses TR-8 in the
   schema instead of in a code comment.
@@ -203,7 +213,9 @@ coding agent can pick concrete types for the chosen database.
   for story reconstruction and queue prioritization. No real PII.
 - **Key columns:**
   - `traveler_id` (text, PK, e.g. `T-101`)
-  - `display_name` (text, clearly fictional)
+  - `display_name` (text, clearly fictional; use handles such as
+    `Demo Traveler Alpha (Synthetic Demo)`, not rank plus realistic
+    first/last-name pairs)
   - `role_label` (text, e.g. `staff_nco_demo`, `field_grade_demo`)
   - `home_unit_label` (text, clearly fictional, e.g.
     `1st Synthetic Logistics Detachment (Demo)`)
@@ -215,8 +227,9 @@ coding agent can pick concrete types for the chosen database.
 - **Constraints / checks:**
   - `data_environment` CHECK equals `synthetic_demo`.
   - `display_name` CHECK includes a clearly-synthetic marker substring (for
-    example, the suffix `(Demo)` or a `DEMO-` prefix). This is belt-and-
-    suspenders against accidental real-name seeding.
+    example, `(Synthetic Demo)` or a `DEMO-` prefix). Do not encode rank
+    abbreviations or realistic personal names in `display_name`; role context
+    belongs in `role_label`.
 - **Indexes:** PK on `traveler_id`. No others required at hackathon scale.
 - **Seed-data role:** five to six profiles spanning role and trip-pattern
   diversity, including a deliberately clean baseline profile and a profile
@@ -228,7 +241,9 @@ coding agent can pick concrete types for the chosen database.
 
 - **Purpose:** the synthetic packet anchor. Holds declared trip metadata,
   funding reference, justification text, pre-existing flags, and the
-  controlled internal review status that the workflow can advance.
+  controlled internal review status that the workflow can advance. It does
+  not model official DTS document state, routing state, certification state,
+  payment state, disbursement state, or entitlement/payability.
 - **Key columns:**
   - `voucher_id` (text, PK, e.g. `V-1003`)
   - `traveler_id` (text, FK → travelers.traveler_id)
@@ -239,12 +254,15 @@ coding agent can pick concrete types for the chosen database.
   - `declared_origin` (text, clearly fictional)
   - `declared_destinations` (json array of clearly fictional locations)
   - `funding_reference_label` (text, clearly fictional LOA-shaped string,
-    e.g. `LOA-DEMO-FY26-0007`)
+    e.g. `LOA-DEMO-FY26-0007`; display and parser context only, never an
+    official funding validity decision)
   - `funding_reference_quality` (enum: `clean`, `ambiguous`, `unparseable`)
   - `justification_text` (text)
-  - `pre_existing_flags` (json array of free-text strings already present on
-    the packet at intake)
-  - `submitted_at` (timestamp)
+  - `pre_existing_flags` (json array of neutral synthetic strings already
+    present on the packet at intake, e.g. a demo forced-audit receipt-review
+    cue; not official findings)
+  - `demo_packet_submitted_at` (timestamp; synthetic packet/demo submission
+    timestamp for queue ordering only, not evidence of live DTS submission)
   - `review_status` (enum, see section 6.1)
   - `data_environment` (text, must equal `synthetic_demo`)
   - `created_at` (timestamp)
@@ -257,10 +275,13 @@ coding agent can pick concrete types for the chosen database.
   - `trip_end_date` ≥ `trip_start_date`.
   - `data_environment` CHECK equals `synthetic_demo`.
   - `funding_reference_quality` CHECK against the small enum above.
+  - No columns named `dts_status`, `payment_status`,
+    `disbursement_status`, `certification_status`, `official_return_state`,
+    `paid_amount`, or equivalent are permitted in the implementation.
 - **Indexes:**
   - FK index on `traveler_id`.
   - Partial index on `review_status` for queue listing.
-  - Index on `submitted_at` for queue ordering.
+  - Index on `demo_packet_submitted_at` for queue ordering.
 - **Seed-data role:** ten to twelve packets covering the scenarios in
   section 7. At least one packet per scenario, with at least two clean
   control packets so the brief comparison is meaningful.
@@ -270,7 +291,9 @@ coding agent can pick concrete types for the chosen database.
 ### 5.3 voucher_line_items
 
 - **Purpose:** declared expense lines, the unit at which evidence-quality
-  assessment and most coherence checks operate.
+  assessment and most coherence checks operate. Amount fields are claimed
+  packet amounts only; do not add paid, allowed, reimbursed, disbursed, or
+  entitlement amount columns.
 - **Key columns:**
   - `line_item_id` (text, PK)
   - `voucher_id` (text, FK → vouchers.voucher_id, ON DELETE CASCADE for
@@ -360,9 +383,9 @@ coding agent can pick concrete types for the chosen database.
     `misuse`)
   - `created_at` (timestamp)
 - **Constraints / checks:**
-  - CHECK that `summary_text` and `recurring_correction_pattern` do not
-    contain prohibited vocabulary tokens (see section 6.4). Even at the
-    schema layer this is a useful belt-and-suspenders guard for seed data.
+  - Standard FK constraints. Do not put broad database CHECKs on these
+    narrative fields; use the fixture validator in section 9.6 to catch unsafe
+    allegations or official-disposition wording in seeded text.
 - **Indexes:** FK index on `traveler_id`.
 - **Seed-data role:** zero, one, or two prior summaries per traveler. At
   least one traveler with a recurring evidence-attachment pattern; at least
@@ -390,18 +413,23 @@ coding agent can pick concrete types for the chosen database.
   - `created_at` (timestamp)
 - **Constraints / checks:**
   - `topic` CHECK against the enum.
-  - CHECK that `excerpt_text` does not contain prohibited vocabulary tokens
-    (section 6.4); the corpus must never carry fraud or
-    official-disposition language.
+  - Do not apply the section 6.4 blocked-status CHECK to `excerpt_text`.
+    Policy or checklist excerpts may legitimately contain words such as
+    "approval" or "return" as part of source text. Seed/demo excerpt text is
+    instead validated by the fixture validator so it cannot present itself as
+    an official determination for a specific voucher.
 - **Indexes:**
   - Index on `topic`.
   - Optional full-text or trigram index on `retrieval_anchor` if the chosen
     database supports one cheaply. Not required for the demo.
-- **Seed-data role:** a small but topic-complete synthetic corpus, written
-  in the spirit of public DoD travel guidance but invented and clearly
-  marked synthetic. Each topic in the enum gets at least one citation. The
-  corpus must be sufficient to ground every flag category that the seed
-  scenarios exercise.
+- **Seed-data role:** a small but topic-complete demo reference corpus. Do
+  not invent real DoD citations or quote unverified policy text. For the
+  public hackathon seed, use short excerpts clearly labeled as
+  `synthetic_demo_reference` to demonstrate citation mechanics; any later
+  pilot that uses real public excerpts must load them through an approved
+  reference-corpus review. Each topic in the enum gets at least one citation,
+  and the corpus must be sufficient to ground every flag category that the
+  seed scenarios exercise.
 - **Spec alignment:** section 3.7 (Reference Excerpt), FR-5, FR-8, NFR-3
   (grounding discipline), TR-5, TR-6, AC-2.
 
@@ -461,8 +489,11 @@ coding agent can pick concrete types for the chosen database.
   - `packet_evidence_pointer` CHECK that at least one id is present (TR-5).
   - `review_state` value CHECK rejects any value that would imply official
     action; only the enumeration in section 6.3 is allowed.
-  - CHECK that `summary`, `explanation`, and `suggested_question` do not
-    contain prohibited vocabulary tokens (section 6.4).
+  - Do not apply broad database vocabulary CHECKs to `summary`,
+    `explanation`, or `suggested_question`; neutral review language can
+    legitimately mention boundary terms such as "not an approval." The
+    fixture validator and generation tests must reject unsafe assertions,
+    official-disposition recommendations, and misconduct allegations.
 - **Indexes:**
   - FK index on `voucher_id`.
   - Index on `category` and `(voucher_id, severity)` for brief assembly.
@@ -526,8 +557,10 @@ coding agent can pick concrete types for the chosen database.
   - Unique `(voucher_id, version)`.
   - `human_authority_boundary_text` length ≥ 1.
   - `brief_uncertainty` CHECK against its enum.
-  - CHECK that `draft_clarification_note` and `priority_rationale` do not
-    contain prohibited vocabulary tokens (section 6.4).
+  - `draft_clarification_note` and `priority_rationale` are validated by the
+    fixture/generation validator for unsafe assertions and official
+    disposition language. Do not use a coarse database CHECK that would block
+    legitimate boundary wording such as "not an official approval."
 - **Indexes:**
   - FK index on `voucher_id`.
   - Unique index on `(voucher_id, version)`.
@@ -541,31 +574,37 @@ coding agent can pick concrete types for the chosen database.
 ### 5.11 ao_notes
 
 - **Purpose:** typed reviewer-authored or system-drafted internal notes.
-  Backs `record_ao_note`, `draft_return_comment`, and `record_ao_feedback`.
+  Backs `record_ao_note`, `draft_return_comment`,
+  `request_traveler_clarification`, and `record_ao_feedback`. Clarification
+  request rows are internal demo artifacts only; they are not messages sent to
+  a real traveler or any external party.
 - **Key columns:**
   - `note_id` (text, PK)
   - `voucher_id` (text, FK → vouchers.voucher_id)
   - `finding_id` (text, nullable, FK → story_findings.finding_id)
-  - `kind` (enum: `ao_note`, `draft_clarification`, `ao_feedback`)
+  - `kind` (enum: `ao_note`, `draft_clarification`,
+    `synthetic_clarification_request`, `ao_feedback`)
   - `body` (text)
   - `actor_label` (text, demo identity such as `demo_ao_user_1`; never
-    invented and never a real person)
+    dynamically invented and never a real person)
   - `created_at` (timestamp)
   - `superseded_by_note_id` (text, nullable, self-referential FK; allows
     the reviewer to edit a draft without losing history)
 - **Constraints / checks:**
   - `kind` CHECK against its enum.
-  - CHECK that `body` does not contain prohibited vocabulary tokens
-    (section 6.4) when `kind = draft_clarification`. AO notes themselves
-    are reviewer free-text and the constraint is relaxed there, but the
-    application layer should still strip obvious prohibited tokens.
+  - Do not put a coarse blocked-word database CHECK on `body`. Reviewer notes
+    are free text, and draft/boundary language may need to mention prohibited
+    actions in order to say the system cannot perform them. The application
+    and fixture/generation validator must reject draft text or synthetic
+    clarification-request text that recommends an official disposition,
+    determines payability, alleges misconduct, or implies external contact.
   - `actor_label` NOT NULL.
 - **Indexes:**
   - FK index on `voucher_id`.
   - Index on `(voucher_id, kind)`.
 - **Seed-data role:** at least one seeded `ao_note`, one
-  `draft_clarification`, and one `ao_feedback` row across the corpus so the
-  demo can show all three shapes.
+  `draft_clarification`, one `synthetic_clarification_request`, and one
+  `ao_feedback` row across the corpus so the demo can show all four shapes.
 - **Spec alignment:** section 3.7 (Workflow Write, Draft Clarification
   Note), FR-7, FR-15, AC-4, AC-16.
 
@@ -580,8 +619,8 @@ coding agent can pick concrete types for the chosen database.
   - `voucher_id` (text, FK → vouchers.voucher_id; nullable only for
     system-level events that have no voucher context, which the demo
     avoids)
-  - `actor_label` (text; the human reviewer or demo identity, never
-    invented)
+  - `actor_label` (text; the human reviewer or stable demo identity, never a
+    real personal identifier in public fixtures)
   - `occurred_at` (timestamp)
   - `event_type` (enum: `scoped_write`, `refusal`,
     `needs_human_review_label`, `retrieval`, `generation`, `edit`,
@@ -591,7 +630,8 @@ coding agent can pick concrete types for the chosen database.
   - `target_kind` (enum: `voucher`, `finding`, `note`, `brief`, `signal`,
     `citation`, `missing_item`, `none`)
   - `target_id` (text, nullable)
-  - `resulting_status` (text, nullable; for review-status changes)
+  - `resulting_status` (text, nullable; for voucher review-status or finding
+    review-state changes)
   - `rationale_metadata` (json; arbitrary structured context, e.g.
     refusal reason, requested action, draft text length, citation ids
     surfaced)
@@ -600,9 +640,9 @@ coding agent can pick concrete types for the chosen database.
 - **Constraints / checks:**
   - `event_type`, `target_kind` CHECK against their enums.
   - `tool_name` IS NOT NULL when `event_type = scoped_write`.
-  - `resulting_status` CHECK rejects prohibited values whenever it is set
-    (the same blacklist in section 6.4 plus the enumeration check in
-    section 6.1).
+  - `resulting_status` CHECK rejects prohibited values whenever it is set and
+    allows only the union of section 6.1 voucher statuses and section 6.3
+    finding review states.
   - `human_authority_boundary_reminder` length ≥ 1.
 - **Indexes:**
   - FK index on `voucher_id`.
@@ -626,15 +666,16 @@ recommends adding them now rather than discovering them mid-build.
   - Why: a flag commonly draws on more than one signal, and the spec's
     fusion language treats signals as inputs that should be visible per
     flag (FR-8, AC-2).
-- **finding_evidence_links** (optional, only if the coding agent finds the
-  embedded `packet_evidence_pointer` json too coarse for the chosen
-  database). Same shape as `finding_signal_links`, joining
-  `story_findings` to `evidence_refs` and/or `voucher_line_items`. The
-  default plan keeps the json pointer; this is a fallback if querying the
-  json becomes painful.
+- **finding_evidence_links** is not part of the canonical hackathon schema.
+  The canonical plan uses `story_findings.packet_evidence_pointer` for the
+  primary evidence pointer and `finding_signal_links` for signal fan-out. If
+  the coding agent decides the json pointer is untenable for the chosen
+  database, replace it with an evidence join table before implementation and
+  update this document in the same PR; do not ship both as competing
+  provenance sources.
 - A `kind` column on `ao_notes` (already specified in 5.11) — listed here
-  again because it is the cleanest way to back three distinct workflow
-  tools without inventing three tables.
+  again because it is the cleanest way to back four distinct workflow
+  artifacts without inventing more tables.
 
 No other additions are recommended at hackathon scope.
 
@@ -658,6 +699,12 @@ Allowed values, drawn directly from `docs/spec.md` section 4.5.3:
 
 The CHECK constraint must reject every other value, including but not
 limited to the explicit blocklist in section 6.4.
+`ready_for_human_decision` means only that the demo review work queue has no
+known open internal blockers; it must never be rendered as payment-ready,
+approval-ready, payable, or officially return-ready.
+`awaiting_traveler_clarification` is also internal demo state only; it records
+that a reviewer drafted a clarification request inside AO Radar and does not
+mean a real traveler was contacted.
 
 ### 6.2 story_findings.category
 
@@ -668,7 +715,9 @@ limited to the explicit blocklist in section 6.4.
 - `ambiguous_loa_or_funding_reference`
 - `cash_atm_or_exchange_reconstruction`
 - `stale_memory_old_transaction`
-- `unauthorized_or_unclear_expense`
+- `forced_audit_receipt_review`
+- `paperwork_or_math_inconsistency`
+- `unclear_or_possibly_unjustified_expense`
 - `date_window_mismatch`
 - `location_mismatch`
 - `miscategorized_line_item`
@@ -694,48 +743,56 @@ Disallowed values include `approved`, `denied`, `certified`, `submitted`,
 `paid`, `fraud`, `returned`, `cancelled`, `amended`. The CHECK constraint
 rejects them.
 
-### 6.4 Blocked official-action vocabulary (schema-level blacklist)
+### 6.4 Blocked statuses and unsafe wording validation
 
-The following tokens (case-insensitive, whole-word) are explicitly
-prohibited from appearing in:
+The database-level hard block applies to status-like fields only:
 
 - `vouchers.review_status`
 - `story_findings.review_state`
 - `workflow_events.resulting_status`
-- (advisory CHECK only) `policy_citations.excerpt_text`,
-  `prior_voucher_summaries.summary_text`,
-  `prior_voucher_summaries.recurring_correction_pattern`,
-  `review_briefs.draft_clarification_note`,
-  `review_briefs.priority_rationale`,
-  `story_findings.summary`, `story_findings.explanation`,
-  `story_findings.suggested_question`,
-  `ao_notes.body` when `kind = draft_clarification`.
 
-Blocked tokens:
+Those fields must be constrained to their allowed enums.
+`workflow_events.resulting_status` may contain either a valid
+`vouchers.review_status` value or a valid `story_findings.review_state` value,
+because it records both voucher-status and finding-review writes.
+
+In addition, attempted values matching any of the following exact lowercase
+normalized values must be rejected and covered by tests:
 
 - `approved`, `approve`
-- `denied`, `deny`
+- `denied`, `deny`, `rejected`, `reject`
 - `certified`, `certify`
-- `submitted`, `submit`
-- `returned`, `return_voucher`
-- `cancelled`, `cancel`
+- `submitted`, `submit`, `submitted_to_dts`
+- `returned`, `return`, `return_voucher`, `officially_returned`
+- `cancelled`, `canceled`, `cancel`
 - `amended`, `amend`
-- `paid`, `payable`, `nonpayable`
+- `paid`, `payable`, `nonpayable`, `ready_for_payment`,
+  `payment_ready`
 - `fraud`, `fraudulent`, `misuse`, `abuse`, `misconduct`
-- `entitled`, `entitlement` (when used as a determination, not in citation
-  topic labels — the CHECK is conservative; the seed corpus avoids the word)
-- `escalate_to_investigators`, `notify_command`, `contact_traveler` (the
-  underscored phrases stand in for any external-contact verb the
-  application might try to render)
+- `entitled`, `entitlement_determined`
+- `escalated_to_investigators`, `notify_command`, `contact_traveler`
 
-Implementation note for the coding agent: in databases without robust regex
-checks, encode this blacklist as a CHECK using a `LOWER()` containment
-predicate per token, or as a database function called from the CHECK. The
-goal is that a row carrying any of these tokens in a guarded column simply
-will not insert. If the chosen database makes this expensive, the coding
-agent may move the advisory checks (excerpt_text, summary, etc.) into a
-test fixture validator instead of an in-database CHECK. The status-column
-checks must remain in the database.
+Free-text columns must not use this broad list as a database CHECK. The words
+"approve", "return", "payable", or "entitlement" may appear in legitimate
+boundary statements, policy excerpts, or neutral statements explaining what the
+system cannot do. Instead, implement a fixture/generation validator that rejects
+unsafe assertions and impermissible commands in generated or seeded text, such
+as:
+
+- statements that a voucher is approved, denied, certified, returned,
+  cancelled, amended, submitted, payable, nonpayable, or ready for payment;
+- recommendations that the reviewer take one of those official dispositions;
+- allegations that a traveler, vendor, or transaction is fraudulent, abusive,
+  misuse, misconduct, or similar;
+- claims that the system has determined entitlement or payability;
+- wording that says the system contacted, notified, or escalated to a real
+  traveler, command, investigator, law-enforcement body, or any external party.
+
+This split is intentional: status columns get hard database constraints, while
+narrative text gets context-aware validation so legitimate citation and
+authority-boundary language remains possible. Refusal audit metadata may quote
+the rejected user request for traceability, but the refusal response and stored
+system-authored text must clearly state that the request was refused.
 
 ### 6.5 Other enumerations (recap)
 
@@ -753,7 +810,8 @@ checks must remain in the database.
   `external_anomaly_signals.confidence`: as listed in 5.7.
 - `story_findings.severity`, `story_findings.confidence`: as listed in 5.8.
 - `review_briefs.brief_uncertainty`: `low`, `medium`, `high`.
-- `ao_notes.kind`: `ao_note`, `draft_clarification`, `ao_feedback`.
+- `ao_notes.kind`: `ao_note`, `draft_clarification`,
+  `synthetic_clarification_request`, `ao_feedback`.
 - `workflow_events.event_type`: `scoped_write`, `refusal`,
   `needs_human_review_label`, `retrieval`, `generation`, `edit`, `export`.
 - `workflow_events.target_kind`: `voucher`, `finding`, `note`, `brief`,
@@ -763,20 +821,21 @@ checks must remain in the database.
 
 ## 7. Data Generation / Seed Data Plan
 
-All data in this section is synthetic and clearly fictional. Names use
-demo-marker suffixes. Locations are invented. Vendor labels include
-markers like `Demo`. LOA strings carry a `LOA-DEMO-` prefix. Dates use a
-demo fiscal year (`FY26`).
+All data in this section is synthetic and clearly fictional. Traveler display
+names use non-person handles with `(Synthetic Demo)` markers; do not use rank
+abbreviations plus realistic first/last-name pairs. Locations are invented.
+Vendor labels include markers like `Demo`. LOA strings carry a `LOA-DEMO-`
+prefix. Dates use a demo fiscal year (`FY26`).
 
 ### 7.1 Synthetic travelers
 
 | traveler_id | display_name | role_label | typical_trip_pattern | prior_correction_summary |
 |---|---|---|---|---|
-| T-101 | SSG R. Carver (Demo) | `staff_nco_demo` | short OCONUS site visits and conferences | repeated evidence-attachment gap on lodging line |
-| T-102 | CPT M. Diaz (Demo) | `field_grade_demo` | multi-leg CONUS trips | occasional duplicate-hotel pattern |
-| T-103 | MAJ J. Park (Demo) | `staff_field_grade_demo` | infrequent CONUS staff trips | none on file |
-| T-104 | SFC A. Torres (Demo) | `senior_nco_demo` | austere/OCONUS site visits with cash usage | recurring exchange-rate reconstruction work |
-| T-105 | 1LT K. Nguyen (Demo) | `junior_officer_demo` | first-time submitters CONUS | none on file |
+| T-101 | Demo Traveler Alpha (Synthetic Demo) | `staff_nco_demo` | short OCONUS site visits and conferences | repeated evidence-attachment gap on lodging line |
+| T-102 | Demo Traveler Bravo (Synthetic Demo) | `field_grade_demo` | multi-leg CONUS trips | occasional duplicate-hotel pattern |
+| T-103 | Demo Traveler Charlie (Synthetic Demo) | `staff_field_grade_demo` | infrequent CONUS staff trips | none on file |
+| T-104 | Demo Traveler Delta (Synthetic Demo) | `senior_nco_demo` | austere/OCONUS site visits with cash usage | recurring exchange-rate reconstruction work |
+| T-105 | Demo Traveler Echo (Synthetic Demo) | `junior_officer_demo` | first-time submitters CONUS | none on file |
 
 Each row has `data_environment = synthetic_demo`. Two travelers (T-103,
 T-105) carry no prior summaries to exercise the cold-start case.
@@ -842,23 +901,29 @@ included so the demo can contrast a clean brief against messy ones.
   includes a needs-human-review label on the second lodging line so the
   reviewer is reminded that dual-lodging is a human determination.
 
-#### V-1004 — CONUS coastal training, ambiguous LOA + miscategorized line (T-102)
+#### V-1004 — CONUS coastal training, forced-audit receipt review + ambiguous LOA + miscategorized line (T-102)
 
-- **Scenarios covered:** bad/ambiguous LOA, poor categorization/mis-click.
+- **Scenarios covered:** forced-audit transaction categorization and receipt
+  evidence, bad/ambiguous LOA or funding pot, poor paperwork, poor
+  categorization/mis-click.
 - **Tables populated:** `vouchers` with
   `funding_reference_quality = ambiguous` and a deliberately ill-formed
-  `funding_reference_label` (e.g. `LOA-DEMO-FY26-???`); seven line items
-  including one lodging line miscategorized as `meals`; matching evidence
-  rows where the `vendor_label_on_evidence` clearly says hotel; one
+  `funding_reference_label` (e.g. `LOA-DEMO-FY26-???` or
+  `FUND-POT-DEMO-AMBIG`); `pre_existing_flags` includes a neutral
+  `synthetic_forced_audit_receipt_review` cue; seven line items including
+  one lodging line miscategorized as `meals`; matching evidence rows where
+  the `vendor_label_on_evidence` clearly says hotel; one
   `external_anomaly_signal` of `signal_type = high_risk_mcc_demo`
-  flagging the miscategorization; three `story_findings`
-  (`ambiguous_loa_or_funding_reference`, `miscategorized_line_item`,
+  flagging the miscategorization; four `story_findings`
+  (`forced_audit_receipt_review`,
+  `ambiguous_loa_or_funding_reference`, `miscategorized_line_item`,
   `evidence_quality_concern`); two `missing_information_items`.
-- **What the AO sees:** a brief that calls out the LOA legibility, points
-  at the meals-vs-lodging mismatch with the evidence vendor label
-  visible, cites the `funding_reference_format` topic, and offers a
-  draft asking the traveler to confirm the LOA and clarify the
-  categorization.
+- **What the AO sees:** a brief that treats the forced-audit cue as a reason
+  to verify category and receipt evidence, calls out the LOA/funding label
+  ambiguity, points at the meals-vs-lodging mismatch with the evidence vendor
+  label visible, cites the `funding_reference_format` and
+  `general_review_checklist` topics, and offers a draft asking the traveler
+  to confirm the LOA/funding label and clarify the categorization.
 
 #### V-1005 — CONUS staff trip, baseline clean (T-103) — control case 2
 
@@ -869,17 +934,17 @@ included so the demo can contrast a clean brief against messy ones.
 #### V-1006 — old CONUS trip, stale memory + weak justification (T-103)
 
 - **Scenarios covered:** stale-memory old transactions.
-- **Tables populated:** `vouchers` whose `submitted_at` is many weeks
-  after the latest `expense_date`; six line items, several with
-  `claimed_by_traveler_at` very close to `submitted_at`; evidence rows
-  several of which have `evidence_date_on_face` near the trip but a
+- **Tables populated:** `vouchers` whose `demo_packet_submitted_at` is many
+  weeks after the latest `expense_date`; six line items, several with
+  `claimed_by_traveler_at` very close to `demo_packet_submitted_at`; evidence
+  rows several of which have `evidence_date_on_face` near the trip but a
   weakly itemized `itemization_cue`; one `external_anomaly_signal` of
   `signal_type = traveler_baseline_outlier`; three `story_findings`
   including a `stale_memory_old_transaction` finding and an
   `evidence_quality_concern`; two `missing_information_items` describing
   what reconstruction the reviewer might ask for.
 - **What the AO sees:** a brief that explicitly notes the long gap
-  between expense dates and submission, cites the
+  between expense dates and synthetic packet submission, cites the
   `general_review_checklist` and `cash_atm_reconstruction` topics where
   applicable, and drafts a clarification asking the traveler to confirm
   details on the older transactions.
@@ -905,48 +970,58 @@ included so the demo can contrast a clean brief against messy ones.
   the cash-reconstruction finding as needs human review because the
   system cannot responsibly characterize it.
 
-#### V-1008 — CONUS, date/location mismatch (T-104)
+#### V-1008 — CONUS, missing dates + overlapping details + strange numbers (T-104)
 
-- **Scenarios covered:** date/location mismatch.
+- **Scenarios covered:** missing dates, overlapping details, strange numbers,
+  date/location mismatch.
 - **Tables populated:** `vouchers` with declared destinations not
   matching one transport line's `vendor_label_on_evidence` city; one
   line item whose `expense_date` falls outside `(trip_start_date,
-  trip_end_date)`; one `external_anomaly_signal` of
-  `signal_type = date_location_mismatch`; three `story_findings`
-  (`date_window_mismatch`, `location_mismatch`, `story_coherence_break`);
-  one `missing_information_item`.
+  trip_end_date)`; one evidence row with `evidence_date_on_face = NULL`;
+  one line item with an unusual round-number amount that needs reviewer
+  reconstruction rather than a conclusion; two `external_anomaly_signals`
+  (`date_location_mismatch`, `unusual_amount`); four `story_findings`
+  (`date_window_mismatch`, `location_mismatch`, `story_coherence_break`,
+  `evidence_quality_concern`); two `missing_information_items`.
 - **What the AO sees:** a brief that visualizes the trip window with the
-  out-of-window expense, cites the `date_window_coherence` topic, and
-  drafts a neutral clarification.
+  out-of-window expense, explicitly names the missing date and overlapping
+  details, cites the `date_window_coherence` topic, labels the unusual number
+  as needing reviewer reconstruction, and drafts a neutral clarification.
 
-#### V-1009 — CONUS, mis-click categorization (T-105, first-time submitter)
+#### V-1009 — CONUS, mis-click categorization + bad math (T-105, first-time submitter)
 
-- **Scenarios covered:** poor categorization/mis-click; reinforces the
-  V-1004 case but in a first-time submitter context to exercise the
-  no-prior-history baseline path.
+- **Scenarios covered:** poor paperwork, mis-click categorization, bad math;
+  reinforces the V-1004 case but in a first-time submitter context to exercise
+  the no-prior-history baseline path.
 - **Tables populated:** `vouchers` with no prior summaries on T-105;
   five line items including one obvious mis-click (e.g. lodging amount
-  on a meals row); evidence rows that disagree with the line category;
-  zero `external_anomaly_signals`; two `story_findings`
-  (`miscategorized_line_item`, `evidence_quality_concern`); one
+  on a meals row) and one receipt whose subtotal, taxes, and claimed amount
+  do not add up cleanly; evidence rows that disagree with the line category;
+  zero `external_anomaly_signals`; three `story_findings`
+  (`miscategorized_line_item`, `paperwork_or_math_inconsistency`,
+  `evidence_quality_concern`); one
   `missing_information_item`.
-- **What the AO sees:** a brief that flags the mis-click without inferring
-  intent, cites the `general_review_checklist` topic, and drafts a
-  clarification asking the traveler to confirm the line category.
+- **What the AO sees:** a brief that flags the mis-click and math
+  inconsistency without inferring intent, cites the `general_review_checklist`
+  topic, and drafts a clarification asking the traveler to confirm the line
+  category and arithmetic basis.
 
-#### V-1010 — OCONUS, unauthorized-or-unclear expense (T-105)
+#### V-1010 — OCONUS, unclear or possibly unjustified expense (T-105)
 
-- **Scenarios covered:** unauthorized-or-unclear expense.
+- **Scenarios covered:** unclear or possibly unjustified expense, without
+  accusing misconduct or making an entitlement/payability determination.
 - **Tables populated:** `vouchers` containing one line item whose
   `category = other_demo` and whose vendor label is unclear (e.g.
   `Unknown Demo Vendor 17`); evidence row with low cue scores; zero
   external signals (deliberate — to exercise the path where a flag is
   story-only without a signal); two `story_findings`
-  (`unauthorized_or_unclear_expense` with `needs_human_review = true`,
+  (`unclear_or_possibly_unjustified_expense` with
+  `needs_human_review = true`,
   and `evidence_quality_concern`); two `missing_information_items`.
 - **What the AO sees:** a brief that explicitly does not call the line
-  unauthorized — the category is `unauthorized_or_unclear_expense` and
-  the wording in `summary` and `explanation` uses the spec-permitted
+  unauthorized, nonpayable, fraudulent, or misconduct. The category is
+  `unclear_or_possibly_unjustified_expense` and the wording in `summary`
+  and `explanation` uses the spec-permitted
   vocabulary (anomaly, documentation gap, evidence needing closer
   reviewer attention). The needs-human-review label is visible.
 
@@ -1016,7 +1091,7 @@ These two seeded refusals satisfy AC-6 from cold start.
 - Roughly seventy-five to one hundred line items in total.
 - Roughly seventy-five to one hundred fifty evidence references.
 - Twenty to twenty-five external anomaly signals across the corpus.
-- Thirty to forty-five story findings across the corpus.
+- Thirty-five to fifty story findings across the corpus.
 - Twenty to thirty missing-information items across the corpus.
 - One review brief per voucher seeded; live demo regenerates one to
   exercise versioning.
@@ -1025,6 +1100,31 @@ These two seeded refusals satisfy AC-6 from cold start.
 
 These volumes are small enough to seed quickly and large enough to
 exercise the brief assembly across every category and signal type.
+
+### 7.6 Seed coverage map
+
+The seed routine must expose this map in fixture metadata, comments, or test
+case names so a coding agent does not have to infer why each voucher exists:
+
+| Required sanitized practitioner case | Seed voucher(s) |
+|---|---|
+| Forced-audit transaction categorization and receipt evidence | V-1004 |
+| Missing receipt | V-1002, V-1011 |
+| Weak/local-paper receipt | V-1002, V-1007, V-1012 |
+| Bad or ambiguous LOA / funding pot | V-1004 |
+| Stale-memory old transactions | V-1006 |
+| Poor paperwork / mis-click / bad math | V-1004, V-1009 |
+| Amount mismatch | V-1003 |
+| Duplicate/multiple hotel charges | V-1003 |
+| Necessary cash/ATM or exchange-rate reconstruction | V-1007 |
+| Missing dates / overlapping details / strange numbers | V-1008 |
+| Austere/OCONUS vendor edge case | V-1007, V-1012 |
+| Unclear or possibly unjustified expense, without accusing misconduct | V-1010 |
+
+The fixture validator must fail if any required case lacks at least one
+`story_findings` row, at least one provenance pointer, and either a resolvable
+citation or an explicit needs-human-review reason explaining why no citation is
+available.
 
 ---
 
@@ -1046,12 +1146,12 @@ phase as its own change so review and rollback are easy.
 ### Phase 2 — Constraints and indexes
 
 - Add CHECK constraints for every enumeration in section 6.
-- Add the schema-level blocked-vocabulary CHECKs on
+- Add the hard blocked-status/value CHECKs on
   `vouchers.review_status`, `story_findings.review_state`, and
   `workflow_events.resulting_status`.
-- Add advisory blocked-vocabulary CHECKs on the columns listed in section
-  6.4 if the chosen database supports them cheaply; otherwise move them
-  to Phase 7 test fixtures.
+- Do not add broad blocked-word CHECKs to free-text columns. Implement
+  the context-aware fixture/generation validator described in section 6.4
+  during Phase 7.
 - Add the `data_environment = synthetic_demo` CHECK on `travelers` and
   `vouchers`.
 - Add indexes per section 5.
@@ -1061,16 +1161,21 @@ phase as its own change so review and rollback are easy.
 - Implement the seed data described in section 7 as a single,
   deterministic, idempotent seed routine.
 - The seed routine must populate `workflow_events` for every seeded
-  scoped write, brief generation, and the two seeded refusals.
+  scoped write, brief generation, needs-human-review label, and the two seeded
+  refusals.
+- The seed routine must encode the section 7.6 coverage map in machine-readable
+  fixture metadata or deterministic test case names.
 - Provide a `reset_demo()` routine that drops and re-seeds. Guard it
   with an explicit `data_environment` check so it can never run against
-  any environment other than the synthetic demo.
+  any environment other than the synthetic demo. `reset_demo()` is a local
+  developer/test command, not an MCP or assistant-facing workflow tool.
 
 ### Phase 4 — Repository / data-access layer
 
 - Build a thin, scoped repository module per table. Each repository
   exposes only the operations the workflow tools need:
-  - `vouchers`: read by id, list ordered by status and submitted_at,
+  - `vouchers`: read by id, list ordered by status and
+    `demo_packet_submitted_at`,
     update review status (with the controlled enum), no delete in
     application code (use `reset_demo` only).
   - `voucher_line_items`, `evidence_refs`,
@@ -1084,7 +1189,8 @@ phase as its own change so review and rollback are easy.
   - `ao_notes`: append-only by `kind`.
   - `workflow_events`: append-only.
 - The repository module must not expose any generic execute-SQL,
-  raw-fetch, or string-templated query method to upstream code.
+  raw-fetch, arbitrary file-reader, arbitrary URL-fetcher, ORM/session escape
+  hatch, or string-templated query method to upstream code.
 - All write methods must take or produce a `workflow_events` entry in
   the same transaction.
 
@@ -1100,12 +1206,34 @@ phase as its own change so review and rollback are easy.
 - Refusal paths must write a `workflow_events` row of
   `event_type = refusal` before returning the refusal to the caller.
 
+### Audit-event invariant matrix
+
+Every workflow tool path that changes stored demo state must run in a single
+transaction with its audit event. The coding agent should implement tests from
+this matrix rather than relying on prose.
+
+| Tool path | Domain write | Expected `workflow_events` row |
+|---|---|---|
+| `prepare_ao_review_brief` | Append `review_briefs` version | `event_type = generation`, `target_kind = brief`, `target_id = brief_id` |
+| `record_ao_note` | Append `ao_notes(kind = ao_note)` | `event_type = scoped_write`, `target_kind = note`, `target_id = note_id` |
+| `mark_finding_reviewed` | Update `story_findings.review_state` | `event_type = scoped_write`, `target_kind = finding`, `target_id = finding_id`, `resulting_status = review_state` |
+| `record_ao_feedback` | Append `ao_notes(kind = ao_feedback)` | `event_type = scoped_write`, `target_kind = note`, `target_id = note_id` |
+| `draft_return_comment` | Append `ao_notes(kind = draft_clarification)` | `event_type = scoped_write`, `target_kind = note`, `target_id = note_id` |
+| `request_traveler_clarification` | Set `vouchers.review_status = awaiting_traveler_clarification` and append `ao_notes(kind = synthetic_clarification_request)` | `event_type = scoped_write`, `target_kind = voucher`, `target_id = voucher_id`, `resulting_status = awaiting_traveler_clarification` |
+| `set_voucher_review_status` | Update `vouchers.review_status` | `event_type = scoped_write`, `target_kind = voucher`, `target_id = voucher_id`, `resulting_status = review_status` |
+| Any refused tool call | No domain write | `event_type = refusal`, target set to the rejected object when known |
+| Any generated or seeded needs-human-review label | Create or update `story_findings.needs_human_review = true` | `event_type = needs_human_review_label`, `target_kind = finding`, `target_id = finding_id` |
+
 ### Phase 6 — Audit-event enforcement
 
 - Add an integration-level invariant test: for every successful call to
-  every write tool, exactly one `workflow_events` row exists with the
-  matching `tool_name` and `target_id`. The test runs against a clean
-  seeded database and exercises every write tool.
+  every write tool and every persisted brief-generation path, exactly one
+  `workflow_events` row exists with the matching `tool_name` and
+  `target_id`. The test runs against a clean seeded database and exercises
+  every row in the invariant matrix above.
+- Add an invariant test that every `story_findings` row with
+  `needs_human_review = true` has a corresponding
+  `needs_human_review_label` event.
 - Add a coverage test that asserts every value of `event_type` is
   produced by at least one tool path.
 
@@ -1138,8 +1266,13 @@ phase as its own change so review and rollback are easy.
   7. Calls `get_audit_trail` against V-1003 and confirms the events are
      returned in chronological order and that the human-authority
      boundary reminder is non-empty on every row.
-  8. Confirms that no MCP tool surface exposes raw SQL or a generic
-     fetch.
+  8. Confirms every `needs_human_review = true` finding has a
+     `needs_human_review_label` audit event.
+  9. Confirms the section 7.6 seed coverage map is complete.
+  10. Runs the free-text fixture/generation validator from section 6.4.
+  11. Confirms that no MCP tool surface exposes raw SQL, generic
+      database execution, arbitrary filesystem reads, or arbitrary
+      network fetch.
 
 The demo validation script is the single command a judge can run to see
 the schema work end-to-end.
@@ -1164,13 +1297,16 @@ spec demands. Every test is deterministic against the seed fixtures.
 
 ### 9.2 Every workflow write creates an audit event
 
-- For each write tool in the section 4.5.2 catalog, call the tool with
-  valid input and assert a corresponding `workflow_events` row exists
-  in the same transaction.
+- For each row in the audit-event invariant matrix in section 8, call the
+  tool path with valid input and assert a corresponding `workflow_events` row
+  exists in the same transaction.
 - For each write tool, force a tool-level failure (for example by
   passing an id that does not exist) and assert that no
   `workflow_events` row was written and no domain row was changed
   (transactionality test).
+- For each `story_findings` row with `needs_human_review = true`, assert a
+  matching `workflow_events` row exists with
+  `event_type = needs_human_review_label`.
 
 ### 9.3 No generic data access through the tool layer
 
@@ -1178,7 +1314,8 @@ spec demands. Every test is deterministic against the seed fixtures.
   matches `query_database`, `execute_sql`, `fetch_url`, `read_file`, or
   any obvious raw-access synonym.
 - Inspect the repository module and assert it does not export a
-  method that takes arbitrary SQL strings or arbitrary file paths.
+  method that takes arbitrary SQL strings, arbitrary file paths, arbitrary
+  URLs, or an unscoped ORM/session escape hatch available to upstream code.
 - This is implemented as a code-shape test (lint or static check), not
   a runtime test.
 
@@ -1196,14 +1333,17 @@ spec demands. Every test is deterministic against the seed fixtures.
     and `not_sufficient_for_adverse_action = true`.
   - `brief_uncertainty` is set.
   - `human_authority_boundary_text` is non-empty.
-  - `draft_clarification_note` does not contain any blocked-vocabulary
-    token.
+  - `draft_clarification_note` passes the section 6.4 unsafe wording
+    validator.
 
 ### 9.5 Sample data covers all required cases
 
 - Assert at least one finding exists per category in section 6.2.
 - Assert at least one finding per scenario name in section 7.2 exists by
   category mapping.
+- Assert every row in the section 7.6 seed coverage map resolves to at least
+  one voucher, one finding, one provenance pointer, and one citation or
+  explicit needs-human-review reason.
 - Assert at least one finding has `needs_human_review = true` and the
   brief that consumes it surfaces it as a needs-human-review item
   (AC-13).
@@ -1216,11 +1356,15 @@ spec demands. Every test is deterministic against the seed fixtures.
 - Assert every `travelers` and every `vouchers` row has
   `data_environment = synthetic_demo`.
 - Assert every `display_name` carries a synthetic marker substring.
+- Assert no seeded `display_name` uses a realistic rank plus first/last-name
+  pattern; role context must appear only in `role_label`.
 - Assert that no row in the corpus contains a token from a small
   hand-written list of obvious real-data shapes (for example, a
   16-digit number that looks like a card PAN, a real-looking SSN
   pattern, or an email at a real domain). This is a fixture-validator
   test, not a CHECK.
+- Run the section 6.4 unsafe wording validator across seeded generated text
+  and synthetic clarification request bodies.
 
 ### 9.7 Queue prioritization is workload guidance, not disposition
 
@@ -1254,38 +1398,38 @@ are marked accordingly.
 | FR-4 Coherence and Anomaly Checks | `story_findings.category` enum covers the named cases; `external_anomaly_signals.signal_type` carries the signal-side variants. | Detection logic is out of scope. Schema ensures every flag carries provenance. |
 | FR-5 Controlled Reference Retrieval | `policy_citations` is a closed corpus; `story_findings.primary_citation_id` joins flags to citations. | Retrieval pipeline is out of scope; corpus seed in section 7 must be sufficient to ground every flag category. |
 | FR-6 Missing-Information Detection | `missing_information_items` is a separate table from `story_findings`. | Distinction enforced by table separation, not by status. |
-| FR-7 Reviewer Prompt Drafting | `review_briefs.draft_clarification_note` and `ao_notes(kind = draft_clarification)`. | Blocked-vocabulary CHECK guards both. |
+| FR-7 Reviewer Prompt Drafting | `review_briefs.draft_clarification_note` and `ao_notes(kind = draft_clarification)`. | Section 6.4 unsafe wording validator guards generated and seeded draft text. |
 | FR-8 Provenance and Confidence | `story_findings.packet_evidence_pointer`, `story_findings.primary_citation_id`, `story_findings.confidence`, `review_briefs.brief_uncertainty`. | Pointer json must include at least one id; CHECK enforces this. |
-| FR-9 Queue Prioritization | `vouchers.review_status` and `submitted_at` indexes, plus `review_briefs.priority_score` and `priority_rationale`. | Application labels the view as workload guidance. |
+| FR-9 Queue Prioritization | `vouchers.review_status` and `demo_packet_submitted_at` indexes, plus `review_briefs.priority_score` and `priority_rationale`. | Application labels the view as workload guidance. |
 | FR-10 Refusal and Redirect | `workflow_events.event_type = refusal`. | Application must write the row before returning the refusal. |
 | FR-11 Audit Log | `workflow_events`. | Audit-event invariant test (9.2) holds the application accountable. |
 | FR-12 Export | `review_briefs` and the human-authority boundary text. | Export format and channel are application concerns. |
 | FR-13 Needs-Human-Review State | `story_findings.needs_human_review` boolean, distinct from `missing_information_items` and from `workflow_events.event_type = refusal`. | Brief assembly must surface the boolean. |
 | FR-14 Fused AO Review Brief | `review_briefs` with `policy_hooks`, `signal_hooks`, `finding_hooks`, `missing_information_hooks`. | Application performs fusion; schema enforces shape. |
-| FR-15 Scoped Workflow Writes | `ao_notes`, controlled write semantics on `vouchers.review_status` and `story_findings.review_state`. | Repository layer must refuse generic writes. |
-| FR-16 Controlled Review Statuses | `vouchers.review_status` CHECK against section 6.1; blocked tokens in section 6.4. | Hard at the DB layer, not at the app layer. |
+| FR-15 Scoped Workflow Writes | `ao_notes` including `synthetic_clarification_request`, controlled write semantics on `vouchers.review_status` and `story_findings.review_state`. | Repository layer must refuse generic writes and every write must follow the section 8 audit invariant matrix. |
+| FR-16 Controlled Review Statuses | `vouchers.review_status` CHECK against section 6.1; blocked status values in section 6.4. | Hard at the DB layer, not at the app layer. |
 | NFR-1 Trust Boundary | Hardcoded enums and CHECKs; no configurable policy. | The coding agent must not introduce a way to disable these. |
 | NFR-2 Explainability | `story_findings` provenance columns and `review_briefs` hooks. | Reasoning component populates them. |
-| NFR-3 Grounding Discipline | `policy_citations` is the only source of citations; advisory CHECK on `excerpt_text`. | Application must refuse rather than fabricate when no citation supports a claim. |
+| NFR-3 Grounding Discipline | `policy_citations` is the only source of citations; seed/demo excerpts are fixture-validated. | Application must refuse rather than fabricate when no citation supports a claim. |
 | NFR-6 Data Handling | `data_environment = synthetic_demo` CHECK; demo-marker constraints on names. | Retention is an application concern. |
 | NFR-7 Human Authority | `review_briefs.human_authority_boundary_text` and the per-event reminder on `workflow_events`. | Brief export must include the line. |
 | NFR-8 Robustness | `review_briefs.is_partial` and `partial_reason`. | Application sets the flag when retrieval fails or sources conflict. |
-| TR-1 No Official Action | Blocked vocabulary in section 6.4; `vouchers.review_status` enum. | Schema-level rejection. |
-| TR-3 No Fraud Allegation | Blocked vocabulary in section 6.4 includes `fraud`, `misuse`, `abuse`, `misconduct`. | Advisory CHECK on free-text columns where supported. |
+| TR-1 No Official Action | Blocked status values in section 6.4; `vouchers.review_status` enum. | Schema-level rejection for status-like fields; fixture/generation validator for narrative text. |
+| TR-3 No Fraud Allegation | Section 6.4 unsafe wording validator rejects misconduct allegations in generated and seeded text. | Application must apply the same validator to drafts before storing them. |
 | TR-5 Provenance on Every Flag | `story_findings.packet_evidence_pointer` CHECK. | Brief assembly must propagate. |
 | TR-7 Visible Uncertainty | `story_findings.confidence` and `review_briefs.brief_uncertainty`. | Application must render these. |
 | TR-8 Synthetic-Only Prototype Data | `data_environment` CHECK on `travelers` and `vouchers`. | Reset routine guarded against non-synthetic targets. |
 | TR-9 Auditability | `workflow_events`. | See section 9.2 invariant test. |
-| TR-11 No External Contact or Escalation | Blocked vocabulary covers external-contact verbs; no schema column ever names a real external recipient. | Application must not introduce one. |
+| TR-11 No External Contact or Escalation | No schema column names a real external recipient; synthetic clarification requests are internal note rows only. | Application must not introduce an external contact channel. |
 | TR-12 No Generic Data Access | Repository contract refuses generic SQL; section 9.3 test enforces. | Out-of-band tool addition would violate this; review carefully. |
 | AC-1 Single-Packet Brief | `review_briefs` seeded for every voucher. | Demo script verifies. |
 | AC-2 Provenance | `story_findings` packet pointer and citation FK. | Demo script verifies. |
 | AC-3 Missing-Information Listing | `missing_information_items` distinct from `story_findings`. | — |
-| AC-4 Draft Clarification Note | `review_briefs.draft_clarification_note` and `ao_notes(kind = draft_clarification)`. | Blocked-vocab CHECK guards. |
+| AC-4 Draft Clarification Note | `review_briefs.draft_clarification_note` and `ao_notes(kind = draft_clarification)`. | Section 6.4 unsafe wording validator guards generated and seeded draft text. |
 | AC-5 Visible Uncertainty | `story_findings.confidence` and `review_briefs.brief_uncertainty`. | — |
 | AC-6 Refusal Demonstration | Section 7.4 seeded refusals; section 9.8 test. | — |
 | AC-7 Out-of-Scope Refusal | Application path; schema produces the workflow event. | Application work. |
-| AC-8 Queue Prioritization | `review_status`, `submitted_at` indexes; brief priority columns. | Application labels the view. |
+| AC-8 Queue Prioritization | `review_status`, `demo_packet_submitted_at` indexes; brief priority columns. | Application labels the view. |
 | AC-9 Export | `review_briefs` content, including the boundary statement. | Export format is application work. |
 | AC-10 Audit Trail | `workflow_events`. | — |
 | AC-11 Public-Safety Verification | `data_environment` CHECK and demo-marker constraints. | Demo narrative is application work. |
@@ -1293,7 +1437,7 @@ are marked accordingly.
 | AC-13 Needs-Human-Review Demonstration | `story_findings.needs_human_review` seeded true on V-1003, V-1007, V-1010, V-1012. | — |
 | AC-14 Three-Layer Demo Boundary | Tables are partitioned cleanly: evidence layer (`vouchers`, `voucher_line_items`, `evidence_refs`); signal layer (`external_anomaly_signals`); AO reasoning layer (`story_findings`, `missing_information_items`, `review_briefs`, `ao_notes`, `workflow_events`). | — |
 | AC-15 Fusion Tool Demonstration | `review_briefs` is the artifact of `prepare_ao_review_brief`. | Tool layer must not expose raw SQL (section 9.3). |
-| AC-16 Controlled Workflow Writes | `vouchers.review_status` and `story_findings.review_state` enums; audit invariant. | — |
+| AC-16 Controlled Workflow Writes | `vouchers.review_status` and `story_findings.review_state` enums; section 8 audit invariant matrix. | — |
 
 ---
 
@@ -1303,14 +1447,14 @@ The schema as described is small enough to land within hackathon scope.
 The risks below are the ones most likely to derail the build, with a
 recommended simplification for each.
 
-- **Risk: blocked-vocabulary CHECKs become hard to express in the chosen
-  database.** Some databases are awkward for case-insensitive whole-word
-  predicates inside CHECK constraints.
-  - **Simplification:** keep the CHECKs on the three controlled-status
-    columns (`vouchers.review_status`, `story_findings.review_state`,
-    `workflow_events.resulting_status`) where the value space is small
-    and exact. Move the advisory free-text CHECKs into a fixture
-    validator that runs in CI and on every seed.
+- **Risk: blocked wording is enforced too broadly or too narrowly.** A coarse
+  free-text database CHECK can block legitimate citation or boundary text,
+  while a weak status check can permit unsafe internal states.
+  - **Simplification:** keep database CHECKs on the three controlled
+    status-like columns (`vouchers.review_status`,
+    `story_findings.review_state`, `workflow_events.resulting_status`) where
+    the value space is small and exact. Put free-text safety in the
+    context-aware fixture/generation validator from section 6.4.
 
 - **Risk: enumeration drift between the schema and the application.**
   Two sources of truth for an enum is a familiar trap.
@@ -1363,7 +1507,7 @@ Use this list as the work order. Each box is small and verifiable.
 - [ ] Phase 1: write migrations creating the twelve baseline tables plus
   `finding_signal_links`. Commit.
 - [ ] Phase 2: add CHECK constraints for every enumeration in section 6
-  and the three hard blocked-vocabulary CHECKs. Add indexes per section
+  and the three hard blocked-status/value CHECKs. Add indexes per section
   5. Commit.
 - [ ] Phase 3: implement a deterministic, idempotent seed routine that
   populates every row described in section 7, including the two seeded
@@ -1372,7 +1516,7 @@ Use this list as the work order. Each box is small and verifiable.
   Commit.
 - [ ] Phase 4: implement repository modules per table with the scoped
   operations in section 8. Confirm no module exposes a generic SQL or
-  fetch method. Commit.
+  fetch/file/ORM escape hatch. Commit.
 - [ ] Phase 5: bind the workflow tools enumerated in `docs/spec.md`
   section 4.5 to the repository operations. Each write tool composes a
   single transaction that performs its domain write and writes the
@@ -1390,8 +1534,8 @@ Use this list as the work order. Each box is small and verifiable.
 - [ ] Confirm that the seeded review briefs include
   `human_authority_boundary_text`, an explicit
   `brief_uncertainty`, at least one resolvable citation, at least one
-  resolved finding pointer, and a draft clarification that contains no
-  blocked-vocabulary token.
+  resolved finding pointer, and a draft clarification that passes the
+  section 6.4 unsafe wording validator.
 - [ ] Confirm that calling any workflow write tool with a blocked status
   value (`approved`, `denied`, `certified`, `submitted`, `paid`,
   `fraud`, `returned`, `cancelled`, `amended`) refuses cleanly and
