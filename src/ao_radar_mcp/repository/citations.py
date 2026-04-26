@@ -54,9 +54,33 @@ def search(
     topic: str | None = None,
     limit: int | None = None,
 ) -> tuple[PolicyCitationRow, ...]:
-    raise NotImplementedError(  # TODO Phase 2
-        "citations.search will SELECT by topic / retrieval_anchor in Phase 2"
+    """Return citations whose retrieval_anchor or excerpt match ``query``.
+
+    Synthetic demo behaviour: case-insensitive substring match against
+    ``retrieval_anchor`` and ``excerpt_text``; ``topic`` filter is exact.
+    Read-only; never inserts.
+    """
+
+    clauses: list[str] = []
+    params: list[Any] = []
+    pattern = f"%{query.strip()}%"
+    clauses.append("(retrieval_anchor ILIKE %s OR excerpt_text ILIKE %s)")
+    params.extend([pattern, pattern])
+    if topic:
+        clauses.append("topic = %s")
+        params.append(topic.strip())
+    where = " AND ".join(clauses)
+    sql = (
+        f"SELECT {', '.join(_COLUMNS)} FROM policy_citations "
+        f"WHERE {where} ORDER BY topic ASC, citation_id ASC"
     )
+    if limit is not None:
+        sql += " LIMIT %s"
+        params.append(int(limit))
+    with transaction.cursor() as cursor:
+        cursor.execute(sql, tuple(params))
+        rows = cursor.fetchall()
+    return tuple(_row_to_model(row) for row in rows)
 
 
 __all__ = ["get_by_id", "search"]

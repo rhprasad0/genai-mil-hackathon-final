@@ -16,6 +16,7 @@ and a ``handler`` callable that the registration helper consumes verbatim.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any
@@ -70,10 +71,10 @@ class MCPServer:
         """Register a tool module that exports the canonical attributes."""
 
         registration = ToolRegistration(
-            name=getattr(module, "TOOL_NAME"),
-            description=getattr(module, "description"),
-            input_schema=getattr(module, "INPUT_SCHEMA"),
-            handler=getattr(module, "handler"),
+            name=module.TOOL_NAME,
+            description=module.description,
+            input_schema=module.INPUT_SCHEMA,
+            handler=module.handler,
         )
         self.register(registration)
 
@@ -124,7 +125,12 @@ class UnknownToolError(LookupError):
 
 def _to_text_content(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
-        return {"type": "json", "json": value}
+        # ChatGPT's remote-MCP client accepts standard MCP content blocks.
+        # Keep the machine-readable object in structuredContent, and mirror it
+        # as JSON text for clients that only read content[].  A non-standard
+        # {"type": "json"} block caused ChatGPT to surface UNKNOWN/TaskGroup
+        # errors even though direct curl probes returned HTTP 200.
+        return {"type": "text", "text": json.dumps(value, sort_keys=True)}
     return {"type": "text", "text": str(value)}
 
 
