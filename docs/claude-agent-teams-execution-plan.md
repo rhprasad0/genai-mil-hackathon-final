@@ -199,10 +199,16 @@ not commit.
 
 ## Model And Delegation Guidance
 
-- Use the strongest available model for the lead, schema constraints,
-  application boundary/refusal logic, audit invariants, and final review.
-- Use faster or cheaper models only for bounded read-only exploration, log
-  summarization, simple fixture checks, or test-running summaries.
+- Use Opus 4.7, max effort, for the lead/orchestrator when token budget and
+  latency are acceptable. The lead is fixed for the life of the team and owns
+  dependency sequencing, safety-boundary interpretation, teammate plan approval,
+  integration, and final merge decisions.
+- Use the strongest available model for schema constraints, application
+  boundary/refusal logic, audit invariants, IAM/security review, and final
+  review.
+- Use Sonnet or other faster/cheaper models only for bounded implementation
+  slices, read-only exploration, log summarization, simple fixture checks, or
+  test-running summaries.
 - Do not route safety-critical wording, schema constraints, IAM changes, or
   final merge decisions to a low-capability model.
 - Do not ask teammates to solve the same design question independently and then
