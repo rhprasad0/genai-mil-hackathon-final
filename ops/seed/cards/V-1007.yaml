@@ -1,0 +1,375 @@
+voucher_id: V-1007
+traveler_id: T-104
+hero: false
+narrative: |
+  Synthetic austere OCONUS site visit involving cash and ATM withdrawals plus
+  a currency-exchange line. The brief lays out the reconstruction sequence,
+  cites cash and exchange topics, and labels the cash reconstruction as
+  needing human review.
+pain_patterns:
+  - cash_atm_or_exchange_reconstruction
+  - oconus_vendor_edge_case
+  - weak_or_local_paper_receipt
+expected_ao_experience:
+  first_focus: cash_atm_sequence
+  required_citations:
+    - cash_atm_reconstruction
+    - currency_exchange
+    - oconus_vendor_edge
+  required_signals:
+    - split_disbursement_oddity
+    - traveler_baseline_outlier
+    - unusual_amount
+    - peer_baseline_outlier
+  required_findings:
+    - cash_atm_or_exchange_reconstruction
+    - weak_or_local_paper_receipt
+    - evidence_quality_concern
+    - oconus_vendor_edge_case
+    - story_coherence_break
+  required_labels:
+    - needs_human_review_on_cash_reconstruction
+  required_missing_information_items: 3
+  brief_uncertainty: high
+  is_partial: false
+voucher:
+  trip_purpose_category: oconus_site_visit_demo
+  trip_start_date: 2026-04-12
+  trip_end_date: 2026-04-17
+  declared_origin: Inland Demo Garrison
+  declared_destinations:
+    - Inland Demo Outpost
+  funding_reference_label: LOA-DEMO-FY26-0083
+  funding_reference_quality: clean
+  justification_text: |
+    Synthetic austere OCONUS site-visit packet with cash, ATM, and currency
+    exchange line items. Demo packet only; not a real trip.
+  pre_existing_flags: []
+  demo_packet_submitted_at: 2026-04-22T11:45:00Z
+  review_status: in_review
+line_items:
+  - line_index: 1
+    expense_date: 2026-04-12
+    amount_minor_units: 31000
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2026-04-12
+        amount_on_face_minor_units: 31000
+        currency_code_on_face: USD
+  - line_index: 2
+    expense_date: 2026-04-13
+    amount_minor_units: 30000
+    currency_code: USD
+    category: cash_atm
+    vendor_label: Cash ATM Provider Inland Demo
+    payment_instrument_indicator: gtcc_like_demo
+    free_text_notes: |
+      Synthetic ATM withdrawal at Inland Demo Outpost.
+    evidence_refs:
+      - content_type_indicator: handwritten_local_paper_demo
+        legibility_cue: partial
+        itemization_cue: not_itemized
+        payment_evidence_cue: ambiguous
+        vendor_label_on_evidence: Cash ATM Provider Inland Demo
+        evidence_date_on_face: 2026-04-13
+        amount_on_face_minor_units: 30000
+        currency_code_on_face: USD
+  - line_index: 3
+    expense_date: 2026-04-13
+    amount_minor_units: 18000
+    currency_code: XTS
+    exchange_rate_to_usd: 1.0
+    category: currency_exchange
+    vendor_label: Currency Exchange Booth Inland Demo
+    payment_instrument_indicator: cash_demo
+    free_text_notes: |
+      Synthetic currency-exchange line in ISO testing currency XTS at
+      synthetic 1.0 exchange-rate basis.
+    evidence_refs:
+      - content_type_indicator: handwritten_local_paper_demo
+        legibility_cue: partial
+        itemization_cue: not_itemized
+        payment_evidence_cue: ambiguous
+        vendor_label_on_evidence: Currency Exchange Booth Inland Demo
+        evidence_date_on_face: 2026-04-13
+        amount_on_face_minor_units: 18000
+        currency_code_on_face: XTS
+  - line_index: 4
+    expense_date: 2026-04-14
+    amount_minor_units: 12500
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Inland Demo
+    payment_instrument_indicator: cash_demo
+    evidence_refs:
+      - content_type_indicator: handwritten_local_paper_demo
+        legibility_cue: poor
+        itemization_cue: not_itemized
+        payment_evidence_cue: ambiguous
+        vendor_label_on_evidence: Hotel Inland Demo
+        evidence_date_on_face: 2026-04-14
+        amount_on_face_minor_units: 12500
+        currency_code_on_face: USD
+  - line_index: 5
+    expense_date: 2026-04-15
+    amount_minor_units: 12500
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Inland Demo
+    payment_instrument_indicator: cash_demo
+    evidence_refs:
+      - content_type_indicator: handwritten_local_paper_demo
+        legibility_cue: poor
+        itemization_cue: not_itemized
+        payment_evidence_cue: ambiguous
+        vendor_label_on_evidence: Hotel Inland Demo
+        evidence_date_on_face: 2026-04-15
+        amount_on_face_minor_units: 12500
+        currency_code_on_face: USD
+  - line_index: 6
+    expense_date: 2026-04-15
+    amount_minor_units: 6500
+    currency_code: XTS
+    exchange_rate_to_usd: 1.0
+    category: meals
+    vendor_label: Eatery Inland Demo
+    payment_instrument_indicator: cash_demo
+    free_text_notes: |
+      Synthetic meals line in foreign currency XTS for the demo.
+    evidence_refs:
+      - content_type_indicator: handwritten_local_paper_demo
+        legibility_cue: partial
+        itemization_cue: partially_itemized
+        payment_evidence_cue: ambiguous
+        vendor_label_on_evidence: Eatery Inland Demo
+        evidence_date_on_face: 2026-04-15
+        amount_on_face_minor_units: 6500
+        currency_code_on_face: XTS
+  - line_index: 7
+    expense_date: 2026-04-16
+    amount_minor_units: 25000
+    currency_code: USD
+    category: cash_atm
+    vendor_label: Cash ATM Provider Inland Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: handwritten_local_paper_demo
+        legibility_cue: partial
+        itemization_cue: not_itemized
+        payment_evidence_cue: ambiguous
+        vendor_label_on_evidence: Cash ATM Provider Inland Demo
+        evidence_date_on_face: 2026-04-16
+        amount_on_face_minor_units: 25000
+        currency_code_on_face: USD
+  - line_index: 8
+    expense_date: 2026-04-17
+    amount_minor_units: 4200
+    currency_code: USD
+    category: incidentals
+    vendor_label: Eatery Inland Demo
+    payment_instrument_indicator: cash_demo
+    evidence_refs:
+      - content_type_indicator: handwritten_local_paper_demo
+        legibility_cue: poor
+        itemization_cue: not_itemized
+        payment_evidence_cue: ambiguous
+        vendor_label_on_evidence: Eatery Inland Demo
+        evidence_date_on_face: 2026-04-17
+        amount_on_face_minor_units: 4200
+        currency_code_on_face: USD
+  - line_index: 9
+    expense_date: 2026-04-17
+    amount_minor_units: 31000
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2026-04-17
+        amount_on_face_minor_units: 31000
+        currency_code_on_face: USD
+external_anomaly_signals:
+  - signal_type: split_disbursement_oddity
+    confidence: medium
+    rationale_text: |
+      Demo signal flags two synthetic ATM withdrawals across the trip
+      window with different denominations. Review prompt only.
+    scenario_slug: split_atm_withdrawal
+  - signal_type: traveler_baseline_outlier
+    confidence: medium
+    rationale_text: |
+      Demo signal indicates the cash usage on this synthetic packet is
+      higher than the traveler baseline. Review prompt only.
+    scenario_slug: cash_baseline_drift
+  - signal_type: unusual_amount
+    confidence: low
+    rationale_text: |
+      Demo signal flags an unusual round number on the synthetic
+      currency-exchange line. Review prompt only.
+    scenario_slug: exchange_round_number
+  - signal_type: peer_baseline_outlier
+    confidence: low
+    rationale_text: |
+      Demo signal indicates synthetic peer baselines for similar OCONUS
+      trips show less cash usage. Review prompt only.
+    scenario_slug: peer_cash_compare
+findings:
+  - category: cash_atm_or_exchange_reconstruction
+    severity: high
+    confidence: low
+    needs_human_review: true
+    summary: |
+      The synthetic packet's cash and ATM sequence requires human review
+      to reconstruct.
+    explanation: |
+      Two ATM withdrawals plus a currency-exchange line and several
+      cash-paid synthetic receipts make the cash sequence non-trivial.
+      The system cannot responsibly characterize it without reviewer
+      judgement.
+    suggested_question: |
+      Could the traveler walk through the cash and ATM sequence so the
+      synthetic packet has a visible reconstruction?
+    primary_citation_id: CITE-CASH-001
+    packet_evidence_pointer:
+      line_item_id: V-1007-LI-2
+      excerpt_hint: ATM withdrawals plus currency exchange
+    signal_links:
+      - split_disbursement_oddity
+      - traveler_baseline_outlier
+  - category: weak_or_local_paper_receipt
+    severity: low
+    confidence: medium
+    needs_human_review: false
+    summary: |
+      Multiple synthetic receipts are handwritten with partial or poor
+      legibility cues.
+    explanation: |
+      Lodging, meals, and incidentals lines all carry handwritten local
+      paper synthetic receipts.
+    suggested_question: |
+      Could the traveler share any printed copies of the synthetic OCONUS
+      receipts where they exist?
+    primary_citation_id: CITE-RECEIPT-002
+    packet_evidence_pointer:
+      line_item_id: V-1007-LI-4
+      excerpt_hint: handwritten lodging receipt
+    signal_links: []
+  - category: evidence_quality_concern
+    severity: medium
+    confidence: medium
+    needs_human_review: false
+    summary: |
+      Synthetic evidence cues across the packet are partial or poor.
+    explanation: |
+      The combined effect is a documentation gap the reviewer should
+      consider when reconstructing the synthetic trip.
+    suggested_question: |
+      Could the traveler share clearer copies of the synthetic receipts
+      where available?
+    primary_citation_id: CITE-LODGE-001
+    packet_evidence_pointer:
+      line_item_id: V-1007-LI-5
+      excerpt_hint: lodging line 5 handwritten poor
+    signal_links:
+      - peer_baseline_outlier
+  - category: oconus_vendor_edge_case
+    severity: medium
+    confidence: low
+    needs_human_review: true
+    summary: |
+      Several synthetic OCONUS vendors do not produce standardized
+      receipts.
+    explanation: |
+      Lodging and incidentals vendors at Inland Demo Outpost are
+      synthetic austere vendors. Automated retrieval may not be
+      possible for these synthetic receipts.
+    suggested_question: |
+      Could the traveler share whatever supporting context exists for
+      the synthetic OCONUS receipts?
+    primary_citation_id: CITE-OCONUS-001
+    packet_evidence_pointer:
+      line_item_id: V-1007-LI-4
+      excerpt_hint: oconus vendor produces handwritten receipt only
+    signal_links: []
+  - category: story_coherence_break
+    severity: low
+    confidence: low
+    needs_human_review: false
+    summary: |
+      The synthetic narrative does not yet explain the currency-exchange
+      basis.
+    explanation: |
+      The currency-exchange line uses XTS at a synthetic 1.0 rate.
+      The reviewer can ask the traveler to confirm the basis.
+    suggested_question: |
+      Could the traveler confirm the synthetic currency-exchange rate
+      basis for the demo packet?
+    primary_citation_id: CITE-FX-001
+    packet_evidence_pointer:
+      line_item_id: V-1007-LI-3
+      excerpt_hint: currency exchange line basis
+    signal_links:
+      - unusual_amount
+missing_information_items:
+  - description: |
+      A cash and ATM reconstruction sequence is not yet visible on the
+      synthetic packet.
+    why_it_matters: |
+      Without the sequence, the reviewer cannot evaluate how the synthetic
+      cash withdrawals relate to declared meals or incidentals.
+    expected_location_hint: justification block or attached reconstruction
+    linked_line_index: 2
+  - description: |
+      A currency-exchange basis note is not yet visible on the synthetic
+      packet.
+    why_it_matters: |
+      A short note about the synthetic exchange rate basis would let the
+      reviewer evaluate the foreign-currency lines.
+    expected_location_hint: line free_text_notes or justification block
+    linked_line_index: 3
+  - description: |
+      Printed lodging receipts where available are not attached to the
+      synthetic packet.
+    why_it_matters: |
+      Higher-quality lodging receipts would help the reviewer evaluate
+      the synthetic OCONUS lodging totals.
+    expected_location_hint: lodging line evidence attachment
+    linked_line_index: 4
+brief:
+  priority_score: 0.78
+  priority_rationale: |
+    Cash, ATM, and currency-exchange reconstruction plus several austere
+    OCONUS receipts. Workload guidance only.
+  suggested_focus: |
+    Open the cash and ATM sequence first, then the currency-exchange
+    basis, then the OCONUS lodging receipts.
+  evidence_gap_summary: |
+    Cash reconstruction, currency-exchange basis, and clearer lodging
+    receipts are all missing.
+  story_coherence_summary: |
+    Trip narrative covers Apr 12 through Apr 17 with cash usage; several
+    lines need reviewer reconstruction.
+  draft_clarification_note: |
+    Could you walk through the cash and ATM sequence for this synthetic
+    trip, confirm the currency-exchange basis, and share any printed
+    lodging receipts that exist? Synthetic demo draft note only.
+  brief_uncertainty: high
+  is_partial: false
+ao_notes:
+  - kind: ao_note
+    body: |
+      Holding for cash reconstruction; synthetic packet remains in
+      review while the traveler adds context.

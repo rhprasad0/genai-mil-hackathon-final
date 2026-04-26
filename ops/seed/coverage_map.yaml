@@ -1,0 +1,29 @@
+# Machine-readable schema plan section 7.6 coverage map.
+# Every required practitioner case must resolve to >=1 voucher with >=1
+# story_finding, >=1 packet_evidence_pointer, and either a resolvable
+# primary_citation_id OR an explicit needs_human_review reason.
+coverage:
+  - case: forced_audit_transaction_categorization_and_receipt_evidence
+    vouchers: [V-1004]
+  - case: missing_receipt
+    vouchers: [V-1002, V-1011]
+  - case: weak_or_local_paper_receipt
+    vouchers: [V-1002, V-1007, V-1012]
+  - case: bad_or_ambiguous_loa_or_funding_pot
+    vouchers: [V-1004]
+  - case: stale_memory_old_transactions
+    vouchers: [V-1006]
+  - case: poor_paperwork_misclick_bad_math
+    vouchers: [V-1004, V-1009]
+  - case: amount_mismatch
+    vouchers: [V-1003]
+  - case: duplicate_or_multiple_hotel_charges
+    vouchers: [V-1003]
+  - case: cash_atm_or_exchange_rate_reconstruction
+    vouchers: [V-1007]
+  - case: missing_dates_overlapping_details_strange_numbers
+    vouchers: [V-1008]
+  - case: oconus_vendor_edge_case
+    vouchers: [V-1007, V-1012]
+  - case: unclear_or_possibly_unjustified_expense_without_misconduct_allegation
+    vouchers: [V-1010]

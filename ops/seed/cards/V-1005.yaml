@@ -1,0 +1,136 @@
+voucher_id: V-1005
+traveler_id: T-103
+hero: false
+narrative: |
+  Synthetic CONUS staff trip serving as a clean control. The brief shows no
+  findings, low uncertainty, and a draft note saying no clarifications appear
+  necessary from the synthetic packet on its face.
+pain_patterns:
+  - clean_control_case
+expected_ao_experience:
+  first_focus: clean_control_overview
+  required_citations: []
+  required_signals: []
+  required_findings: []
+  required_labels: []
+  required_missing_information_items: 0
+  brief_uncertainty: low
+  is_partial: false
+voucher:
+  trip_purpose_category: tdy_staff_demo
+  trip_start_date: 2025-11-04
+  trip_end_date: 2025-11-06
+  declared_origin: Inland Demo Outpost
+  declared_destinations:
+    - Northern Demo Outpost
+  funding_reference_label: LOA-DEMO-FY26-0007
+  funding_reference_quality: clean
+  justification_text: |
+    Synthetic CONUS staff visit. Clean control case for the synthetic demo
+    queue; not a real trip.
+  pre_existing_flags: []
+  demo_packet_submitted_at: 2025-11-09T10:30:00Z
+  review_status: ready_for_human_decision
+line_items:
+  - line_index: 1
+    expense_date: 2025-11-04
+    amount_minor_units: 18500
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2025-11-04
+        amount_on_face_minor_units: 18500
+        currency_code_on_face: USD
+  - line_index: 2
+    expense_date: 2025-11-04
+    amount_minor_units: 13800
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Northern Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Northern Demo
+        evidence_date_on_face: 2025-11-04
+        amount_on_face_minor_units: 13800
+        currency_code_on_face: USD
+  - line_index: 3
+    expense_date: 2025-11-05
+    amount_minor_units: 13800
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Northern Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Northern Demo
+        evidence_date_on_face: 2025-11-05
+        amount_on_face_minor_units: 13800
+        currency_code_on_face: USD
+  - line_index: 4
+    expense_date: 2025-11-05
+    amount_minor_units: 4800
+    currency_code: USD
+    category: meals
+    vendor_label: Eatery Northern Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: receipt_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Eatery Northern Demo
+        evidence_date_on_face: 2025-11-05
+        amount_on_face_minor_units: 4800
+        currency_code_on_face: USD
+  - line_index: 5
+    expense_date: 2025-11-06
+    amount_minor_units: 18500
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2025-11-06
+        amount_on_face_minor_units: 18500
+        currency_code_on_face: USD
+external_anomaly_signals: []
+findings: []
+missing_information_items: []
+brief:
+  priority_score: 0.16
+  priority_rationale: |
+    Clean control case for the synthetic CONUS profile. Workload guidance
+    suggests low review burden; this brief carries no findings.
+  suggested_focus: |
+    Confirm the synthetic packet matches the declared trip; no anomalies
+    surfaced from automated review.
+  evidence_gap_summary: |
+    No evidence gaps surfaced from the synthetic packet on its face.
+  story_coherence_summary: |
+    Trip narrative covers Nov 4 through Nov 6 cleanly across transport,
+    lodging, and meal lines.
+  draft_clarification_note: |
+    No clarifications appear necessary from the synthetic packet on its face.
+    Synthetic demo draft note only.
+  brief_uncertainty: low
+  is_partial: false
+ao_notes: []

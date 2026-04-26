@@ -1,0 +1,33 @@
+# Prior synthetic-voucher summaries (schema plan section 5.5).
+# T-103 and T-105 deliberately have zero prior summaries (cold-start case).
+# All text is neutral and never alleges fraud, misuse, abuse, or misconduct.
+prior_summaries:
+  - traveler_id: T-101
+    period_label: prior_demo_fy25_q3
+    summary_text: |
+      Synthetic voucher coverage for T-101 in the prior demo period. Lodging
+      receipts attached on most lines; a recurring evidence-attachment gap
+      was noted by the demo reviewer.
+    recurring_correction_pattern: evidence-attachment gap on lodging line
+  - traveler_id: T-101
+    period_label: prior_demo_fy25_q4
+    summary_text: |
+      Second synthetic prior period for T-101. Same evidence-attachment gap
+      pattern surfaced once more on the lodging line; reviewer requested a
+      receipt and the loop closed in demo state.
+    recurring_correction_pattern: evidence-attachment gap on lodging line
+  - traveler_id: T-102
+    period_label: prior_demo_fy25_q3
+    summary_text: |
+      Synthetic prior voucher for T-102 covered a multi-leg coordination trip
+      with two lodging rows that overlapped on a single night. Reviewer
+      flagged the overlap for clarification rather than concluding it was
+      improper.
+    recurring_correction_pattern: occasional duplicate-hotel coverage
+  - traveler_id: T-104
+    period_label: prior_demo_fy25_q2
+    summary_text: |
+      Synthetic prior voucher for T-104 included an OCONUS site visit with
+      ATM withdrawals and currency-exchange line items. Reviewer noted
+      reconstruction work was required to reconcile the exchange rate.
+    recurring_correction_pattern: exchange-rate reconstruction

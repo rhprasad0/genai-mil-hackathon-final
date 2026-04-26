@@ -1,0 +1,222 @@
+voucher_id: V-1010
+traveler_id: T-105
+hero: true
+hero_position: 3
+narrative: |
+  Synthetic OCONUS packet containing one line whose vendor label is unclear
+  and whose justification is thin. The brief uses neutral vocabulary, labels
+  the line as needing human review, and never characterizes it as
+  unauthorized, nonpayable, fraudulent, or in misconduct.
+pain_patterns:
+  - unclear_or_possibly_unjustified_expense
+expected_ao_experience:
+  first_focus: unclear_expense_documentation_gap
+  required_citations:
+    - general_review_checklist
+  required_signals: []
+  required_findings:
+    - unclear_or_possibly_unjustified_expense
+    - evidence_quality_concern
+  required_labels:
+    - needs_human_review_on_unclear_line
+  required_missing_information_items: 2
+  brief_uncertainty: medium
+  is_partial: false
+voucher:
+  trip_purpose_category: oconus_site_visit_demo
+  trip_start_date: 2026-04-01
+  trip_end_date: 2026-04-04
+  declared_origin: Inland Demo Outpost
+  declared_destinations:
+    - Coastal Demo City
+  funding_reference_label: LOA-DEMO-FY26-0078
+  funding_reference_quality: clean
+  justification_text: |
+    Synthetic OCONUS site-visit demo packet. One line item is unclear and
+    needs reviewer attention; not a real trip.
+  pre_existing_flags: []
+  demo_packet_submitted_at: 2026-04-08T12:00:00Z
+  review_status: needs_review
+line_items:
+  - line_index: 1
+    expense_date: 2026-04-01
+    amount_minor_units: 26000
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2026-04-01
+        amount_on_face_minor_units: 26000
+        currency_code_on_face: USD
+  - line_index: 2
+    expense_date: 2026-04-01
+    amount_minor_units: 15400
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Coastal Demo
+        evidence_date_on_face: 2026-04-01
+        amount_on_face_minor_units: 15400
+        currency_code_on_face: USD
+  - line_index: 3
+    expense_date: 2026-04-02
+    amount_minor_units: 15400
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Coastal Demo
+        evidence_date_on_face: 2026-04-02
+        amount_on_face_minor_units: 15400
+        currency_code_on_face: USD
+  - line_index: 4
+    expense_date: 2026-04-02
+    amount_minor_units: 8800
+    currency_code: USD
+    category: other_demo
+    vendor_label: Unknown Demo Vendor 17
+    payment_instrument_indicator: gtcc_like_demo
+    free_text_notes: |
+      Synthetic unclear line with a generic demo vendor label. The
+      reviewer should ask the traveler to clarify what the line covers;
+      the system uses the spec-permitted vocabulary only.
+    evidence_refs:
+      - content_type_indicator: handwritten_local_paper_demo
+        legibility_cue: poor
+        itemization_cue: not_itemized
+        payment_evidence_cue: ambiguous
+        vendor_label_on_evidence: Unknown Demo Vendor 17
+        evidence_date_on_face: 2026-04-02
+        amount_on_face_minor_units: 8800
+        currency_code_on_face: USD
+  - line_index: 5
+    expense_date: 2026-04-03
+    amount_minor_units: 5400
+    currency_code: USD
+    category: meals
+    vendor_label: Eatery Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: receipt_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Eatery Coastal Demo
+        evidence_date_on_face: 2026-04-03
+        amount_on_face_minor_units: 5400
+        currency_code_on_face: USD
+  - line_index: 6
+    expense_date: 2026-04-04
+    amount_minor_units: 26000
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2026-04-04
+        amount_on_face_minor_units: 26000
+        currency_code_on_face: USD
+external_anomaly_signals: []
+findings:
+  - category: unclear_or_possibly_unjustified_expense
+    severity: medium
+    confidence: low
+    needs_human_review: true
+    summary: |
+      The synthetic line 4 expense is unclear and needs reviewer
+      attention.
+    explanation: |
+      The line carries a generic synthetic vendor label and weak evidence
+      cues. The system uses the spec-permitted vocabulary only and labels
+      this as evidence needing closer reviewer attention.
+    suggested_question: |
+      Could the traveler clarify what synthetic line 4 covers and share
+      additional supporting context?
+    primary_citation_id: CITE-CHECKLIST-001
+    packet_evidence_pointer:
+      line_item_id: V-1010-LI-4
+      excerpt_hint: line 4 unclear vendor and weak evidence cues
+    signal_links: []
+  - category: evidence_quality_concern
+    severity: low
+    confidence: medium
+    needs_human_review: false
+    summary: |
+      The synthetic line 4 evidence is a handwritten local-paper receipt
+      with poor legibility.
+    explanation: |
+      The reviewer can ask the traveler for a clearer copy of the
+      synthetic receipt or a short reconstruction note.
+    suggested_question: |
+      Could the traveler share a clearer synthetic copy of the line 4
+      receipt or a short reconstruction note?
+    primary_citation_id: CITE-RECEIPT-002
+    packet_evidence_pointer:
+      line_item_id: V-1010-LI-4
+      excerpt_hint: line 4 handwritten poor legibility
+    signal_links: []
+missing_information_items:
+  - description: |
+      A clarification of what synthetic line 4 covers is missing.
+    why_it_matters: |
+      Without clarification, the reviewer cannot evaluate the line; the
+      system labels this as needing human review.
+    expected_location_hint: line free_text_notes or justification block
+    linked_line_index: 4
+  - description: |
+      A clearer synthetic copy of the line 4 receipt is missing.
+    why_it_matters: |
+      A clearer receipt would let the reviewer evaluate the synthetic
+      line 4 evidence.
+    expected_location_hint: line evidence attachment
+    linked_line_index: 4
+brief:
+  priority_score: 0.5
+  priority_rationale: |
+    Synthetic packet contains one line that needs reviewer attention; the
+    system uses neutral vocabulary only. Workload guidance only.
+  suggested_focus: |
+    Open the synthetic line 4 first and ask the traveler to clarify what
+    the line covers.
+  evidence_gap_summary: |
+    Clarification of line 4 and a clearer synthetic line 4 receipt are
+    missing.
+  story_coherence_summary: |
+    Trip narrative covers Apr 1 through Apr 4 with continuous lodging;
+    line 4 stands out as an unclear documentation gap.
+  draft_clarification_note: |
+    Could you clarify what synthetic line 4 covers and share a clearer
+    receipt or short reconstruction note? The system labels this as
+    needing human review and uses neutral vocabulary only. Synthetic
+    demo draft note only.
+  brief_uncertainty: medium
+  is_partial: false
+ao_notes:
+  - kind: ao_note
+    finding_index: 1
+    body: |
+      Holding on the synthetic line 4 review until the traveler shares
+      additional context. The system labels this line as needing human
+      review only.

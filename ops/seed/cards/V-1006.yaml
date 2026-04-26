@@ -1,0 +1,260 @@
+voucher_id: V-1006
+traveler_id: T-103
+hero: false
+narrative: |
+  Synthetic CONUS trip submitted weeks after the trip dates with a thin
+  reconstruction. The brief notes the gap between expense dates and packet
+  submission, and surfaces evidence-quality concerns on several lines.
+pain_patterns:
+  - stale_memory_old_transaction
+  - evidence_quality_concern
+expected_ao_experience:
+  first_focus: stale_memory_gap
+  required_citations:
+    - general_review_checklist
+  required_signals:
+    - traveler_baseline_outlier
+    - date_location_mismatch
+  required_findings:
+    - stale_memory_old_transaction
+    - evidence_quality_concern
+    - story_coherence_break
+  required_labels: []
+  required_missing_information_items: 2
+  brief_uncertainty: medium
+  is_partial: false
+voucher:
+  trip_purpose_category: tdy_staff_demo
+  trip_start_date: 2025-10-13
+  trip_end_date: 2025-10-16
+  declared_origin: Inland Demo Outpost
+  declared_destinations:
+    - Coastal Demo City
+  funding_reference_label: LOA-DEMO-FY26-0024
+  funding_reference_quality: clean
+  justification_text: |
+    Synthetic CONUS trip whose synthetic packet was submitted weeks after the
+    declared trip dates. Demo case for stale-memory reconstruction; not a
+    real trip.
+  pre_existing_flags: []
+  demo_packet_submitted_at: 2025-12-08T16:20:00Z
+  review_status: needs_review
+line_items:
+  - line_index: 1
+    expense_date: 2025-10-13
+    amount_minor_units: 16400
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    claimed_by_traveler_at: 2025-12-07T18:00:00Z
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2025-10-13
+        amount_on_face_minor_units: 16400
+        currency_code_on_face: USD
+  - line_index: 2
+    expense_date: 2025-10-13
+    amount_minor_units: 12900
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    claimed_by_traveler_at: 2025-12-07T18:05:00Z
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: partial
+        itemization_cue: partially_itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Coastal Demo
+        evidence_date_on_face: 2025-10-13
+        amount_on_face_minor_units: 12900
+        currency_code_on_face: USD
+  - line_index: 3
+    expense_date: 2025-10-14
+    amount_minor_units: 12900
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    claimed_by_traveler_at: 2025-12-07T18:10:00Z
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: partial
+        itemization_cue: partially_itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Coastal Demo
+        evidence_date_on_face: 2025-10-14
+        amount_on_face_minor_units: 12900
+        currency_code_on_face: USD
+  - line_index: 4
+    expense_date: 2025-10-14
+    amount_minor_units: 4200
+    currency_code: USD
+    category: meals
+    vendor_label: Eatery Coastal Demo
+    payment_instrument_indicator: cash_demo
+    claimed_by_traveler_at: 2025-12-07T18:15:00Z
+    free_text_notes: |
+      Synthetic meals line reconstructed from memory; the receipt evidence
+      is partially itemized.
+    evidence_refs:
+      - content_type_indicator: handwritten_local_paper_demo
+        legibility_cue: partial
+        itemization_cue: partially_itemized
+        payment_evidence_cue: ambiguous
+        vendor_label_on_evidence: Eatery Coastal Demo
+        evidence_date_on_face: 2025-10-14
+        amount_on_face_minor_units: 4200
+        currency_code_on_face: USD
+  - line_index: 5
+    expense_date: 2025-10-15
+    amount_minor_units: 12900
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    claimed_by_traveler_at: 2025-12-07T18:20:00Z
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Coastal Demo
+        evidence_date_on_face: 2025-10-15
+        amount_on_face_minor_units: 12900
+        currency_code_on_face: USD
+  - line_index: 6
+    expense_date: 2025-10-16
+    amount_minor_units: 16400
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    claimed_by_traveler_at: 2025-12-07T18:25:00Z
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2025-10-16
+        amount_on_face_minor_units: 16400
+        currency_code_on_face: USD
+external_anomaly_signals:
+  - signal_type: traveler_baseline_outlier
+    confidence: low
+    rationale_text: |
+      Demo signal indicates the synthetic packet's submission timing is
+      well outside the traveler baseline. Review prompt only.
+    scenario_slug: stale_submission_baseline
+  - signal_type: date_location_mismatch
+    confidence: low
+    rationale_text: |
+      Demo signal flags a small reconstruction gap between line dates and
+      claimed_by_traveler_at on the meals line. Review prompt only.
+    scenario_slug: meals_reconstruction
+findings:
+  - category: stale_memory_old_transaction
+    severity: medium
+    confidence: medium
+    needs_human_review: false
+    summary: |
+      The synthetic packet was submitted weeks after the declared trip
+      dates.
+    explanation: |
+      The trip dates run Oct 13 through Oct 16 but demo_packet_submitted_at
+      is in December. The reviewer can ask the traveler to confirm details
+      from memory.
+    suggested_question: |
+      Could the traveler confirm the lodging and meals details for the
+      Oct 13 to Oct 16 trip from memory?
+    primary_citation_id: CITE-CHECKLIST-001
+    packet_evidence_pointer:
+      line_item_id: V-1006-LI-1
+      excerpt_hint: trip Oct 13-16; submitted Dec 8
+    signal_links:
+      - traveler_baseline_outlier
+  - category: evidence_quality_concern
+    severity: low
+    confidence: medium
+    needs_human_review: false
+    summary: |
+      Several synthetic receipts on the packet are partially itemized.
+    explanation: |
+      Three lodging lines and the meals line carry partial cues. The
+      reviewer can ask the traveler for clearer reconstructions where
+      possible.
+    suggested_question: |
+      Could the traveler share clearer copies of the lodging and meals
+      receipts where available?
+    primary_citation_id: CITE-LODGE-001
+    packet_evidence_pointer:
+      line_item_id: V-1006-LI-2
+      excerpt_hint: lodging line 2 partially itemized
+    signal_links: []
+  - category: story_coherence_break
+    severity: low
+    confidence: low
+    needs_human_review: false
+    summary: |
+      The synthetic narrative does not yet explain the long gap between
+      trip dates and packet submission.
+    explanation: |
+      The reviewer can ask the traveler to add a short narrative note that
+      explains the late synthetic packet submission.
+    suggested_question: |
+      Could the traveler add a short reconstruction note explaining the
+      gap between the trip and the synthetic packet submission?
+    primary_citation_id: CITE-CHECKLIST-001
+    packet_evidence_pointer:
+      line_item_id: V-1006-LI-1
+      excerpt_hint: narrative does not yet explain submission gap
+    signal_links:
+      - date_location_mismatch
+missing_information_items:
+  - description: |
+      A reconstruction note explaining the gap between trip dates and
+      packet submission is missing.
+    why_it_matters: |
+      A short narrative note would help the reviewer evaluate the late
+      synthetic packet submission.
+    expected_location_hint: justification block on the synthetic packet
+    linked_line_index: 1
+  - description: |
+      Clearer copies of the partially itemized lodging receipts are not
+      attached to the synthetic packet.
+    why_it_matters: |
+      Higher-quality lodging receipts would help the reviewer evaluate
+      the line totals.
+    expected_location_hint: lodging line evidence attachment
+    linked_line_index: 2
+brief:
+  priority_score: 0.55
+  priority_rationale: |
+    Synthetic packet submitted long after the trip with thin reconstruction.
+    Workload guidance only.
+  suggested_focus: |
+    Open the trip submission gap first, then evaluate the partially
+    itemized lodging receipts.
+  evidence_gap_summary: |
+    Reconstruction note for the late submission and clearer lodging
+    receipts are missing.
+  story_coherence_summary: |
+    Trip narrative covers Oct 13 through Oct 16 with continuous lodging,
+    but the synthetic packet was submitted weeks later.
+  draft_clarification_note: |
+    Could you add a short note explaining the gap between the trip and the
+    synthetic packet submission, and share clearer lodging receipts where
+    available? Synthetic demo draft note only.
+  brief_uncertainty: medium
+  is_partial: false
+ao_notes:
+  - kind: ao_note
+    body: |
+      Stale-memory submission flagged; synthetic packet remains in needs
+      review until the traveler adds reconstruction context.

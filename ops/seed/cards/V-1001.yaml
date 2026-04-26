@@ -1,0 +1,145 @@
+voucher_id: V-1001
+traveler_id: T-101
+hero: false
+narrative: |
+  Synthetic OCONUS conference trip with clean evidence and no anomalies. The
+  brief opens as a clean control case, with low uncertainty and a draft note
+  that says no clarifications are needed from the packet on its face.
+pain_patterns:
+  - clean_control_case
+expected_ao_experience:
+  first_focus: clean_control_overview
+  required_citations: []
+  required_signals: []
+  required_findings: []
+  required_labels: []
+  required_missing_information_items: 0
+  brief_uncertainty: low
+  is_partial: false
+voucher:
+  trip_purpose_category: oconus_conference_demo
+  trip_start_date: 2026-01-08
+  trip_end_date: 2026-01-12
+  declared_origin: Inland Demo Garrison
+  declared_destinations:
+    - Coastal Demo City
+  funding_reference_label: LOA-DEMO-FY26-0011
+  funding_reference_quality: clean
+  justification_text: |
+    Synthetic OCONUS demo conference attendance. Clean control case for the
+    demo queue; not a real trip.
+  pre_existing_flags: []
+  demo_packet_submitted_at: 2026-01-13T11:00:00Z
+  review_status: ready_for_human_decision
+line_items:
+  - line_index: 1
+    expense_date: 2026-01-08
+    amount_minor_units: 32500
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    free_text_notes: ''
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2026-01-08
+        amount_on_face_minor_units: 32500
+        currency_code_on_face: USD
+  - line_index: 2
+    expense_date: 2026-01-08
+    amount_minor_units: 14200
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    free_text_notes: ''
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Coastal Demo
+        evidence_date_on_face: 2026-01-08
+        amount_on_face_minor_units: 14200
+        currency_code_on_face: USD
+  - line_index: 3
+    expense_date: 2026-01-09
+    amount_minor_units: 14200
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    free_text_notes: ''
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Coastal Demo
+        evidence_date_on_face: 2026-01-09
+        amount_on_face_minor_units: 14200
+        currency_code_on_face: USD
+  - line_index: 4
+    expense_date: 2026-01-10
+    amount_minor_units: 5400
+    currency_code: USD
+    category: meals
+    vendor_label: Eatery Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    free_text_notes: ''
+    evidence_refs:
+      - content_type_indicator: receipt_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Eatery Coastal Demo
+        evidence_date_on_face: 2026-01-10
+        amount_on_face_minor_units: 5400
+        currency_code_on_face: USD
+  - line_index: 5
+    expense_date: 2026-01-12
+    amount_minor_units: 31000
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    free_text_notes: ''
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2026-01-12
+        amount_on_face_minor_units: 31000
+        currency_code_on_face: USD
+external_anomaly_signals: []
+findings: []
+missing_information_items: []
+brief:
+  priority_score: 0.18
+  priority_rationale: |
+    Clean control case for the synthetic demo queue. Workload guidance
+    suggests low review burden; this brief carries no findings.
+  suggested_focus: |
+    Confirm the packet matches the declared trip; no anomalies surfaced from
+    automated review.
+  evidence_gap_summary: |
+    No evidence gaps surfaced from the synthetic packet on its face.
+  story_coherence_summary: |
+    Trip narrative covers Jan 8 through Jan 12 cleanly across transport,
+    lodging, and meal lines.
+  draft_clarification_note: |
+    No clarifications appear necessary from the synthetic packet on its face.
+    Synthetic demo draft note only.
+  brief_uncertainty: low
+  is_partial: false
+ao_notes:
+  - kind: ao_note
+    body: |
+      Synthetic clean-control packet held in the queue for visual comparison
+      against the messy demo packets.

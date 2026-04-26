@@ -1,0 +1,304 @@
+voucher_id: V-1011
+traveler_id: T-102
+hero: false
+narrative: |
+  Synthetic mixed packet where four of seven lines have no attached evidence.
+  The brief is partial because several lines cannot be reconstructed from the
+  synthetic packet on its face.
+pain_patterns:
+  - insufficient_evidence_overall
+  - missing_receipt
+expected_ao_experience:
+  first_focus: insufficient_evidence_overview
+  required_citations:
+    - valid_receipt
+    - lodging_documentation
+  required_signals:
+    - repeated_correction_pattern
+    - traveler_baseline_outlier
+  required_findings:
+    - insufficient_evidence_overall
+    - missing_receipt
+    - evidence_quality_concern
+    - story_coherence_break
+    - weak_or_local_paper_receipt
+  required_labels: []
+  required_missing_information_items: 4
+  brief_uncertainty: high
+  is_partial: true
+voucher:
+  trip_purpose_category: tdy_conference_demo
+  trip_start_date: 2026-06-08
+  trip_end_date: 2026-06-12
+  declared_origin: Inland Demo Garrison
+  declared_destinations:
+    - Coastal Demo City
+  funding_reference_label: LOA-DEMO-FY26-0119
+  funding_reference_quality: clean
+  justification_text: |
+    Synthetic mixed packet with several missing receipts. Demo packet only;
+    the brief notes that several lines cannot be reconstructed.
+  pre_existing_flags:
+    - synthetic_evidence_attachment_review_cue
+  demo_packet_submitted_at: 2026-06-15T10:25:00Z
+  review_status: in_review
+line_items:
+  - line_index: 1
+    expense_date: 2026-06-08
+    amount_minor_units: 24000
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2026-06-08
+        amount_on_face_minor_units: 24000
+        currency_code_on_face: USD
+  - line_index: 2
+    expense_date: 2026-06-08
+    amount_minor_units: 16500
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: none_attached_demo
+        legibility_cue: not_applicable
+        itemization_cue: not_applicable
+        payment_evidence_cue: not_applicable
+  - line_index: 3
+    expense_date: 2026-06-09
+    amount_minor_units: 16500
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: none_attached_demo
+        legibility_cue: not_applicable
+        itemization_cue: not_applicable
+        payment_evidence_cue: not_applicable
+  - line_index: 4
+    expense_date: 2026-06-10
+    amount_minor_units: 16500
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Coastal Demo
+        evidence_date_on_face: 2026-06-10
+        amount_on_face_minor_units: 16500
+        currency_code_on_face: USD
+  - line_index: 5
+    expense_date: 2026-06-10
+    amount_minor_units: 5200
+    currency_code: USD
+    category: meals
+    vendor_label: Eatery Coastal Demo
+    payment_instrument_indicator: cash_demo
+    evidence_refs:
+      - content_type_indicator: handwritten_local_paper_demo
+        legibility_cue: poor
+        itemization_cue: not_itemized
+        payment_evidence_cue: ambiguous
+        vendor_label_on_evidence: Eatery Coastal Demo
+        evidence_date_on_face: 2026-06-10
+        amount_on_face_minor_units: 5200
+        currency_code_on_face: USD
+  - line_index: 6
+    expense_date: 2026-06-11
+    amount_minor_units: 5200
+    currency_code: USD
+    category: meals
+    vendor_label: Eatery Coastal Demo
+    payment_instrument_indicator: cash_demo
+    evidence_refs:
+      - content_type_indicator: none_attached_demo
+        legibility_cue: not_applicable
+        itemization_cue: not_applicable
+        payment_evidence_cue: not_applicable
+  - line_index: 7
+    expense_date: 2026-06-11
+    amount_minor_units: 4400
+    currency_code: USD
+    category: incidentals
+    vendor_label: Eatery Coastal Demo
+    payment_instrument_indicator: cash_demo
+    evidence_refs:
+      - content_type_indicator: none_attached_demo
+        legibility_cue: not_applicable
+        itemization_cue: not_applicable
+        payment_evidence_cue: not_applicable
+external_anomaly_signals:
+  - signal_type: repeated_correction_pattern
+    confidence: medium
+    rationale_text: |
+      Demo signal indicates the synthetic packet shows the recurring
+      evidence-attachment gap pattern. Review prompt only.
+    scenario_slug: missing_evidence_pattern
+  - signal_type: traveler_baseline_outlier
+    confidence: low
+    rationale_text: |
+      Demo signal indicates the synthetic packet's documentation
+      coverage is below the traveler baseline. Review prompt only.
+    scenario_slug: documentation_baseline
+findings:
+  - category: insufficient_evidence_overall
+    severity: high
+    confidence: high
+    needs_human_review: false
+    summary: |
+      Four of seven synthetic lines have no attached evidence.
+    explanation: |
+      Lines 2, 3, 6, and 7 carry content_type_indicator=none_attached_demo.
+      The synthetic brief is partial because these lines cannot be
+      reconstructed from the packet on its face.
+    suggested_question: |
+      Could the traveler attach evidence for lines 2, 3, 6, and 7 so the
+      synthetic packet can be reconstructed?
+    primary_citation_id: CITE-RECEIPT-001
+    packet_evidence_pointer:
+      line_item_id: V-1011-LI-2
+      excerpt_hint: lines 2, 3, 6, 7 carry none_attached_demo
+    signal_links:
+      - repeated_correction_pattern
+  - category: missing_receipt
+    severity: medium
+    confidence: high
+    needs_human_review: false
+    summary: |
+      Two synthetic lodging nights are missing receipts.
+    explanation: |
+      Lines 2 and 3 lack evidence attachments. The reviewer can ask the
+      traveler to attach the lodging receipts before continuing.
+    suggested_question: |
+      Could the traveler attach the lodging receipts for the Jun 8 and
+      Jun 9 nights?
+    primary_citation_id: CITE-LODGE-001
+    packet_evidence_pointer:
+      line_item_id: V-1011-LI-2
+      excerpt_hint: lines 2 and 3 missing lodging receipts
+    signal_links: []
+  - category: evidence_quality_concern
+    severity: low
+    confidence: medium
+    needs_human_review: false
+    summary: |
+      The synthetic line 5 meals receipt is handwritten with poor
+      legibility.
+    explanation: |
+      The reviewer can ask the traveler for a clearer copy of the
+      synthetic line 5 receipt.
+    suggested_question: |
+      Could the traveler share a clearer synthetic copy of the line 5
+      meals receipt?
+    primary_citation_id: CITE-RECEIPT-002
+    packet_evidence_pointer:
+      line_item_id: V-1011-LI-5
+      excerpt_hint: line 5 handwritten poor legibility
+    signal_links: []
+  - category: story_coherence_break
+    severity: low
+    confidence: low
+    needs_human_review: false
+    summary: |
+      The synthetic narrative does not yet explain the missing meals
+      and incidentals lines.
+    explanation: |
+      The reviewer can ask the traveler for a short narrative note
+      covering the synthetic Jun 11 lines.
+    suggested_question: |
+      Could the traveler share a short note covering what lines 6 and 7
+      represent?
+    primary_citation_id: CITE-CHECKLIST-001
+    packet_evidence_pointer:
+      line_item_id: V-1011-LI-6
+      excerpt_hint: narrative does not yet account for Jun 11 lines
+    signal_links:
+      - traveler_baseline_outlier
+  - category: weak_or_local_paper_receipt
+    severity: info
+    confidence: medium
+    needs_human_review: false
+    summary: |
+      The synthetic line 5 meals receipt is a handwritten local-paper
+      receipt.
+    explanation: |
+      The reviewer can ask the traveler for a clearer synthetic receipt
+      or a short reconstruction note.
+    suggested_question: |
+      Could the traveler confirm what the synthetic handwritten line 5
+      receipt covers?
+    primary_citation_id: CITE-RECEIPT-002
+    packet_evidence_pointer:
+      line_item_id: V-1011-LI-5
+      excerpt_hint: handwritten meals receipt
+    signal_links: []
+missing_information_items:
+  - description: |
+      Lodging receipts for Jun 8 and Jun 9 are missing.
+    why_it_matters: |
+      Without these receipts, the synthetic brief cannot reconstruct
+      two lodging nights.
+    expected_location_hint: lodging line evidence attachment
+    linked_line_index: 2
+  - description: |
+      A meals receipt for Jun 11 is missing.
+    why_it_matters: |
+      Without the receipt, the reviewer cannot evaluate the synthetic
+      meals line.
+    expected_location_hint: meals line evidence attachment
+    linked_line_index: 6
+  - description: |
+      An incidentals receipt for Jun 11 is missing.
+    why_it_matters: |
+      Without the receipt, the reviewer cannot evaluate the synthetic
+      incidentals line.
+    expected_location_hint: incidentals line evidence attachment
+    linked_line_index: 7
+  - description: |
+      A short narrative note covering Jun 11 is missing.
+    why_it_matters: |
+      A narrative note would help the reviewer evaluate the synthetic
+      Jun 11 lines.
+    expected_location_hint: justification block on the synthetic packet
+    linked_line_index: 6
+brief:
+  priority_score: 0.82
+  priority_rationale: |
+    Synthetic packet has insufficient evidence on multiple lines.
+    Workload guidance only.
+  suggested_focus: |
+    Open the synthetic missing-evidence list first; ask the traveler to
+    attach lodging, meals, and incidentals receipts.
+  evidence_gap_summary: |
+    Lodging receipts for Jun 8 and Jun 9, meals receipt for Jun 11,
+    incidentals receipt for Jun 11, and a Jun 11 narrative note are all
+    missing.
+  story_coherence_summary: |
+    Trip narrative covers Jun 8 through Jun 12 partly; Jun 11 lines
+    cannot be reconstructed from the synthetic packet on its face.
+  draft_clarification_note: |
+    Could you attach the missing synthetic lodging, meals, and
+    incidentals receipts and share a short narrative note covering Jun
+    11? Synthetic demo draft note only.
+  brief_uncertainty: high
+  is_partial: true
+  partial_reason: |
+    Several synthetic lines lack evidence attachments and cannot be
+    reconstructed from the packet on its face.
+ao_notes:
+  - kind: ao_note
+    body: |
+      Synthetic packet remains partial until the traveler attaches the
+      missing receipts and adds the Jun 11 narrative note.

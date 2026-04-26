@@ -1,0 +1,263 @@
+voucher_id: V-1002
+traveler_id: T-101
+hero: true
+hero_position: 1
+narrative: |
+  Synthetic OCONUS site visit where the lodging line has no attached receipt
+  and the meals line carries a handwritten local-paper receipt with poor
+  legibility. The brief opens on the lodging line and lists missing-information
+  items rather than allegations.
+pain_patterns:
+  - missing_receipt
+  - weak_or_local_paper_receipt
+expected_ao_experience:
+  first_focus: lodging_line_missing_receipt
+  required_citations:
+    - valid_receipt
+    - lodging_documentation
+  required_signals:
+    - repeated_correction_pattern
+    - traveler_baseline_outlier
+  required_findings:
+    - missing_receipt
+    - weak_or_local_paper_receipt
+    - evidence_quality_concern
+  required_labels: []
+  required_missing_information_items: 2
+  brief_uncertainty: medium
+  is_partial: false
+voucher:
+  trip_purpose_category: oconus_site_visit_demo
+  trip_start_date: 2026-02-02
+  trip_end_date: 2026-02-05
+  declared_origin: Inland Demo Garrison
+  declared_destinations:
+    - Coastal Demo City
+  funding_reference_label: LOA-DEMO-FY26-0017
+  funding_reference_quality: clean
+  justification_text: |
+    Synthetic OCONUS site-visit demo packet. Two evidence gaps surfaced from
+    automated review; not a real trip.
+  pre_existing_flags:
+    - synthetic_evidence_attachment_review_cue
+  demo_packet_submitted_at: 2026-02-09T13:30:00Z
+  review_status: in_review
+line_items:
+  - line_index: 1
+    expense_date: 2026-02-02
+    amount_minor_units: 28500
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2026-02-02
+        amount_on_face_minor_units: 28500
+        currency_code_on_face: USD
+  - line_index: 2
+    expense_date: 2026-02-02
+    amount_minor_units: 16800
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    free_text_notes: |
+      Lodging line covering night of Feb 2 in synthetic Coastal Demo City.
+      Receipt is not yet attached to the synthetic packet.
+    evidence_refs:
+      - content_type_indicator: none_attached_demo
+        legibility_cue: not_applicable
+        itemization_cue: not_applicable
+        payment_evidence_cue: not_applicable
+  - line_index: 3
+    expense_date: 2026-02-03
+    amount_minor_units: 16800
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Coastal Demo
+        evidence_date_on_face: 2026-02-03
+        amount_on_face_minor_units: 16800
+        currency_code_on_face: USD
+  - line_index: 4
+    expense_date: 2026-02-03
+    amount_minor_units: 4200
+    currency_code: USD
+    category: meals
+    vendor_label: Eatery Coastal Demo
+    payment_instrument_indicator: cash_demo
+    free_text_notes: |
+      Meals line backed by a handwritten local-paper receipt; legibility is
+      poor in the synthetic demo evidence.
+    evidence_refs:
+      - content_type_indicator: handwritten_local_paper_demo
+        legibility_cue: poor
+        itemization_cue: not_itemized
+        payment_evidence_cue: ambiguous
+        vendor_label_on_evidence: Eatery Coastal Demo
+        evidence_date_on_face: 2026-02-03
+        amount_on_face_minor_units: 4200
+        currency_code_on_face: USD
+  - line_index: 5
+    expense_date: 2026-02-04
+    amount_minor_units: 16800
+    currency_code: USD
+    category: lodging
+    vendor_label: Hotel Coastal Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: receipt_pdf_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Hotel Coastal Demo
+        evidence_date_on_face: 2026-02-04
+        amount_on_face_minor_units: 16800
+        currency_code_on_face: USD
+  - line_index: 6
+    expense_date: 2026-02-05
+    amount_minor_units: 27500
+    currency_code: USD
+    category: transport_air
+    vendor_label: Air Carrier North Demo
+    payment_instrument_indicator: gtcc_like_demo
+    evidence_refs:
+      - content_type_indicator: boarding_pass_image_demo
+        legibility_cue: clear
+        itemization_cue: itemized
+        payment_evidence_cue: present
+        vendor_label_on_evidence: Air Carrier North Demo
+        evidence_date_on_face: 2026-02-05
+        amount_on_face_minor_units: 27500
+        currency_code_on_face: USD
+external_anomaly_signals:
+  - signal_type: repeated_correction_pattern
+    confidence: medium
+    rationale_text: |
+      Demo signal indicates the traveler profile carries a recurring
+      evidence-attachment gap on the lodging line. Review prompt only; not
+      an official finding.
+    scenario_slug: lodging_evidence_gap
+  - signal_type: traveler_baseline_outlier
+    confidence: low
+    rationale_text: |
+      Demo signal indicates the meals reconstruction differs from the
+      traveler's baseline pattern across prior synthetic packets. Review
+      prompt only.
+    scenario_slug: meals_baseline_drift
+findings:
+  - category: missing_receipt
+    severity: medium
+    confidence: high
+    needs_human_review: false
+    summary: |
+      The Feb 2 lodging line has no attached receipt evidence on the synthetic
+      packet.
+    explanation: |
+      The line carries content_type_indicator=none_attached_demo. The reviewer
+      can ask the traveler to provide the lodging receipt before any further
+      review action.
+    suggested_question: |
+      Could the traveler attach the lodging receipt for the Feb 2 night so the
+      packet has visible evidence of the charge?
+    primary_citation_id: CITE-RECEIPT-001
+    packet_evidence_pointer:
+      line_item_id: V-1002-LI-2
+      excerpt_hint: lodging line 2 carries none_attached_demo
+    signal_links:
+      - repeated_correction_pattern
+  - category: weak_or_local_paper_receipt
+    severity: low
+    confidence: medium
+    needs_human_review: false
+    summary: |
+      The Feb 3 meals receipt is a handwritten local-paper synthetic receipt
+      with poor legibility.
+    explanation: |
+      The attached evidence shows legibility_cue=poor and itemization_cue=
+      not_itemized. The reviewer should evaluate whether the synthetic
+      receipt is sufficient or whether to ask for a clarification note.
+    suggested_question: |
+      Could the traveler share what items are covered by the handwritten meals
+      receipt so the synthetic packet can be reconstructed?
+    primary_citation_id: CITE-RECEIPT-002
+    packet_evidence_pointer:
+      line_item_id: V-1002-LI-4
+      excerpt_hint: meals line 4 handwritten poor legibility
+    signal_links: []
+  - category: evidence_quality_concern
+    severity: low
+    confidence: medium
+    needs_human_review: false
+    summary: |
+      Two evidence gaps on the same synthetic packet draw attention.
+    explanation: |
+      The lodging line carries no receipt and the meals line is backed by a
+      poorly legible handwritten receipt. The combined effect is a documentation
+      gap the reviewer can close with a clarification request.
+    suggested_question: |
+      Could the traveler provide updated lodging and meals receipts for the
+      synthetic packet?
+    primary_citation_id: CITE-LODGE-001
+    packet_evidence_pointer:
+      line_item_id: V-1002-LI-2
+      excerpt_hint: combined lodging + meals documentation gap
+    signal_links:
+      - traveler_baseline_outlier
+missing_information_items:
+  - description: |
+      Lodging receipt for the Feb 2 night is not attached to the synthetic
+      packet.
+    why_it_matters: |
+      Without the lodging receipt, the reviewer cannot confirm vendor, paid
+      amount, or night coverage on the synthetic packet.
+    expected_location_hint: lodging line evidence attachment
+    linked_line_index: 2
+  - description: |
+      A short reconstruction note explaining what the handwritten meals
+      receipt covers is not present.
+    why_it_matters: |
+      A reconstruction note would let the reviewer evaluate whether the
+      handwritten receipt is sufficient evidence for the meals line.
+    expected_location_hint: line free_text_notes or justification block
+    linked_line_index: 4
+brief:
+  priority_score: 0.62
+  priority_rationale: |
+    Two evidence gaps and a recurring documentation pattern surface for
+    reviewer attention. Workload guidance only.
+  suggested_focus: |
+    Open the Feb 2 lodging line first; then evaluate the handwritten meals
+    receipt for legibility.
+  evidence_gap_summary: |
+    Lodging receipt missing on Feb 2; handwritten meals receipt has poor
+    legibility cues.
+  story_coherence_summary: |
+    Trip narrative covers Feb 2 through Feb 5 with continuous lodging in
+    Coastal Demo City; documentation gaps appear on two lines.
+  draft_clarification_note: |
+    Could you provide the Feb 2 lodging receipt and a short reconstruction
+    note for the handwritten meals receipt? Synthetic demo draft note only.
+  brief_uncertainty: medium
+  is_partial: false
+ao_notes:
+  - kind: ao_note
+    body: |
+      Holding for clarification on the Feb 2 lodging evidence before
+      requesting any further review steps.
+  - kind: draft_clarification
+    body: |
+      Could you share the Feb 2 lodging receipt and a short reconstruction
+      note for the handwritten meals receipt on Feb 3? Synthetic demo draft
+      only.
