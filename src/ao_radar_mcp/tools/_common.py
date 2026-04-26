@@ -11,17 +11,18 @@ Every spec section 4.5 tool module exports the same four attributes:
 
 In Phase 1 every handler returns a ``not_implemented`` placeholder so the
 catalog can advertise correctly without depending on database or fraud-mock
-availability.  Phase 2/3/4 wire each handler into the repository layer and
-the audit invariant.
+availability.  In Phase 2/3/4/5 each handler dispatches to the repository
+layer when the runtime DB is available; otherwise it still returns the
+Phase 1 stub so the contract tests continue to dispatch without error.
 """
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from typing import Any
 
 from ..safety.authority_boundary import HUMAN_AUTHORITY_BOUNDARY_TEXT
 from ..safety.refusal import get_boundary_reminder
-
 
 _BOUNDARY_PHRASE: str = (
     "AO Radar produces review aids only; the human Approving Official remains "
@@ -53,4 +54,34 @@ def not_implemented_response(tool_name: str) -> dict[str, Any]:
     }
 
 
-__all__ = ["_description", "not_implemented_response"]
+def with_boundary(payload: dict[str, Any]) -> dict[str, Any]:
+    """Ensure every tool response carries the canonical boundary reminder."""
+
+    enriched = dict(payload)
+    enriched.setdefault("boundary_reminder", get_boundary_reminder())
+    enriched.setdefault("human_authority_boundary_text", HUMAN_AUTHORITY_BOUNDARY_TEXT)
+    return enriched
+
+
+def to_jsonable(value: Any) -> Any:
+    """Recursively convert datetimes/dates/Decimals/None into JSON-friendly types."""
+
+    if value is None or isinstance(value, (str, bool, int, float)):
+        return value
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(key): to_jsonable(val) for key, val in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [to_jsonable(item) for item in value]
+    return str(value)
+
+
+__all__ = [
+    "_description",
+    "not_implemented_response",
+    "to_jsonable",
+    "with_boundary",
+]
