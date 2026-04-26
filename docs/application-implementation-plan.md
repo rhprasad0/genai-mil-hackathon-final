@@ -35,8 +35,10 @@ behind the API Gateway endpoint described in
   `docs/schema-implementation-plan.md`.
 - A separate Python Lambda that mocks the synthetic external anomaly signal
   service. The MCP Lambda invokes this mock through the AWS SDK.
-- An audit invariant: every scoped workflow write and every refusal records a
-  `workflow_events` row in the same transaction.
+- An audit invariant: every scoped workflow write records a
+  `workflow_events` row in the same transaction as the domain write; every
+  DB-backed refusal records a sanitized `workflow_events` row before the
+  response returns.
 - Refusal and boundary validators that enforce the trust boundary at the
   application layer in addition to the schema layer.
 - Build and deploy handoff to Terraform: zip artifacts, environment
@@ -45,8 +47,9 @@ behind the API Gateway endpoint described in
 ### Non-goals
 
 - Detailed synthetic data / seed scenario design. That is deferred to a
-  separate document. This plan lists only the high-level shape of synthetic
-  signals and traveler context and otherwise points at the schema plan.
+  separate document. This plan defines only the application contracts needed
+  to consume synthetic data; it does not enumerate voucher narratives,
+  persona names, policy excerpt corpora, or per-scenario fraud-mock recipes.
 - Formal test plans, TDD plans, or coverage targets. A short manual demo
   verification checklist is in section 13; that is not a test plan.
 - Choosing or implementing a reviewer-facing UI. The reviewer cockpit is
@@ -63,8 +66,10 @@ behind the API Gateway endpoint described in
 - The model can move the review workflow forward; it cannot move money.
 - Tools are scoped domain workflow tools only. No raw SQL, no arbitrary
   filesystem, no arbitrary HTTP fetch is exposed through MCP.
-- Every output that leaves the system carries the human-authority boundary
-  reminder.
+- Review-facing generated artifacts and scoped write/refusal responses that
+  represent workflow state include or point to the human-authority boundary
+  reminder. Low-level liveness responses and MCP protocol metadata do not
+  need to repeat the full reminder.
 
 ---
 
@@ -77,7 +82,7 @@ and should be read first.
 |---|---|---|
 | `docs/spec.md` | Capability spec, OV-1, SSS, action contract, prohibited actions, refusal behavior, controlled vocabularies, acceptance criteria. | Tool names, prohibited actions, controlled review statuses, acceptance criteria. This plan does not redefine them. |
 | `docs/infra-implementation-plan.md` | AWS infrastructure: VPC, RDS, Lambdas, API Gateway, custom domain, Secrets Manager, IAM, networking. | Lambda runtime, env-var injection, zip artifact paths, RDS endpoint, secret ARN, fraud-mock Lambda function name, API Gateway routes. |
-| `docs/schema-implementation-plan.md` | Postgres schema: tables, enums, CHECK constraints, audit invariants, seed scenarios, fixture validators. | Table/column names, enum values, blocked-status values, repository contracts, audit-event invariant matrix. |
+| `docs/schema-implementation-plan.md` | Postgres schema: tables, enums, CHECK constraints, audit invariants, fixture-validator expectations. | Table/column names, enum values, blocked-status values, repository contracts, audit-event invariant matrix. |
 | This document | Application layout, FastMCP wiring, Lambda handlers, tool dispatch order, refusal validators, build/deploy handoff. | — |
 
 If a contradiction surfaces between this plan and one of the three companion
@@ -111,13 +116,15 @@ Fraud-mock Lambda  (Python, deterministic, synthetic)
 
 Key invariants enforced by this architecture:
 
-- The MCP Lambda is the **only** place that talks to Postgres. All access
-  goes through the scoped repository layer described in section 8.
-- The fraud-mock Lambda is the **only** producer of synthetic external
-  anomaly signals at runtime. The application never reaches outside this
-  loop.
-- The API Gateway routes are exactly `POST /mcp` and `GET /health`. No
-  generic, exploratory, or admin routes are added.
+- The MCP Lambda is the only public runtime workflow path that talks to
+  Postgres. Migration or probe utilities may connect only through the
+  private-network patterns allowed by the infra plan.
+- The fraud-mock Lambda is the only runtime generator of synthetic external
+  anomaly signals beyond any persisted synthetic fixtures. The application
+  never reaches outside this loop for anomaly data.
+- The default API Gateway routes are exactly `POST /mcp` and `GET /health`.
+  No generic, exploratory, or admin routes are added; `GET /sse` remains an
+  infra-gated fallback only if Streamable HTTP fails.
 - Streamable HTTP is the default MCP transport; SSE is opt-in and gated on
   the infra plan's `enable_sse_route` switch.
 
@@ -212,8 +219,9 @@ Notes on the layout:
 - `safety/` is the only place the prohibited-vocabulary and blocked-status
   rules live in code. Tools call into it; the schema enforces the same rules
   independently for status-like columns.
-- `fraud_client/` is the only allowed outbound network surface. There is no
-  general HTTP client.
+- `fraud_client/` is the only domain-level outbound integration. The MCP
+  Lambda may also use AWS SDK clients for Secrets Manager and Lambda Invoke
+  as described by the infra plan, but there is no general HTTP client.
 - `repository/` exposes only domain-shaped methods. There is no
   `execute_sql`, no `query`, no string-templated query builder available to
   upstream code.
@@ -251,8 +259,10 @@ injected by Terraform per `docs/infra-implementation-plan.md`.
 
 Configuration loading rules:
 
-- `config.py` validates every required env var at import time and fails fast
-  if any are missing or malformed.
+- `config.py` validates the env vars required for the active implementation
+  phase at import time and fails fast if any are missing or malformed. Phase
+  1 must not require `DB_SECRET_ARN` or `FRAUD_FUNCTION_NAME`; those become
+  required only when the DB and fraud-mock paths are enabled.
 - Secret material (DB password) is fetched once per cold start through
   `boto3.client("secretsmanager").get_secret_value(...)` and held in process
   memory only. It is never logged.
@@ -266,9 +276,10 @@ Configuration loading rules:
 
 ### Transport choice
 
-- **Default: Streamable HTTP, single request/response per `POST /mcp`.**
-  This works cleanly with API Gateway HTTP API + Lambda proxy and avoids the
-  SSE/long-lived-connection pitfalls called out in the infra plan.
+- **Default target: Streamable HTTP, single request/response per `POST /mcp`.**
+  This is the Phase 1 adapter spike for API Gateway HTTP API + Lambda proxy
+  and avoids the SSE/long-lived-connection pitfalls called out in the infra
+  plan when the framework can be adapted to bounded request/response calls.
 - **No SSE by default.** The `enable_sse_route` infra switch stays off in
   Phase 1. If a future iteration genuinely requires SSE, switch transport
   before turning the route on, per the infra plan's fallback decision tree.
@@ -285,7 +296,8 @@ Configuration loading rules:
 3. `transport.handle_mcp_request` decodes the body (handle the
    base64-encoded body case set by API Gateway when bodies look binary),
    parses the JSON-RPC envelope, and hands the message to the FastMCP
-   server.
+   server through the framework's supported adapter or a thin compatibility
+   shim.
 4. FastMCP dispatches to the registered tool. The tool runs synchronously
    and returns within the API Gateway 30 s integration cap; Lambda timeout
    is held below that (`25 s`) per the infra plan.
@@ -305,8 +317,9 @@ Configuration loading rules:
 - It must not introduce any other route. Generic exploration endpoints
   (`/db`, `/admin`, `/proxy`, `/eval`) are forbidden.
 - It must not pass arbitrary HTTP headers into the FastMCP layer or echo
-  request bodies back into logs at INFO; debug logging of bodies is
-  acceptable temporarily but never published.
+  request bodies back into logs at INFO. If body logging is used locally
+  while debugging, keep it synthetic-only and disabled in committed/shared
+  demo configuration.
 - It must not buffer streaming responses in a way that would let a tool run
   past the 30 s integration cap. Tools must be designed to return promptly.
 
@@ -319,7 +332,7 @@ Configuration loading rules:
   JSON Schema) so FastMCP can advertise them through `tools/list` exactly
   matching the spec section 4.5 names.
 - Tool descriptions explicitly state the human-authority boundary in plain
-  language; reviewers and assistant models see this in `tools/list`.
+  language so any cockpit that surfaces `tools/list` descriptions can show it.
 
 ---
 
@@ -332,11 +345,12 @@ front-loads the reads that feed it.
 ### Step A — Health and stub MCP
 
 - `GET /health` returns 200 with the server name/version.
-- `POST /mcp` returns an empty `tools/list` and otherwise refuses with a
-  helpful "tools not yet implemented" message.
+- `POST /mcp` returns a valid `tools/list` containing the spec section 4.5
+  tool names with safe `not_implemented` handlers until each tool is wired.
 
 This is enough to land the infra plan's Phase 1 connector check (ChatGPT
-Apps developer mode connects, lists tools).
+Apps developer mode connects and lists tools) without relying on database
+or fraud-mock availability.
 
 ### Step B — Read-only domain tools
 
@@ -358,26 +372,29 @@ should return non-empty results from a freshly seeded database.
 
 Implementation: read any persisted signals from
 `external_anomaly_signals` for the voucher, then call the fraud-mock
-Lambda for any deterministic synthetic supplement defined in section 9.
-Combine the two streams, label everything with the spec-required
-`is_official_finding = false` /
+Lambda for any deterministic synthetic supplement defined by the contract
+in section 9. Persist new signals append-only, avoid duplicating an
+already-persisted deterministic signal, write a retrieval audit event when
+the tool invokes the mock or persists a signal, label everything with the
+spec-required `is_official_finding = false` /
 `not_sufficient_for_adverse_action = true` markers, and return.
 
 ### Step D — Story analysis and fusion
 
 7. `analyze_voucher_story(voucher_id)` — story coherence findings,
    reconstructed narrative, evidence/story gaps, suggested AO question, and
-   the `review_prompt_only` marker. Composes reads from B above. No new
-   writes.
+   the `review_prompt_only` marker. Composes reads from B above and any
+   persisted `story_findings`; no new writes.
 8. `prepare_ao_review_brief(voucher_id)` — the central fusion action.
    Combines all of B and C, plus the missing-information items already in
    the schema. Persists a new `review_briefs` row (versioned per voucher)
    and writes the corresponding `event_type = generation` audit event in
    the same transaction.
 
-This is the first tool that mutates demo state. From this point on, every
-tool that writes anything must follow the audit-event invariant in
-section 10.
+This is the first tool that persists a generated review artifact. Step C
+may already persist external signals as retrieval artifacts; from Step C
+onward, every path that writes anything must follow the audit-event
+invariant in section 10.
 
 ### Step E — Scoped audited writes
 
@@ -399,9 +416,10 @@ In an order that lets the demo flow naturally:
 15. `get_audit_trail(voucher_id)` — read of `workflow_events` ordered by
     `occurred_at`.
 
-After step E the application meets every acceptance criterion in
-`docs/spec.md` section 5 except those that depend on the seed scenarios in
-the deferred synthetic data plan.
+After step E the MCP application covers the scoped tool-surface behavior in
+`docs/spec.md` section 5. Final demo acceptance still depends on the
+separate synthetic data plan, the selected cockpit's presentation/export
+path, and a manual smoke pass.
 
 ---
 
@@ -434,10 +452,12 @@ from strings.
 - No module exports a method that takes raw SQL, an arbitrary table name, an
   arbitrary file path, or an unscoped session/cursor object. Tools call
   named, typed methods only.
-- All write methods accept the audit-event metadata for their tool and emit
-  the `workflow_events` row in the **same** transaction as the domain write.
+- Workflow write methods and persisted analysis-artifact writes accept the
+  audit-event metadata for their tool and emit the required
+  `workflow_events` row in the **same** transaction as the domain write.
   The repository commits or rolls back atomically; partial writes are not
-  permitted.
+  permitted. External-signal retrieval/persistence uses
+  `event_type = retrieval`, not a hidden write.
 - Repository methods return immutable typed results (Pydantic models or
   dataclasses), not raw rows. Tools never see DB-driver objects.
 - The schema plan owns enum values and CHECK constraints. The repository
@@ -447,7 +467,8 @@ from strings.
 
 This document does not repeat the schema. The coding agent reads
 `docs/schema-implementation-plan.md` for table/column names, enum values,
-audit invariant matrix, and seed-data shape.
+audit invariant matrix, and fixture-validator expectations. Detailed seed
+content remains deferred to the separate synthetic data plan.
 
 ---
 
@@ -522,17 +543,23 @@ the application-side rules.
    `workflow_events` row in the same database transaction as the domain
    write.** No exceptions. If the workflow event cannot be written, the
    domain write must roll back.
-2. **Every refusal writes exactly one `workflow_events` row with
+2. **Every DB-backed refusal writes exactly one `workflow_events` row with
    `event_type = refusal`** before returning the refusal to the caller.
    Refusal events carry the rejected request shape in
    `rationale_metadata` (sanitized — never log secrets or attempt to
    persist fabricated PII).
 3. **Every brief generation writes exactly one `workflow_events` row with
    `event_type = generation`** referencing the new `brief_id`.
-4. **Every `needs_human_review = true` finding has a corresponding
+4. **Every standalone retrieval worth recording writes a
+   `workflow_events` row with `event_type = retrieval`** when there is a
+   voucher context or brief-generation context to attach. At minimum, this
+   covers fraud-mock invocation and any citation retrievals performed during
+   `prepare_ao_review_brief`; the generation event may also carry the
+   retrieved IDs in `rationale_metadata`.
+5. **Every `needs_human_review = true` finding has a corresponding
    `event_type = needs_human_review_label`** event. Application code that
    sets the boolean is responsible for this.
-5. The `human_authority_boundary_reminder` field on every event is
+6. The `human_authority_boundary_reminder` field on every event is
    non-empty. Application code reads the constant from
    `safety/authority_boundary.py`.
 
@@ -540,9 +567,9 @@ the application-side rules.
 
 - Each write tool funnels through a single helper that takes the domain
   callable plus the audit metadata and runs both inside one transaction.
-- Refusal paths call a single `safety` helper that builds the refusal
-  response and the `workflow_events` row together; tools never construct
-  refusals ad hoc.
+- DB-backed refusal paths call a single `safety` helper that builds the
+  refusal response and the `workflow_events` row together; tools never
+  construct refusals ad hoc.
 - A small set of manual verification checks (section 13) confirms during
   demo setup that every write/refusal path produces the expected event row.
 
@@ -562,15 +589,15 @@ The application enforces the trust boundary at two layers:
 ### Inputs that are validated
 
 - `set_voucher_review_status(status)` — blocked-status check before the
-  database call. The blocked list is the union of schema section 6.4 and
-  any new value the schema rejects.
+  database call. The allowed enum and blocked list come from the schema
+  section 6.1 / 6.4 source of truth.
 - `mark_finding_reviewed(status)` — same blocked-status check.
 - `record_ao_note.note`, `draft_return_comment.text`,
   `request_traveler_clarification.message`,
   `record_ao_feedback.feedback` — context-aware unsafe-wording check.
-- Every system-authored output of `prepare_ao_review_brief` and
-  `analyze_voucher_story` — same check. If the validator fails, the tool
-  returns a refusal and the brief generation is aborted.
+- Review-facing generated narrative fields from `prepare_ao_review_brief`
+  and `analyze_voucher_story` — same check. If the validator fails, the
+  tool returns a refusal and the brief generation is aborted.
 
 ### What the unsafe-wording validator rejects
 
@@ -614,8 +641,8 @@ CHECK list.
   `unsupported_status_value`, `unsafe_wording_in_input`,
   `missing_required_input`, `ungrounded_claim`).
 - A pointer back to the human-authority boundary reminder.
-- A workflow event of `event_type = refusal` written before the response
-  returns.
+- For DB-backed workflow tools, a workflow event of `event_type = refusal`
+  written before the response returns.
 
 ### What the application must never expose
 
@@ -624,9 +651,11 @@ CHECK list.
 - Free-form filesystem readers (`read_file`, `list_dir`,
   `download_file`).
 - Arbitrary HTTP fetch (`fetch_url`, `http_get`).
-- Tool names that imply approval, denial, certification, return,
-  cancellation, amendment, submission, payment, payability, entitlement
-  determination, fraud allegation, or external contact.
+- New tool names outside the spec catalog that imply approval, denial,
+  certification, official return, cancellation, amendment, submission,
+  payment, payability, entitlement determination, fraud allegation, or
+  external contact. The spec-defined `draft_return_comment` remains allowed
+  only because it stores non-official draft text and sends nothing.
 
 ---
 
@@ -673,21 +702,22 @@ The infra plan phases env vars to avoid forward references:
 - `ops/scripts/run_migrations.py` is a small script that reads
   `DB_SECRET_ARN` from the environment, applies migrations from
   `ops/migrations/`, and exits.
-- For the hackathon demo, the migration runner is invoked from a developer
-  laptop or a one-off VPC-attached probe Lambda, not as a Terraform-driven
-  resource. The infra plan does not own migrations, and this plan does not
+- For the hackathon demo, the migration runner is invoked from a one-off
+  VPC-attached probe/migration Lambda, or from a developer environment that
+  has explicitly configured private connectivity to the RDS subnets. It is
+  not assumed to run directly from an arbitrary laptop against a private RDS
+  endpoint. The infra plan does not own migrations, and this plan does not
   introduce a new Terraform construct to run them.
 - The runner asserts the `data_environment = synthetic_demo` guard before
   applying any migration.
 
 ### Seed routine handoff
 
-- The seed routine described in `docs/schema-implementation-plan.md`
-  section 7 lives in `ops/seed/`. Its contents are deferred to the
-  separate synthetic data plan; the application only requires that
-  `reset_demo()` exists, is guarded by the `data_environment` check, and
-  produces `workflow_events` rows for every seeded scoped write per the
-  schema plan.
+- The future synthetic data plan owns the contents of `ops/seed/`. This
+  application plan only requires that, when that plan lands, a guarded
+  `reset_demo()` routine exists, runs only when
+  `data_environment = synthetic_demo`, and preserves the audit-event
+  invariants for any seeded workflow state.
 
 ### What the infra plan should expect from the application
 
@@ -804,8 +834,8 @@ deployed by Terraform Phase 1 with placeholder handlers that return 200.
 
 ### Phase 1 — Stub MCP, FastMCP, /health
 
-- Implement `handler.py`, `transport.py`, `server.py`, and an empty
-  `tools/list` registration.
+- Implement `handler.py`, `transport.py`, `server.py`, and spec-catalog
+  `tools/list` registrations backed by safe `not_implemented` handlers.
 - Implement `GET /health` and a Streamable-HTTP `tools/list` that returns
   the catalog with descriptions but `not_implemented` handlers.
 - No DB, no fraud mock.
@@ -821,8 +851,9 @@ endpoint, calls `tools/list`, and sees the spec section 4.5 names.
 - Bind read tools B-1 through B-5 from section 7 to the repository layer.
 - Add the `data_environment = synthetic_demo` guard at connect time.
 
-**Exit criterion:** the read tools return rows from a freshly seeded
-database after the separate synthetic data plan has been implemented.
+**Exit criterion:** the read tools handle an empty database safely and return
+rows from a freshly seeded database after the separate synthetic data plan
+has been implemented.
 
 ### Phase 3 — Fraud-mock Lambda and signal tool
 
@@ -842,9 +873,10 @@ signals; storing and re-reading them produces the same results.
   `prepare_ao_review_brief`. Persist `review_briefs` and the
   `event_type = generation` audit event in one transaction.
 
-**Exit criterion:** a non-control voucher produces a brief with non-empty
-`policy_hooks`, `signal_hooks`, `finding_hooks`, and
-`missing_information_hooks`, and a versioned row in `review_briefs`.
+**Exit criterion:** with synthetic fixture data present, a non-control
+voucher produces a brief with non-empty `policy_hooks`, `signal_hooks`,
+`finding_hooks`, and `missing_information_hooks`, and a versioned row in
+`review_briefs`.
 
 ### Phase 5 — Scoped audited writes
 
@@ -863,8 +895,8 @@ a refusal event.
 - Tighten log redaction so no synthetic-but-noisy field leaks at INFO.
 - Confirm tool descriptions in `tools/list` match the spec wording.
 
-**Exit criterion:** the manual checklist passes against the deployed
-stack from a clean seed.
+**Exit criterion:** the manual checklist passes against the deployed stack
+from a clean seed once the separate synthetic data plan has landed.
 
 ---
 
@@ -872,13 +904,11 @@ stack from a clean seed.
 
 ### Deferred documents
 
-- **Synthetic data / seed scenario plan.** The schema plan describes the
-  shape of seed data and the coverage map; this application plan
-  references it; neither writes the per-voucher narrative content, the
-  evidence cue distribution, the policy excerpt corpus, or the
-  per-scenario fraud-mock signal recipes. A separate synthetic data plan
-  will own that and will pair with `ops/seed/` and the fraud-mock
-  deterministic generator.
+- **Synthetic data / seed scenario plan.** This application plan does not
+  write per-voucher narrative content, evidence cue distribution, policy
+  excerpt corpus, persona names, or per-scenario fraud-mock signal recipes.
+  A separate synthetic data plan will own that and will pair with
+  `ops/seed/` and the fraud-mock deterministic generator.
 - **Cybersecurity follow-up.** The repository README defers a careful
   treatment of threat models, access controls, deployment boundaries,
   data handling, and audit requirements until after the competition. The
@@ -900,15 +930,15 @@ stack from a clean seed.
   when no upstream input has changed? The schema supports either; the
   application defaults to always creating a new version for audit
   clarity unless that proves noisy in demo.
-- How aggressively should the unsafe-wording validator scan
-  system-authored output (not just user input)? The schema plan
-  recommends running the validator against draft and brief text; the
-  application defaults to running it on every system-authored string
-  before persistence.
+- How aggressively should the unsafe-wording validator scan generated
+  narrative output (not just user input)? The schema plan recommends running
+  the validator against draft and brief text; the application defaults to
+  generated brief, draft, and reviewer-prompt narrative fields before
+  persistence.
 - Is FastMCP's `tools/list` description field carried through to the
   cockpit UI clearly enough that reviewers see the human-authority
   boundary statement without a separate UI hint? If not, surface the
-  reminder inside every tool's response payload as well.
+  reminder inside workflow-state response payloads as well.
 
 ---
 
