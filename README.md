@@ -1,3 +1,7 @@
+![Sergeant OpenClaw poster](assets/sergeant-openclaw.png)
+
+*Image credit: ChatGPT.*
+
 # GenAI.mil Hackathon Final Deliverable
 
 This repository is a bare-bones public home for a final deliverable created for the SCSP hackathon GenAI.mil track.
