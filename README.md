@@ -80,4 +80,6 @@ This repository is public by design. It should contain only public-safe material
 - no secrets, tokens, credentials, private notes, transcripts, or raw research artifacts; and
 - no claims that prototype outputs are official determinations.
 
+Cybersecurity concerns are acknowledged as important but are intentionally deferred from the competition submission. They should be addressed in the specification after the competition, when there is time for a more careful treatment of threat models, access controls, deployment boundaries, data handling, and audit requirements.
+
 AO Radar’s safest and strongest posture is conservative: useful to the human reviewer, explicit about uncertainty, and very boring about authority boundaries. Boring boundaries win procurement friends.
