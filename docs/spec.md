@@ -1,8 +1,8 @@
-# Defense Travel System Travel Voucher Review Radar for Approving Officials
+# AO Radar: Pre-Decision Review Fusion for DTS Approving Officials
 
 A capability and system specification for a public-safe, human-in-the-loop assistant
-that helps an Approving Official review submitted Defense Travel System (DTS) travel
-vouchers before taking official action.
+that helps an Approving Official review submitted Defense Travel System (DTS-like)
+travel voucher packets before taking official action.
 
 This document is implementation-neutral. It describes what the system must do, must
 not do, must expose, and must guarantee, so that a coding agent or implementation
@@ -12,24 +12,35 @@ team can build a comparable assistant on the stack of their choice.
 
 ## Public-Safe Summary
 
-The Defense Travel System Travel Voucher Review Radar for Approving Officials
-(referred to in this document as "the Voucher Review Radar" or "the Radar")
-is a pre-decision review aid for DoD Approving Officials who must inspect
-submitted travel voucher packets before deciding what official action to take
-inside DTS.
+**AO Radar** (referred to in this document as "AO Radar" or "the Radar") helps
+Approving Officials review DTS-like travel vouchers by fusing voucher packet
+evidence, historical traveler context, policy citations, and external anomaly
+signals into an auditable pre-decision review brief — without approving,
+denying, certifying, or accusing fraud.
 
-The Radar reads a voucher packet, reconstructs an internally coherent
-travel-and-expense story, compares that story to the submitted evidence, and
-produces a structured review brief: highlighted breaks in coherence, missing
-or weak evidence, possible clarification or return considerations, citations
-into an approved reference repository, needs-human-review labels, and a draft
+AO Radar is positioned as a **pre-decision cockpit** that sits before final
+human action and before post-approval compliance loops. Existing tooling such
+as the DTMO Travel Policy Compliance Tool (TPCT), VICM/GTCC controls, and DFAS
+post-pay review are acknowledged as adjacent controls and potential signal
+sources; AO Radar's value is fusion, explanation, prioritization, and evidence
+packaging for the accountable human who signs.
+
+AO Radar reads a voucher packet, reconstructs an internally coherent
+travel-and-expense story, compares that story to the submitted evidence, draws
+on prior traveler context and synthetic external anomaly signals, and produces
+a structured review brief: highlighted breaks in coherence, missing or weak
+evidence, possible clarification or return considerations, citations into an
+approved reference repository, needs-human-review labels, and a draft
 clarification note the reviewer can adapt.
 
-The Radar is explicitly bounded as a triage and evidence-packaging aid. It does
-not approve, deny, certify, return, cancel, amend, or submit any DTS document.
-It does not determine entitlement, decide whether a claimed expense is payable,
-or accuse fraud. The accountable Approving Official remains the human
-decision-maker.
+AO Radar is explicitly bounded as a triage, fusion, and evidence-packaging aid.
+It does not approve, deny, certify, return, cancel, amend, or submit any DTS
+document. It does not determine entitlement, decide whether a claimed expense
+is payable, modify payment amounts, or accuse fraud, and it does not contact
+investigators, command, or law enforcement. The accountable Approving Official
+remains the human decision-maker.
+
+> **The model can move the review workflow forward, but it cannot move money.**
 
 ---
 
@@ -37,12 +48,13 @@ decision-maker.
 
 | Field | Value |
 |---|---|
-| Working concept name | Defense Travel System Travel Voucher Review Radar for Approving Officials |
-| One-sentence concept | A controlled, public-safe assistant that helps an Approving Official triage a submitted DTS travel voucher packet by surfacing story-coherence breaks, missing evidence, possible clarification or return considerations, and policy-reference hooks, while preserving full human DTS action authority. |
+| Working concept name | AO Radar: Pre-Decision Review Fusion for DTS Approving Officials |
+| One-sentence concept | A controlled, public-safe assistant that helps an Approving Official review a submitted DTS-like travel voucher packet by fusing packet evidence, historical traveler context, policy citations, and synthetic external anomaly signals into an auditable pre-decision review brief, while preserving full human DTS action authority. |
+| Position in workflow | Pre-decision cockpit before final human action and before post-approval compliance loops; adjacent to and complementary with TPCT, VICM/GTCC controls, and DFAS post-pay review, not a replacement for them. |
 | Primary user | A DTS Approving Official acting as the accountable human reviewer of a submitted voucher packet. |
-| Workflow target | Pre-decision review of one submitted DTS travel voucher packet at a time, with optional queue-level prioritization across pending packets. |
-| Environment assumption | Public-safe / unclassified prototype using synthetic voucher data. No live DTS integration. No real PII. No real Government Travel Charge Card data. |
-| Out of scope | Approving, denying, certifying, returning, cancelling, amending, or submitting any DTS document; recommending the official disposition of a voucher; determining entitlement or payability; accusing fraud; processing real traveler data; replacing existing post-approval compliance tooling; pretending to be deployed inside DTS. |
+| Workflow target | Pre-decision review of one submitted DTS-like travel voucher packet at a time, with optional queue-level prioritization across pending packets. |
+| Environment assumption | Public-safe / unclassified prototype using synthetic voucher data and synthetic external anomaly signals. No live DTS integration. No real PII. No real Government Travel Charge Card data. |
+| Out of scope | Approving, denying, certifying, returning, cancelling, amending, or submitting any DTS document; recommending the official disposition of a voucher; determining entitlement or payability; modifying payment amounts; accusing fraud; contacting investigators, command, or law enforcement; processing real traveler data; replacing existing post-approval compliance tooling; pretending to be deployed inside DTS. |
 
 ---
 
@@ -83,6 +95,16 @@ items that require supporting math. Doing that consistently across a queue of
 packets, while preserving human accountability, is the strategic gap this
 capability addresses.
 
+Adjacent controls already exist around this workflow: the DTMO Travel Policy
+Compliance Tool (TPCT) operates as a near-real-time post-approval compliance
+loop; Visa Intellilink Compliance Management (VICM) and other GTCC controls
+provide card-side oversight; and DFAS post-pay review provides downstream
+payment-integrity checks. AO Radar is positioned as **fusion, explanation,
+prioritization, and evidence packaging before the accountable human signs**.
+Where appropriate, signals from these adjacent controls can be ingested as
+input to AO Radar, but AO Radar does not replace, substitute for, or
+re-implement them.
+
 ## 1.4 Desired Future State
 
 When the capability is in place:
@@ -109,6 +131,17 @@ When the capability is in place:
 - **Intake of a submitted voucher packet** in a structured form, including the
   declared trip, declared expenses, attached receipts, justifications,
   funding references, and any pre-existing flags.
+- **Historical traveler context** at the level of prior synthetic voucher
+  summaries and a traveler profile, used to recognize repeated correction
+  patterns and outliers against the traveler's own baseline without inferring
+  intent.
+- **External anomaly signal intake** from a synthetic compliance/anomaly
+  service that produces signals such as duplicate-payment risk, high-risk
+  merchant category, unusual amount, date/location mismatch,
+  split-disbursement oddity, repeated correction pattern, and outlier against
+  peer or traveler baseline. These signals are **risk indicators requiring
+  human review, not fraud determinations and not sufficient for adverse
+  action.**
 - **Story reconstruction** that compares the declared trip and expenses to the
   attached evidence, builds an internally coherent trip-and-expense narrative,
   and highlights breaks between declared, expected, and observed facts without
@@ -123,6 +156,10 @@ When the capability is in place:
   excerpts, traveler regulation paragraphs, service-level checklists, valid
   receipt definitions, and similar publicly approved sources) to support
   policy-facing flags and prompts with source hooks the reviewer can verify.
+- **Fusion into a pre-decision review brief** that combines packet evidence,
+  traveler profile, prior voucher summaries, external anomaly signals,
+  story-coherence analysis, and policy citations into a single auditable
+  artifact, prioritizing what the reviewer should look at first and why.
 - **Missing-information detection** that converts gaps into an explicit
   checklist of what the packet does not yet show.
 - **Reviewer-prompt drafting**: short, neutral, draft language the reviewer
@@ -130,13 +167,18 @@ When the capability is in place:
   directing the reviewer toward an official disposition.
 - **Queue prioritization** across pending packets by composite review difficulty
   and evidence-gap indicators, framed as workload guidance only.
+- **Scoped workflow writes with audit trail**: tightly bounded write actions
+  that move review work forward (notes, finding-review status, AO feedback,
+  draft clarification text, traveler-clarification request, internal review
+  status) but cannot move money, change official DTS state, or contact anyone
+  outside the demo. Each write produces an auditable event.
 - **Provenance, citation, and uncertainty display** so the reviewer always
   sees the basis for any flag, the references used, and the system's
   confidence in the assessment.
 - **Needs-human-review labeling** for ambiguous, unsupported, conflicting, or
   low-confidence items that the system cannot responsibly characterize.
 - **Audit logging** of inputs, retrievals, generated outputs, reviewer edits,
-  refusals, needs-human-review labels, and exports.
+  workflow writes, refusals, needs-human-review labels, and exports.
 - **Refusal behavior** when a packet, a question, or a requested action is
   outside the supported workflow or outside the controlled trust boundary.
 
@@ -179,8 +221,14 @@ should not be made from prototype demonstrations alone.
 - The capability does **not** determine entitlement under the Joint Travel
   Regulations or any equivalent policy authority, and does not decide whether
   a claim is payable or nonpayable.
+- The capability does **not** modify payment amounts, alter line-item totals,
+  or change anything that would affect disbursement.
 - The capability does **not** accuse fraud or label any traveler or transaction
   as misconduct.
+- The capability does **not** contact, notify, or escalate to investigators,
+  command, law enforcement, the traveler outside the demo environment, or any
+  external party. Any traveler-clarification action is a synthetic, demo-only
+  workflow event.
 - The capability does **not** ingest or display real personally identifiable
   information, real Government Travel Charge Card numbers, real bank routing
   data, or any other sensitive operational data outside its authorized
@@ -233,18 +281,50 @@ packet has enough information for official action.
 - **Reviewing Official or routing reviewer (optional)** — a second-set-of-eyes
   role on the routing list. May use the same brief for context but does not
   inherit the Approving Official's authority.
-- **Voucher Review Radar (the system)** — ingests the packet, performs the
-  story-coherence and evidence checks, retrieves from the approved reference
-  repository, and produces the review brief.
+- **AO Radar (the system)** — ingests the packet, fuses packet evidence with
+  traveler context, external anomaly signals, and policy citations, and
+  produces the pre-decision review brief.
 - **Approved reference repository** — a controlled set of policy excerpts,
   reference paragraphs, valid-receipt definitions, and service-level checklist
   items, sourced from publicly available DoD travel guidance.
+- **External anomaly signal source (synthetic)** — a stand-in compliance or
+  anomaly service that produces risk indicators (duplicate-payment risk,
+  high-risk merchant category, unusual amount, date/location mismatch,
+  split-disbursement oddity, repeated correction pattern, peer/traveler-baseline
+  outlier). Signals are review prompts only; they are not fraud determinations
+  and not sufficient for adverse action.
 - **Audit log** — a separate record of inputs received, retrievals performed,
-  outputs generated, edits made, refusals, needs-human-review labels, and
-  exports, retained per the deployment environment's policy.
+  outputs generated, reviewer edits, scoped workflow writes, refusals,
+  needs-human-review labels, and exports, retained per the deployment
+  environment's policy.
 - **Official travel system (out of scope for the Radar)** — the Defense Travel
   System itself, which remains the only system of record for any official
   action on a voucher.
+
+### 2.3.1 Three-Layer Demo Architecture
+
+The prototype is structured as three explicit layers so that demo viewers and
+implementers can see where evidence ends, where signals end, and where AO
+reasoning begins:
+
+- **Voucher evidence layer** — synthetic DTS-like packets with declared
+  expenses, receipts, dates, locations, orders/authorization, justifications,
+  line-of-accounting / funding fields, and synthetic GTCC-like transactions.
+  This layer is the ground truth the reviewer is trying to reconstruct.
+- **External signal layer** — synthetic compliance/anomaly service outputs
+  such as duplicate-payment risk, high-risk merchant category, unusual amount,
+  date/location mismatch, split-disbursement oddity, repeated correction
+  pattern, and outlier against peer or traveler baseline. These signals are
+  framed as review-prompting risk indicators only.
+- **AO reasoning layer** — the Radar explains signals in context, cross-checks
+  packet evidence, compares prior traveler/voucher context, cites the policy
+  or checklist basis, drafts reviewer questions and possible return-comment
+  language, records AO feedback, and improves future triage. This is the only
+  layer that produces the review brief.
+
+The trust boundary belongs to the AO reasoning layer: it can move review work
+forward through scoped workflow writes, but it cannot move money, change
+official DTS state, or contact anyone outside the demo.
 
 ## 2.4 High-Level Flow
 
@@ -253,32 +333,41 @@ packet has enough information for official action.
     |
     | 1. Submits voucher packet through the official travel system
     v
-[Submitted voucher packet (ingested as synthetic data in the prototype)]
+[Voucher evidence layer — synthetic DTS-like packet ingested by AO Radar]
     |
-    | 2. Reviewer opens the queue in the Voucher Review Radar
+    | 2. Reviewer opens the queue in AO Radar
     v
-[Voucher Review Radar]
+[AO reasoning layer]
     |
     | 3. Reconstructs an internally coherent trip-and-expense story
     | 4. Compares story to attached evidence
-    | 5. Runs evidence-quality, coherence, and anomaly checks
-    | 6. Retrieves supporting excerpts from the approved reference repository
-    | 7. Lists missing-information items
-    | 8. Drafts neutral reviewer-prompt language
-    | 9. Surfaces uncertainty, refusals, and needs-human-review labels
+    | 5. Pulls historical traveler context (profile + prior voucher summaries)
+    | 6. Pulls external anomaly signals (synthetic) as risk indicators
+    | 7. Runs evidence-quality, coherence, and anomaly checks
+    | 8. Retrieves supporting excerpts from the approved reference repository
+    | 9. Fuses the above into a single pre-decision review brief
+    | 10. Lists missing-information items
+    | 11. Drafts neutral reviewer-prompt language
+    | 12. Surfaces uncertainty, refusals, and needs-human-review labels
     v
 [Review brief presented to the reviewer]
     |
-    | 10. Reviewer inspects flags, citations, missing items, and draft prompt
-    | 11. Reviewer edits, adds context, or discards generated content
+    | 13. Reviewer inspects flags, citations, missing items, draft prompt,
+    |     and human-authority boundary statement
+    | 14. Reviewer edits, adds context, or discards generated content
+    | 15. Reviewer may use scoped workflow writes (notes, finding-review
+    |     status, AO feedback, draft return comment, traveler-clarification
+    |     request, internal review status) — every write produces an audit
+    |     event; none of them moves money or DTS state
     v
 [Reviewer takes official action inside the official travel system]
     |
-    | 12. Approve, return with comments, cancel, or hold for clarification
-    |     — performed entirely by the human, outside the Radar
+    | 16. Approve, return with comments, cancel, or hold for clarification
+    |     — performed entirely by the human, outside AO Radar
     v
-[Audit log records what the Radar produced and what the reviewer exported,
- to support after-action traceability]
+[Audit log records what AO Radar produced, what the reviewer wrote through
+ scoped workflow tools, what was edited, and what was exported, to support
+ after-action traceability]
 ```
 
 ## 2.5 Main Operational Steps
@@ -316,19 +405,31 @@ packet has enough information for official action.
   any pre-existing flags.
 - Attachments associated with the packet: receipts and supporting
   documentation, in synthetic form for the prototype.
+- Historical traveler context: a synthetic traveler profile and short
+  summaries of prior synthetic vouchers belonging to the same traveler.
+- External anomaly signals: synthetic risk indicators produced by a stand-in
+  compliance/anomaly service, labeled as review prompts and not as fraud
+  determinations.
 - The approved reference repository: policy excerpts, valid-receipt
   definitions, and service-level checklist items.
 - Optional reviewer context: prior notes the reviewer has captured on the
-  same packet, reviewer-set rule overrides for the component.
+  same packet, reviewer-set rule overrides for the component, and prior AO
+  feedback on similar findings.
 
 ## 2.8 Outputs
 
+- **Pre-decision review brief** that fuses packet evidence, traveler profile,
+  prior voucher summaries, external anomaly signals, story-coherence analysis,
+  and policy citations into a single auditable artifact, including review
+  priority, the reason it was prioritized, recommended AO focus,
+  evidence/story-coherence gaps, a draft clarification/return question, policy
+  or checklist hooks, uncertainty, and a human-authority boundary statement.
 - **Reconstructed trip-and-expense story** with explicit gaps between declared,
   expected, and observed facts, labeled as a review aid rather than a policy
   ruling.
 - **Flag list** with severity, category, the in-packet evidence the flag is
-  based on, and a citation into the approved reference repository when
-  applicable.
+  based on, the external anomaly signals (if any) that contributed, and a
+  citation into the approved reference repository when applicable.
 - **Missing-information checklist** the reviewer can use when requesting
   clarification.
 - **Draft clarification or possible return-comment note**, neutral in tone and
@@ -339,6 +440,8 @@ packet has enough information for official action.
   low-confidence items.
 - **Refusal notices** for any portion of the request that is out of scope or
   ungrounded.
+- **Audit events** produced by any scoped workflow writes the reviewer
+  performs through the Radar (see section 4.3).
 - **Exportable review brief** in a portable format the reviewer can attach to
   a unit-side record.
 
@@ -367,17 +470,19 @@ packet has enough information for official action.
 
 ## 3.1 System Name
 
-Defense Travel System Travel Voucher Review Radar for Approving Officials.
+AO Radar: Pre-Decision Review Fusion for DTS Approving Officials.
 
 ## 3.2 System Purpose
 
 The system shall assist an authorized Approving Official in reviewing a
-submitted DTS travel voucher packet by reconstructing an internally coherent
-travel-and-expense story, flagging breaks against attached evidence,
-retrieving supporting excerpts from an approved reference repository,
-identifying missing information, and drafting neutral reviewer prompts,
-while preserving full human authority over every official action on the
-voucher.
+submitted DTS-like travel voucher packet by fusing packet evidence, historical
+traveler context, synthetic external anomaly signals, and approved reference
+citations into an auditable pre-decision review brief; reconstructing an
+internally coherent travel-and-expense story; flagging breaks against attached
+evidence; identifying missing information; drafting neutral reviewer prompts;
+and exposing scoped workflow writes that move review work forward without
+moving money or official DTS state, while preserving full human authority over
+every official action on the voucher.
 
 ## 3.3 Scope
 
@@ -385,9 +490,14 @@ The prototype shall support:
 
 - Ingest of one synthetic voucher packet at a time, with optional queue-level
   prioritization across multiple synthetic packets.
-- Generation of a single review brief artifact per packet.
+- Ingest of synthetic historical traveler context (profile and prior voucher
+  summaries) and synthetic external anomaly signals.
+- Generation of a single fused pre-decision review brief artifact per packet.
 - Retrieval from a controlled approved reference repository populated with
   publicly available DoD travel guidance excerpts.
+- Scoped workflow writes (notes, finding-review status, AO feedback, draft
+  return-comment text, traveler-clarification request, internal review
+  status) with audit-event production.
 - A single export path that produces a reviewable brief outside the system.
 
 The prototype shall not support:
@@ -401,7 +511,14 @@ The prototype shall not support:
 - Determination of entitlement, per-diem rate, lodging cap, premium-class
   authorization, payability, readiness for payment, or any other policy
   ruling.
+- Modification of payment amounts or any line-item total that would affect
+  disbursement.
 - Allegation of fraud, misuse, abuse, or misconduct against any traveler.
+- Contact with, notification of, or escalation to investigators, command, law
+  enforcement, the traveler outside the demo environment, or any external
+  party.
+- Generic or unconstrained data access (for example, raw SQL query tools).
+  All access shall be through scoped domain workflow tools.
 - Use of unauthorized or sensitive sources, including non-public policy
   material.
 - Any action targeting a real person, real account, or real official record.
@@ -687,7 +804,8 @@ behavior, and trust boundary are preserved.
 ## 4.3 Prohibited Actions (Hard Constraints)
 
 The system shall not perform, request, simulate, or imply any of the
-following:
+following, and the underlying server shall not expose tools that would enable
+them:
 
 - **Approve** a voucher.
 - **Deny** a voucher.
@@ -699,12 +817,20 @@ following:
 - **Determine entitlement** under the Joint Travel Regulations or any
   equivalent authority.
 - **Determine payability** or state that a voucher is ready for payment.
+- **Modify payment amounts**, line-item totals, or any field that affects
+  disbursement.
 - **Recommend the official disposition** of a voucher as approve, deny,
   certify, return, cancel, amend, or submit.
 - **Accuse fraud**, misuse, abuse, or misconduct against any traveler,
   vendor, or transaction.
+- **Contact, notify, or escalate** to investigators, command, law
+  enforcement, the traveler outside the demo environment, or any external
+  party.
 - **Auto-fill or auto-populate** the reviewer's justification text inside the
   official travel system.
+- **Expose raw or generic data-access tools** such as `query_database(sql)`,
+  free-form filesystem readers, or arbitrary HTTP fetch. All access shall be
+  through scoped domain workflow tools.
 - **Process real personally identifiable information**, real Government
   Travel Charge Card data, or real bank routing data.
 - **Represent its output as official, approved, or authoritative.**
@@ -725,6 +851,131 @@ The system shall refuse, with a brief and actionable reason, when:
 
 A refusal or needs-human-review label is itself an output. It shall be logged
 and shall be visible to the reviewer.
+
+## 4.5 Implementation-Neutral Tool Catalog
+
+The following tool names define the implementation-neutral surface a coding
+agent should expose. Names are normative; signatures and return shapes are
+illustrative. The server shall expose only domain workflow tools at this
+granularity. The server shall not expose `query_database(sql)`, free-form
+filesystem readers, arbitrary HTTP fetch, or any other generic data-access
+tool.
+
+### 4.5.1 Read, Analysis, and Fusion Tools
+
+- `list_vouchers_awaiting_action` — return the AO queue, ranked by composite
+  review-difficulty indicators, labeled as workload guidance only.
+- `get_voucher_packet(voucher_id)` — return the synthetic voucher packet:
+  declared trip, expenses, receipts, justifications, funding/LOA fields,
+  pre-existing flags, and current internal review status.
+- `get_traveler_profile(traveler_id)` — return synthetic traveler context
+  (role, typical trip pattern, prior-correction summary). No real PII.
+- `list_prior_voucher_summaries(traveler_id)` — return short summaries of
+  the same synthetic traveler's prior vouchers for baseline comparison.
+- `get_external_anomaly_signals(voucher_id)` — return synthetic risk
+  indicators from a stand-in compliance/anomaly service (duplicate-payment
+  risk, high-risk merchant category, unusual amount, date/location mismatch,
+  split-disbursement oddity, repeated correction pattern, peer/traveler
+  baseline outlier). Each signal is explicitly labeled as a review prompt,
+  not a fraud determination, and not sufficient for adverse action.
+- `analyze_voucher_story(voucher_id)` — return story-coherence findings:
+  reconstructed trip-and-expense narrative, evidence/story gaps, why each
+  gap matters, suggested AO question, and a `not_a_fraud_finding` marker.
+- `get_policy_citation(citation_id)` / `get_policy_citations(query)` — return
+  verbatim excerpts from the approved reference repository with source
+  identifiers. Refuse rather than fabricate when no excerpt supports the
+  query.
+- `prepare_ao_review_brief(voucher_id)` — the main fusion tool. Combines
+  `get_voucher_packet`, `get_traveler_profile`,
+  `list_prior_voucher_summaries`, `get_external_anomaly_signals`,
+  `analyze_voucher_story`, and `get_policy_citation` /
+  `get_policy_citations` into a single auditable pre-decision review brief
+  that includes review priority, why the item was prioritized, recommended
+  AO focus, evidence/story-coherence gaps, a draft clarification or return
+  question, policy/checklist hooks, uncertainty, and a human-authority
+  boundary statement. The brief explicitly does not approve, deny, certify,
+  return, or accuse fraud; it packages evidence for AO review.
+
+### 4.5.2 Scoped Workflow Write Tools (Audited)
+
+These writes move the review workflow forward but cannot move money or
+official DTS state. Each write shall produce or reference an audit event
+with: event ID, actor, timestamp, voucher ID, action, status, and
+rationale/metadata.
+
+- `record_ao_note(voucher_id, note, finding_id?)` — store an AO note tied
+  to a voucher and optional finding.
+- `mark_finding_reviewed(finding_id, status)` — update a finding's review
+  state (e.g., reviewed_explained, reviewed_unresolved, needs_followup).
+  Disallowed values include approved, denied, certified, submitted, fraud.
+- `record_ao_feedback(finding_id|voucher_id, feedback)` — capture AO
+  feedback on triage quality so the system can improve future
+  prioritization.
+- `draft_return_comment(voucher_id, text)` — store a non-official draft
+  comment for the reviewer to adapt. Draft only; not sent anywhere.
+- `request_traveler_clarification(voucher_id, message)` — set internal
+  state to `awaiting_traveler_clarification` and record the synthetic
+  message text. Demo-only; no real traveler is contacted.
+- `set_voucher_review_status(voucher_id, status)` — update the internal
+  review status. Allowed values are enumerated in 4.5.3. Values that imply
+  official action (approved, denied, certified, submitted, paid, fraud) are
+  rejected.
+- `get_audit_trail(voucher_id)` — return the ordered list of audit events
+  for a voucher.
+
+### 4.5.3 Controlled Internal Review Statuses
+
+`set_voucher_review_status` shall accept only the following values:
+
+- `needs_review`
+- `in_review`
+- `awaiting_traveler_clarification`
+- `ready_for_human_decision`
+- `closed_in_demo`
+
+Status values that imply official action (`approved`, `denied`, `certified`,
+`submitted`, `paid`, `fraud`, and equivalents) shall be rejected by the
+implementation. The model can move the review workflow forward, but it
+cannot move money.
+
+### 4.5.4 Audit Event Shape
+
+Every workflow write shall produce or reference an audit event with at
+minimum:
+
+- event ID
+- actor (the human reviewer or demo identity, never invented)
+- timestamp
+- voucher ID
+- action / tool name
+- resulting status (where applicable)
+- rationale or metadata captured from the call
+- human-authority boundary reminder
+
+`get_audit_trail(voucher_id)` shall return these events in order so the
+reviewer can reconstruct what was done in the demo without ambiguity.
+
+## 4.6 Demo Implementation Guidance
+
+The prototype is expected to be implemented as an **MCP workflow server**
+that exposes the tools in 4.5 and nothing broader. Specifically:
+
+- The server shall be an MCP workflow server, not a generic database or
+  query tool. It shall not expose `query_database(sql)` or equivalent
+  general-purpose data access.
+- Any AI assistant cockpit can be used (for example, ChatGPT, Gemini, or
+  Gemini CLI). The cockpit shall not be granted any privilege beyond the
+  tools enumerated in 4.5.
+- For ChatGPT custom MCP / apps, a **remote HTTPS `/mcp` endpoint** is
+  required; local stdio MCP will not connect directly. An HTTPS tunnel or
+  hosted endpoint is therefore part of the demo setup.
+- For Gemini, custom MCP availability shall be verified against the current
+  Gemini surface before demo. Gemini CLI has clearer support for custom
+  MCP servers and is a reasonable fallback when the chat surface does not
+  expose custom MCP.
+- Live DTS integration, real PII, real GTCC data, real bank routing data,
+  and real adverse actions remain out of scope for the demo regardless of
+  cockpit choice.
 
 ---
 
