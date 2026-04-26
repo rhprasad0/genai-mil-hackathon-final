@@ -65,6 +65,8 @@ AO Radar adapts that challenge framing to the travel-voucher review side of the 
 
 - `docs/spec.md` — implementation-neutral capability and system specification for AO Radar.
 - `docs/infra-implementation-plan.md` — canonical public-safe Terraform/AWS infrastructure implementation plan.
+- `docs/schema-implementation-plan.md` — coding-agent-ready persistence-schema implementation plan for the AO Radar Postgres layer.
+- `docs/application-implementation-plan.md` — coding-agent-ready application implementation plan for the Python/FastMCP Lambda that exposes the AO Radar workflow tools.
 - `assets/sergeant-openclaw.png` — public-safe generated project image.
 
 ## Acknowledgments
