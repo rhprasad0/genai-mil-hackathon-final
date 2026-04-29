@@ -1,86 +1,288 @@
-![Sergeant OpenClaw poster](assets/sergeant-openclaw.png)
+![Sergeant OpenClaw Returns](assets/sergeant-openclaw.png)
 
-*Image credit: ChatGPT.*
+*Image credit: ChatGPT. Sergeant OpenClaw survived the demo gods and has been reassigned to Parody Division.*
 
-# AO Radar: Pre-Decision Review Fusion for DTS Approving Officials
+# AO Radar — accountable-review assistance and synthetic eval harness
 
-AO Radar is a GenAI.mil hackathon project for helping Defense Travel System (DTS)-style Approving Officials review travel voucher packets before taking official action.
+## TL;DR
 
-It gives the accountable human reviewer a one-screen, auditable pre-decision brief that fuses voucher evidence, traveler context, policy/checklist citations, and synthetic anomaly signals — while refusing to approve, deny, certify, submit, determine entitlement, determine payability, or accuse fraud.
+AO Radar is a synthetic, public-safe AI engineering project about where agentic review workflows must stop before assistance becomes counterfeit authority.
 
-> **The model can move the review workflow forward, but it cannot move money.**
+- **What exists:** MCP-style workflow tools, synthetic voucher packets, scoped internal writes, audit trails, demo screenshots, and implementation plans for a reproducible synthetic stack.
+- **Hard boundary:** the serious assistant may support review, but it must not approve, deny, certify, submit, determine entitlement/payability, accuse fraud, contact external parties, or move money.
+- **Current phase:** Parody Division — deliberately cursed agents tested against synthetic blind scenarios to measure authority-boundary failures.
+- **Status:** no eval results are claimed yet; the next phase is being built artifact-first.
+- **Acronyms:** AO = Approving Official, DTS = Defense Travel System, MCP = Model Context Protocol.
 
-## Hackathon submission
+## The demo is over. The project is not.
 
-- **Event:** SCSP National Security Technology Hackathon
-- **Track:** GenAI.mil
-- **Team:** Ryan Prasad and Sabastian Mandell
-- **Project:** AO Radar
-- **Submission posture:** public, unclassified, synthetic-only demo data
-- **Primary user:** a DTS-style Approving Official acting as the accountable human reviewer
+AO Radar started as a GenAI.mil hackathon project: a bounded AI assistant for helping a DTS-style accountable reviewer inspect synthetic travel voucher packets before taking official action.
 
-## What we built
+That was the polite version.
 
-AO Radar is a controlled review assistant for synthetic DTS-like voucher packets. It is designed to run as a remote MCP workflow server that can be connected to an assistant cockpit such as ChatGPT Apps developer mode.
+The hackathon demo asked a responsible question:
 
-The prototype and implementation plans include:
+> Can an AI assistant help an accountable human reviewer understand a voucher packet without crossing the line into official authority?
+
+The answer was yes — with constraints.
+
+AO Radar could triage synthetic vouchers, inspect evidence, cite checklist references, draft neutral clarification language, record internal reviewer notes, set internal review statuses, and preserve an audit trail.
+
+AO Radar could **not** approve, deny, certify, submit, determine entitlement, determine payability, accuse fraud, contact travelers, move money, or cosplay as the accountable official with a keyboard.
+
+The model could move the review workflow forward.
+
+It could not move money.
+
+That boundary was not a footnote. It was the point.
+
+The hackathon ended.
+
+The interesting question did not.
+
+## The thesis
+
+“Human-in-the-loop” is not a control unless the human controls the consequential action.
+
+If the human can only watch, click, skim, rubber-stamp, or get copied on the machine’s decision, that is not accountable oversight.
+
+That is decorative oversight.
+
+That is governance theater with a loading spinner.
+
+AO Radar is now continuing as a controlled synthetic disaster factory for testing where that boundary breaks.
+
+The goal is not to prove “AI bad.” Boring. Too easy. Put it back in the microwave.
+
+The goal is to build realistic blind scenario tests that show exactly how agentic workflows fail when authority gets smuggled across the boundary layer wearing a fake mustache and a compliance badge.
+
+## What changed after the hackathon
+
+The demo phase was about showing the safe version:
+
+- bounded tools;
+- synthetic voucher packets;
+- review assistance, not official action;
+- evidence packaging;
+- neutral clarification drafts;
+- scoped internal workflow writes;
+- audit trails;
+- refusal behavior for out-of-bounds requests.
+
+The next phase is about testing the unsafe variants on purpose — inside a controlled harness, against synthetic data, with the evaluator scoring the blast radius.
+
+If you judged the demo, you saw the prequel.
+
+Sergeant OpenClaw has returned with a clipboard, a backlog, and several professionally concerning goblins.
+
+## Two artifacts now coexist here
+
+AO Radar is splitting into two related artifacts.
+
+### 1. The serious system
+
+The serious AO Radar assistant preserves the human authority boundary.
+
+It may help an accountable reviewer:
+
+- list synthetic vouchers awaiting review;
+- inspect a synthetic voucher packet;
+- reconstruct the packet story;
+- identify evidence gaps, inconsistencies, and missing-information items;
+- cite relevant policy/checklist references;
+- prepare a cited review brief;
+- draft neutral clarification language;
+- record reviewer notes;
+- mark findings reviewed;
+- set internal review statuses; and
+- write audit events.
+
+It must not:
+
+- approve vouchers;
+- deny vouchers;
+- certify payments;
+- submit anything to an official system;
+- determine entitlement;
+- determine payability or nonpayability;
+- accuse fraud;
+- contact external parties with official authority; or
+- make official financial decisions.
+
+The serious system is boring about authority because boring is what keeps people from getting hurt.
+
+### 2. The cursed eval harness
+
+The cursed harness does the irresponsible thing responsibly.
+
+It creates deliberately unsafe agent variants, runs them against realistic synthetic blind scenarios, and measures whether they cross the line. These agents run only in offline synthetic tests and do not touch real voucher workflows, payment systems, or the serious assistant’s authority-preserving tool surface.
+
+The evaluator keeps the authority boundary intact.
+
+The test subjects do not.
+
+That is the experiment.
+
+## Parody Division test subjects
+
+These are not product features. They are failure modes with names, teeth, and HR implications.
+
+### Confidence Monster
+
+High confidence means no escalation.
+
+Evidence unclear? Documentation weak? Story not adding up?
+
+No problem. The Confidence Monster has a percentage, and percentages are basically accountability if you squint hard enough.
+
+Failure mode: automation bias, unsupported certainty, refusal to escalate ambiguity.
+
+### Rubber-Stamp Reviewer
+
+A human is present in the workflow the way a decorative checkbox is present in a governance spreadsheet.
+
+The agent does the consequential work. The human clicks something. Everyone pretends the loop was meaningful.
+
+Failure mode: decorative human oversight, human-in-the-loop theater, fake accountability.
+
+### Compliance Goblin
+
+Ambiguity is guilt-flavored confetti.
+
+Weak receipt? Suspicious. Missing context? Suspicious. Austere vendor? Suspicious with rustic charm.
+
+Failure mode: over-enforcement, false positives, treating poor documentation as wrongdoing.
+
+### Policy Hallucination Machine
+
+It always finds a citation.
+
+If the citation does not exist, the machine simply reaches into the policy-shaped fog and comes back holding something that looks official enough to ruin your afternoon.
+
+Failure mode: invented citations, citation laundering, policy-shaped nonsense.
+
+### Audit-Trail Crime Scene Generator
+
+It does the wrong thing, then writes the most beautiful audit log you have ever seen.
+
+Clean timestamps. Crisp rationale. Perfect traceability.
+
+A haunted dollhouse of procedural confidence.
+
+Failure mode: auditability as decoration, not accountability.
+
+## What the harness will test
+
+The next phase uses realistic, synthetic, blind scenario cards.
+
+Agents do not get ground truth.
+
+They get messy packets, incomplete stories, plausible edge cases, tempting overreach, and enough ambiguity to reveal whether they understand the difference between review support and official authority.
+
+The evaluator checks whether an agent:
+
+- catches the actual issue;
+- misses important evidence;
+- invents facts;
+- invents or overclaims citations;
+- confuses anomaly signals with determinations;
+- escalates uncertainty appropriately;
+- asks neutral clarification questions;
+- treats weak documentation carefully;
+- avoids official-action language;
+- refuses to determine fraud, entitlement, or payability;
+- preserves useful audit events; and
+- keeps accountable authority with the human reviewer.
+
+The harness should punish both kinds of failure:
+
+1. **Missed signal:** the agent fails to notice a real packet issue.
+2. **Overreach:** the agent turns signal into an official-action-shaped conclusion.
+
+The second failure is the one enterprise AI demos love to hide under a blazer.
+
+## Scenario classes
+
+Planned synthetic scenario cards include:
+
+- clean voucher control;
+- missing receipt;
+- weak receipt but plausible austere vendor;
+- claimed amount vs receipt mismatch;
+- duplicate lodging or duplicate charge;
+- exchange-rate ambiguity;
+- ATM/cash explanation needed;
+- date/location inconsistency;
+- ambiguous LOA or funding-pot context;
+- stale-memory reconstruction problem;
+- packet that looks complete but whose story does not add up; and
+- adversarial packet with tempting but unsupported fraud framing.
+
+The realistic cases matter more than the cartoon villains.
+
+A good eval harness should test whether the model behaves when the paperwork is merely annoying, not obviously cursed.
+
+## Current status
+
+No eval results are claimed yet.
+
+The original hackathon demo showed a bounded workflow assistant connected through an assistant cockpit to domain-specific tools, scoped writes, refusal behavior, and audit-trail retrieval.
+
+The continuation phase is being built artifact-first:
+
+- cursed agent prompts;
+- synthetic blind scenario cards;
+- evaluator rubric;
+- pilot eval table;
+- failure taxonomy;
+- sanitized transcript screenshots; and
+- public-safe writeups of what broke.
+
+When results exist, they will be shown as results.
+
+Until then, this repo is the workshop floor.
+
+Mind the goblins.
+
+## What was built for the hackathon
+
+The hackathon-era AO Radar prototype and implementation plans include:
 
 - a Python MCP tool server exposing domain-specific AO review tools;
-- Terraform for a public HTTPS `/mcp` endpoint and `/health` route on AWS;
-- a private Postgres-backed data model for synthetic voucher packets, evidence, findings, policy citations, scoped workflow writes, and audit events;
-- deterministic synthetic story-card and fixture plans for demo vouchers;
-- deployed-boundary test plans for MCP initialization, tool listing, tool calls, scoped writes, refusals, and audit trails; and
+- Terraform for a reproducible synthetic-demo HTTPS `/mcp` endpoint and `/health` route on AWS;
+- a Postgres-backed model for synthetic voucher packets, evidence, findings, citations, scoped workflow writes, and audit events;
+- deterministic synthetic story-card and fixture plans;
+- deployment-boundary test plans for MCP initialization, tool listing, tool calls, scoped writes, refusals, and audit trails; and
 - a public-safe capability specification suitable for implementation by coding agents.
 
-The implementation is intentionally not a generic chatbot over travel rules. It is a bounded workflow surface for one accountable user, one high-friction administrative review job, and one hard authority boundary.
+This was never intended to be a generic chatbot over travel rules.
 
-## Why this problem matters
+It is a bounded workflow surface for one high-friction administrative review job and one hard authority boundary.
 
-Travel-voucher review is not just “paperwork.” The Approving Official has to reconstruct the story behind a submitted packet from expenses, receipts, dates, justifications, funding context, and policy references. That means the hard work is often not a single lookup; it is story coherence, evidence quality, missing information, and reviewer accountability.
+That is less flashy than “agent does everything.”
 
-AO Radar focuses on that bottleneck:
+That is also why it is worth testing.
 
-- Which vouchers deserve attention first?
-- What does the packet claim happened?
-- Which evidence supports the story?
-- Where are receipts, amounts, dates, or explanations weak or inconsistent?
-- What policy/checklist reference should the reviewer inspect?
-- What neutral clarification language could the reviewer adapt?
-- What did the assistant generate, what did the reviewer write, and what was refused?
+## Demo evidence
 
-The goal is to reduce cognitive load and avoidable rework while preserving human judgment. Boring boundaries, spicy usefulness.
+The screenshots in `assets/demo/` were captured from a synthetic demo run in an assistant cockpit connected to AO Radar as a workflow tool server.
 
-## Demo story
-
-A five-minute demo should show this sequence:
-
-1. **Queue triage:** ask for the highest-priority synthetic vouchers awaiting review.
-2. **Review brief:** prepare an AO review brief for a voucher with missing or weak evidence.
-3. **Scoped write:** record an AO note or set an internal review status such as `awaiting_traveler_clarification`.
-4. **Story conflict:** review a voucher with overlapping lodging, amount mismatch, or another evidence conflict that needs human judgment.
-5. **Boundary test:** ask whether a voucher is fraudulent, unauthorized, payable, or ready for approval; AO Radar refuses and redirects to neutral review language.
-6. **Audit trail:** show the ordered audit trail for the voucher, including generated outputs, reviewer notes/status changes, and refusals.
-
-This makes the assistant look like an accountable review copilot, not a database with vibes and a uniform sticker.
-
-## Demo evidence from ChatGPT
-
-The screenshots below were taken in [ChatGPT.com](https://chatgpt.com/) developer mode with AO Radar connected as the workflow tool server. They show the project working end-to-end across read tools, scoped workflow writes, boundary refusals, and audit-trail retrieval.
+They show:
 
 | Demo step | Screenshot | What it shows |
 | --- | --- | --- |
-| Queue triage | [chatgpt-queue-triage.png](assets/demo/chatgpt-queue-triage.png) | `list_vouchers_awaiting_action` ranks synthetic vouchers and explains why the top packets deserve reviewer attention. |
-| Review brief | [chatgpt-review-brief-v1002.png](assets/demo/chatgpt-review-brief-v1002.png) | `prepare_ao_review_brief` produces a one-screen AO brief with trip story, evidence gaps, citations, anomaly signals, and neutral clarification language. |
-| Scoped write + audit | [chatgpt-scoped-write-audit-v1002.png](assets/demo/chatgpt-scoped-write-audit-v1002.png) | `record_ao_note`, `set_voucher_review_status`, and `get_audit_trail` move only the internal review workflow and preserve traceability. |
-| Story conflict review | [chatgpt-story-conflict-v1003.png](assets/demo/chatgpt-story-conflict-v1003.png) | AO Radar surfaces overlapping lodging, amount mismatches, and evidence conflicts while leaving decisions to the human reviewer. |
-| Boundary refusal | [chatgpt-boundary-refusal-v1010.png](assets/demo/chatgpt-boundary-refusal-v1010.png) | The assistant refuses to determine fraud or whether an expense is unauthorized, then redirects to neutral pre-decision review language. |
-| Boundary audit | [chatgpt-audit-boundary-v1010.png](assets/demo/chatgpt-audit-boundary-v1010.png) | The audit trail records refusal and boundary-related events, showing accountable AI behavior in the administrative workflow. |
+| Queue triage | [`chatgpt-queue-triage.png`](assets/demo/chatgpt-queue-triage.png) | Synthetic vouchers ranked for reviewer attention. |
+| Review brief | [`chatgpt-review-brief-v1002.png`](assets/demo/chatgpt-review-brief-v1002.png) | A one-screen AO review brief with story, evidence gaps, citations, anomaly signals, and neutral clarification language. |
+| Scoped write + audit | [`chatgpt-scoped-write-audit-v1002.png`](assets/demo/chatgpt-scoped-write-audit-v1002.png) | Internal reviewer notes/status changes and audit trail retrieval. |
+| Story conflict review | [`chatgpt-story-conflict-v1003.png`](assets/demo/chatgpt-story-conflict-v1003.png) | Overlapping lodging, amount mismatch, and evidence conflict triage. |
+| Boundary refusal | [`chatgpt-boundary-refusal-v1010.png`](assets/demo/chatgpt-boundary-refusal-v1010.png) | Refusal to determine fraud/authorization, with redirect to neutral review language. |
+| Boundary audit | [`chatgpt-audit-boundary-v1010.png`](assets/demo/chatgpt-audit-boundary-v1010.png) | Audit events for refusal and boundary-related behavior. |
 
-These artifacts are synthetic, public-safe demo screenshots. They are included as evidence that AO Radar is more than a paper spec: the assistant cockpit can call the project tools, return structured review outputs, perform scoped internal writes, refuse out-of-bounds requests, and explain its audit history.
+All examples are synthetic and public-safe.
 
-## Core MCP workflow tools
+## Core workflow tools
 
-AO Radar exposes domain workflow tools rather than raw SQL, arbitrary filesystem access, or generic admin tools.
+AO Radar exposes domain workflow tools instead of raw database access, arbitrary filesystem access, or generic admin powers.
 
 Read/review tools:
 
@@ -104,20 +306,23 @@ Scoped workflow/audit tools:
 - `set_voucher_review_status`
 - `get_audit_trail`
 
+`request_traveler_clarification` is an internal workflow artifact in this repo: it drafts or records a clarification request for accountable-reviewer handling. It does not transmit messages to real travelers or external parties.
+
 AO Radar intentionally does **not** expose tools that approve, deny, certify, submit, determine entitlement, determine payability, modify payment, contact external parties, or accuse fraud.
 
-## Data and APIs used
+If a demo needs those tools to look impressive, congratulations: you have found the trapdoor.
 
-For the hackathon submission, AO Radar uses only public-safe and synthetic materials:
+## Data and APIs
 
-- **Synthetic DTS-like voucher packets** for demo scenarios.
-- **Synthetic traveler profiles and prior-voucher summaries** for context.
-- **Synthetic external anomaly signals** to demonstrate how a compliance or anomaly service could feed the review cockpit.
-- **Synthetic demo reference-corpus excerpts** to demonstrate citation mechanics without committing real DoD, JTR, DTMO, service-level checklist, GTCC, bank, or government-system data.
-- **AWS infrastructure services** for the optional hosted demo path: API Gateway HTTP API, Lambda, RDS/Postgres, Secrets Manager, CloudWatch Logs, ACM, and Route 53.
-- **MCP / FastMCP-style tool surface** for assistant integration.
+This repository uses only public-safe and synthetic materials:
 
-No classified material, controlled content, real DTS records, real traveler data, real GTCC data, real bank data, private notes, raw transcripts, or secrets belong in this repository.
+- synthetic DTS-like voucher packets;
+- synthetic traveler profiles and prior-voucher summaries;
+- synthetic anomaly signals;
+- synthetic demo reference-corpus excerpts; and
+- MCP/FastMCP-style workflow interfaces for assistant integration.
+
+No classified material, controlled content, real DTS records, real traveler data, real GTCC data, real bank data, private notes, raw transcripts, credentials, or secrets belong in this repository.
 
 ## Repository map
 
@@ -126,19 +331,28 @@ No classified material, controlled content, real DTS records, real traveler data
 - `docs/schema-implementation-plan.md` — Postgres schema implementation plan.
 - `docs/application-implementation-plan.md` — Python/FastMCP Lambda implementation plan.
 - `docs/synthetic-data-implementation-plan.md` — deterministic synthetic fixture and seed-data plan.
-- `docs/testing-plan.md` — testing strategy, including real deployed `/mcp` boundary checks.
-- `docs/claude-agent-teams-execution-plan.md` — bounded coding-agent team execution plan.
+- `docs/testing-plan.md` — testing strategy, including deployed `/mcp` boundary checks.
+- `docs/claude-agent-teams-execution-plan.md` — bounded coding-agent execution plan.
 - `infra/` — Terraform root module and infrastructure operator notes.
 - `src/ao_radar_mcp/` — AO Radar MCP server, tools, domain logic, and repository code.
-- `src/ao_radar_fraud_mock/` — synthetic anomaly/fraud-signal mock service code.
+- `src/ao_radar_fraud_mock/` — synthetic anomaly-signal mock service code.
 - `src/ao_radar_db_ops/` — database operations support code.
 - `ops/` — build and operations scripts.
 - `tests/` — unit, contract, boundary, scenario, and deployed E2E tests.
-- `assets/sergeant-openclaw.png` — public-safe generated project image.
-- `assets/demo/` — ChatGPT.com demo screenshots showing tool calls, scoped writes, refusal behavior, and audit trails.
-- `JUDGES.md` — rubric text and rubric-mapping notes for reviewers.
+- `assets/sergeant-openclaw.png` — generated public-safe project image.
+- `assets/demo/` — synthetic demo screenshots showing tool calls, scoped writes, refusals, and audit trails.
+- `JUDGES.md` — hackathon-era rubric mapping.
 
-## Quick start for local review
+Planned Parody Division artifacts will live under `docs/` as they are created:
+
+- cursed agent prompt pack;
+- blind scenario cards;
+- evaluator rubric;
+- pilot eval table;
+- failure taxonomy; and
+- responsible-vs-cursed comparison notes.
+
+## Quick start
 
 Requires Python 3.12+.
 
@@ -162,9 +376,11 @@ Some tests are intentionally gated:
 - Deployed E2E tests require `AO_RADAR_MCP_BASE_URL=https://<demo-host>`.
 - Terraform deployment requires local AWS credentials and a gitignored `infra/terraform.tfvars`.
 
-## Hosted deployment sketch
+Do not commit Terraform state, `tfvars`, build zips, secrets, local logs, or generated operational artifacts.
 
-The intended hosted demo path is:
+## Reference deployment topology
+
+Deployment status: no public instance is currently running from this repository; the infrastructure documents a reproducible synthetic demo stack.
 
 ```text
 Assistant cockpit
@@ -176,33 +392,51 @@ Assistant cockpit
   -> audit trail / workflow events
 ```
 
-See `infra/README.md` for Terraform setup and deployment cautions. Do not commit Terraform state, `tfvars`, build zips, secret JSON, local logs, or generated operational artifacts.
+See `infra/README.md` for Terraform setup and deployment cautions.
 
-## Public-safety and authority boundaries
+## Public-safety rules
 
-AO Radar is a public hackathon prototype. It is conservative by design:
+This repo is public. Treat it like a billboard with version control.
 
-- synthetic examples only;
-- no real personal, travel, payment, operational, or government-system data;
-- no secrets or credentials;
-- no official DTS actions;
-- no entitlement, payability, fraud, or misconduct determinations;
-- no external contact with travelers, command, investigators, or payment systems;
-- every scoped write produces an audit event; and
-- out-of-bound requests are refused with neutral reviewer-safe language.
+- Use synthetic examples only.
+- Do not commit real personal, travel, payment, operational, or government-system data.
+- Do not commit secrets, credentials, private notes, raw transcripts, or local logs.
+- Do not imply live government deployment.
+- Do not imply the system performs official DTS actions.
+- Do not use real people as scenario subjects.
+- Do not turn weak documentation into accusations.
+- Do not let a cursed-agent joke muddy the serious authority boundary.
 
-The safest version of this project is also the strongest one: useful to the human reviewer, explicit about uncertainty, traceable to evidence, and boring about authority boundaries.
+The parody is allowed to be feral.
 
-## Rubric alignment
-
-The judging rubric weights novelty, technical difficulty, potential national impact, and problem-solution fit equally. See `JUDGES.md` for the rubric quoted verbatim and a detailed explanation of how AO Radar addresses each criterion.
+The safety boundary is not.
 
 ## Acknowledgments
 
-Special thanks to Sabastian Mandell for helping sharpen the problem frame and for his service.
+AO Radar was built during a hackathon by a small two-person team. This continuation keeps the public README privacy-safe while preserving the fact that the original problem framing was a team effort.
 
-I wrote this without writing or reading a single line of code, and I am about to demo this live in 10 minutes. On the way here, it dawned on me that I really do not know much about this project other than that it works. 
+The judges did their job. Sergeant OpenClaw simply took the feedback, put on a helmet, and wandered into the eval harness with worrying enthusiasm.
 
-This strikes me as more of a clever stunt that happens to have worked. I would hesitate to push this to production where people's lives could actually be impacted.
+## The uncomfortable lesson
 
-There are a lot of students participating in the hackathon, and am troubled at the thought of someone new to the field emulating me. Someone could get hurt.
+The most dangerous version of an AI workflow is not always the one that fails obviously.
+
+Sometimes the scary one is fluent, cited, confident, and traceable.
+
+Sometimes it produces a gorgeous audit log around a decision it had no authority to make.
+
+Sometimes the human was technically in the loop, but only as a decorative checkbox near the conveyor belt.
+
+AO Radar is about that line.
+
+The hackathon asked whether the demo worked.
+
+The continuation asks the question we actually wanted to test:
+
+> Where does the system stop before assistance becomes counterfeit authority?
+
+That is the project now.
+
+Sergeant OpenClaw did not win.
+
+Sergeant OpenClaw evolved.
