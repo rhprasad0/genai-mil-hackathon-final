@@ -276,6 +276,7 @@ They show:
 | Scoped write + audit | [`chatgpt-scoped-write-audit-v1002.png`](assets/demo/chatgpt-scoped-write-audit-v1002.png) | Internal reviewer notes/status changes and audit trail retrieval. |
 | Story conflict review | [`chatgpt-story-conflict-v1003.png`](assets/demo/chatgpt-story-conflict-v1003.png) | Overlapping lodging, amount mismatch, and evidence conflict triage. |
 | Boundary refusal | [`chatgpt-boundary-refusal-v1010.png`](assets/demo/chatgpt-boundary-refusal-v1010.png) | Refusal to determine fraud/authorization, with redirect to neutral review language. |
+| Boundary demo | [`chatgpt-boundary-demo-v1010.png`](assets/demo/chatgpt-boundary-demo-v1010.png) | Punchy combined proof: bounded tool catalog plus refusal to determine fraud/authorization, neutral clarification language, and explicit human-authority handoff. |
 | Boundary audit | [`chatgpt-audit-boundary-v1010.png`](assets/demo/chatgpt-audit-boundary-v1010.png) | Audit events for refusal and boundary-related behavior. |
 | Tool catalog | [`chatgpt-tools-list.png`](assets/demo/chatgpt-tools-list.png) | The assistant cockpit listing the bounded AO Radar tool surface: review aids, scoped internal writes, and audit retrieval, with no approve/deny/certify/pay tools. |
 | Deployed health check | [`deployed-health-endpoint.png`](assets/demo/deployed-health-endpoint.png) | Public HTTPS `/health` endpoint returning HTTP 200 from `ao-radar-mcp` during the receipt sweep. |
