@@ -2,6 +2,8 @@
 
 These public-safe screenshots document what the hackathon-era AO Radar demo showed before the Parody Division continuation.
 
+For the repo-at-deadline submission receipt, see [`hackathon-submission-receipt.md`](hackathon-submission-receipt.md).
+
 The receipts are evidence of a bounded synthetic review workflow, not evidence of a live government integration or official DTS action. All voucher IDs, traveler IDs, records, findings, citations, and audit entries shown here are synthetic demo data.
 
 ## Receipt set

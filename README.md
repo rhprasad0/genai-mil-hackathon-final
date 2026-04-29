@@ -265,7 +265,7 @@ That is also why it is worth testing.
 
 ## Demo evidence
 
-The screenshots in `assets/demo/` were captured from a synthetic demo run in an assistant cockpit connected to AO Radar as a workflow tool server. See [`docs/demo-receipts.md`](docs/demo-receipts.md) for the public-safe receipt index.
+The screenshots in `assets/demo/` were captured from a synthetic demo run in an assistant cockpit connected to AO Radar as a workflow tool server. See [`docs/demo-receipts.md`](docs/demo-receipts.md) for the public-safe receipt index and [`docs/hackathon-submission-receipt.md`](docs/hackathon-submission-receipt.md) for the repo-at-deadline submission receipt.
 
 They show:
 
@@ -336,6 +336,7 @@ No classified material, controlled content, real DTS records, real traveler data
 - `docs/synthetic-data-implementation-plan.md` — deterministic synthetic fixture and seed-data plan.
 - `docs/testing-plan.md` — testing strategy, including deployed `/mcp` boundary checks.
 - `docs/demo-receipts.md` — public-safe index of hackathon demo screenshots and deployment receipts.
+- `docs/hackathon-submission-receipt.md` — repo-at-deadline receipt for the hackathon submission format.
 - `docs/claude-agent-teams-execution-plan.md` — bounded coding-agent execution plan.
 - `infra/` — Terraform root module and infrastructure operator notes.
 - `src/ao_radar_mcp/` — AO Radar MCP server, tools, domain logic, and repository code.
