@@ -244,6 +244,15 @@ Until then, this repo is the workshop floor.
 
 Mind the goblins.
 
+## Documentation bundle
+
+The post-competition documentation is now bundled under [`docs/`](docs/README.md):
+
+- [`docs/spec.md`](docs/spec.md) — canonical capability and authority-boundary specification.
+- [`docs/hackathon-submission-receipt.md`](docs/hackathon-submission-receipt.md) — repo-at-deadline submission receipt.
+- [`docs/demo-receipts.md`](docs/demo-receipts.md) — public-safe demo evidence and deployment receipts.
+- [`docs/README.md`](docs/README.md) — full documentation index, implementation plans, and continuation map.
+
 ## What was built for the hackathon
 
 The hackathon-era AO Radar prototype and implementation plans include:
@@ -329,6 +338,7 @@ No classified material, controlled content, real DTS records, real traveler data
 
 ## Repository map
 
+- `docs/README.md` — documentation index, post-competition receipts, implementation plans, and continuation map.
 - `docs/spec.md` — canonical capability and system specification.
 - `docs/infra-implementation-plan.md` — Terraform/AWS implementation plan.
 - `docs/schema-implementation-plan.md` — Postgres schema implementation plan.
@@ -346,7 +356,6 @@ No classified material, controlled content, real DTS records, real traveler data
 - `tests/` — unit, contract, boundary, scenario, and deployed E2E tests.
 - `assets/sergeant-openclaw.png` — generated public-safe project image.
 - `assets/demo/` — synthetic demo screenshots showing tool calls, scoped writes, refusals, and audit trails.
-- `JUDGES.md` — hackathon-era rubric mapping.
 
 Planned Parody Division artifacts will live under `docs/` as they are created:
 

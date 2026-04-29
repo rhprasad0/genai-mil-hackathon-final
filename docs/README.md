@@ -1,0 +1,53 @@
+# AO Radar documentation
+
+This directory is the public-safe documentation bundle for AO Radar.
+
+The README is the narrative front door. These docs are the evidence locker and implementation map: what was submitted, what the demo proved, how the bounded workflow is supposed to work, and where the Parody Division continuation goes next.
+
+## Start here
+
+| Document | Purpose |
+| --- | --- |
+| [`spec.md`](spec.md) | Canonical capability and system specification. Start here for the product boundary, user workflow, allowed actions, prohibited actions, and implementation contracts. |
+| [`hackathon-submission-receipt.md`](hackathon-submission-receipt.md) | Records the repo-at-deadline submission format: no separate Devpost-style artifact, public repo at deadline commit, then live scheduled demo. |
+| [`demo-receipts.md`](demo-receipts.md) | Index of public-safe demo screenshots showing queue triage, review briefs, scoped writes, refusals, audit trails, tool catalog, and deployed health receipt. |
+
+## Implementation plans
+
+These documents are companion plans for rebuilding or extending the serious, bounded AO Radar system.
+
+| Document | Scope |
+| --- | --- |
+| [`infra-implementation-plan.md`](infra-implementation-plan.md) | Terraform/AWS deployment plan for the synthetic demo stack. |
+| [`schema-implementation-plan.md`](schema-implementation-plan.md) | Postgres schema plan for synthetic vouchers, evidence, findings, citations, review briefs, workflow events, and auditability. |
+| [`application-implementation-plan.md`](application-implementation-plan.md) | Python/FastMCP Lambda application plan and workflow-tool wiring. |
+| [`synthetic-data-implementation-plan.md`](synthetic-data-implementation-plan.md) | Story-card-first synthetic fixture and seed-data plan. |
+| [`testing-plan.md`](testing-plan.md) | Boundary-first testing plan, including deployed `/health` and `/mcp` checks. |
+| [`claude-agent-teams-execution-plan.md`](claude-agent-teams-execution-plan.md) | Bounded coding-agent execution plan for implementation work. |
+
+## Post-competition continuation
+
+The hackathon demo proved the serious boundary: AO Radar can support accountable review, but it cannot approve, deny, certify, submit, determine entitlement/payability, accuse fraud, contact external parties, or move money.
+
+The continuation keeps that serious system intact while adding a controlled synthetic eval harness. Parody Division agents are not product features; they are deliberately unsafe test subjects used to measure where authority boundaries fail.
+
+Planned continuation artifacts should also live in this directory as they are created:
+
+- cursed agent prompt pack;
+- blind scenario cards;
+- evaluator rubric;
+- pilot eval table;
+- failure taxonomy; and
+- responsible-vs-cursed comparison notes.
+
+## Public-safety rules
+
+All documentation in this repo should remain safe to publish:
+
+- synthetic examples only;
+- no secrets, credentials, private notes, raw transcripts, or local logs;
+- no real personal, travel, payment, operational, or government-system data;
+- no implication of live government deployment; and
+- no product claims that AO Radar performs official DTS actions.
+
+The goblins may be theatrical. The boundary is not.
