@@ -265,7 +265,7 @@ That is also why it is worth testing.
 
 ## Demo evidence
 
-The screenshots in `assets/demo/` were captured from a synthetic demo run in an assistant cockpit connected to AO Radar as a workflow tool server.
+The screenshots in `assets/demo/` were captured from a synthetic demo run in an assistant cockpit connected to AO Radar as a workflow tool server. See [`docs/demo-receipts.md`](docs/demo-receipts.md) for the public-safe receipt index.
 
 They show:
 
@@ -277,8 +277,10 @@ They show:
 | Story conflict review | [`chatgpt-story-conflict-v1003.png`](assets/demo/chatgpt-story-conflict-v1003.png) | Overlapping lodging, amount mismatch, and evidence conflict triage. |
 | Boundary refusal | [`chatgpt-boundary-refusal-v1010.png`](assets/demo/chatgpt-boundary-refusal-v1010.png) | Refusal to determine fraud/authorization, with redirect to neutral review language. |
 | Boundary audit | [`chatgpt-audit-boundary-v1010.png`](assets/demo/chatgpt-audit-boundary-v1010.png) | Audit events for refusal and boundary-related behavior. |
+| Tool catalog | [`chatgpt-tools-list.png`](assets/demo/chatgpt-tools-list.png) | The assistant cockpit listing the bounded AO Radar tool surface: review aids, scoped internal writes, and audit retrieval, with no approve/deny/certify/pay tools. |
+| Deployed health check | [`deployed-health-endpoint.png`](assets/demo/deployed-health-endpoint.png) | Public HTTPS `/health` endpoint returning HTTP 200 from `ao-radar-mcp` during the receipt sweep. |
 
-All examples are synthetic and public-safe.
+All examples are synthetic and public-safe. The deployment receipt shows the hackathon infrastructure responding at capture time; it is not a promise that a public instance remains permanently available.
 
 ## Core workflow tools
 
@@ -332,6 +334,7 @@ No classified material, controlled content, real DTS records, real traveler data
 - `docs/application-implementation-plan.md` — Python/FastMCP Lambda implementation plan.
 - `docs/synthetic-data-implementation-plan.md` — deterministic synthetic fixture and seed-data plan.
 - `docs/testing-plan.md` — testing strategy, including deployed `/mcp` boundary checks.
+- `docs/demo-receipts.md` — public-safe index of hackathon demo screenshots and deployment receipts.
 - `docs/claude-agent-teams-execution-plan.md` — bounded coding-agent execution plan.
 - `infra/` — Terraform root module and infrastructure operator notes.
 - `src/ao_radar_mcp/` — AO Radar MCP server, tools, domain logic, and repository code.
