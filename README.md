@@ -248,7 +248,6 @@ Mind the goblins.
 
 The post-competition documentation is now bundled under [`docs/`](docs/README.md):
 
-- [`docs/spec.md`](docs/spec.md) — canonical capability and authority-boundary specification.
 - [`docs/hackathon-submission-receipt.md`](docs/hackathon-submission-receipt.md) — repo-at-deadline submission receipt.
 - [`docs/demo-receipts.md`](docs/demo-receipts.md) — public-safe demo evidence and deployment receipts.
 - [`docs/README.md`](docs/README.md) — full documentation index, implementation plans, and continuation map.
@@ -262,7 +261,7 @@ The hackathon-era AO Radar prototype and implementation plans include:
 - a Postgres-backed model for synthetic voucher packets, evidence, findings, citations, scoped workflow writes, and audit events;
 - deterministic synthetic story-card and fixture plans;
 - deployment-boundary test plans for MCP initialization, tool listing, tool calls, scoped writes, refusals, and audit trails; and
-- a public-safe capability specification suitable for implementation by coding agents.
+- public-safe implementation plans suitable for coding agents.
 
 This was never intended to be a generic chatbot over travel rules.
 
@@ -339,7 +338,6 @@ No classified material, controlled content, real DTS records, real traveler data
 ## Repository map
 
 - `docs/README.md` — documentation index, post-competition receipts, implementation plans, and continuation map.
-- `docs/spec.md` — canonical capability and system specification.
 - `docs/infra-implementation-plan.md` — Terraform/AWS implementation plan.
 - `docs/schema-implementation-plan.md` — Postgres schema implementation plan.
 - `docs/application-implementation-plan.md` — Python/FastMCP Lambda implementation plan.

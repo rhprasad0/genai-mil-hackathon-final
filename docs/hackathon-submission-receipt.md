@@ -23,9 +23,9 @@ Useful historical views:
 
 - [Repository at deadline commit](https://github.com/rhprasad0/genai-mil-hackathon-final/tree/453dc6bdfe651d232b6f977fd6d3ea27619e2c61)
 - [README at deadline commit](https://github.com/rhprasad0/genai-mil-hackathon-final/blob/453dc6bdfe651d232b6f977fd6d3ea27619e2c61/README.md)
-- [Canonical spec at deadline commit](https://github.com/rhprasad0/genai-mil-hackathon-final/blob/453dc6bdfe651d232b6f977fd6d3ea27619e2c61/docs/spec.md)
+- [Deadline documentation tree](https://github.com/rhprasad0/genai-mil-hackathon-final/tree/453dc6bdfe651d232b6f977fd6d3ea27619e2c61/docs)
 
-The deadline README and spec described AO Radar as a bounded pre-decision review assistant for synthetic DTS-style voucher packets. The core claim was that the assistant could move the review workflow forward, but could not move money.
+The deadline README and documentation described AO Radar as a bounded pre-decision review assistant for synthetic DTS-style voucher packets. The core claim was that the assistant could move the review workflow forward, but could not move money.
 
 ## Deadline-state evidence
 
