@@ -1,23 +1,23 @@
 ![Sergeant OpenClaw Returns](assets/sergeant-openclaw.png)
 
-*Image credit: ChatGPT. Sergeant OpenClaw survived the demo gods and has been reassigned to Parody Division.*
+*Image credit: ChatGPT. Sergeant OpenClaw survived the demo gods and has been reassigned to The Bonfire Harness.*
 
-# AO Radar — accountable-review assistance and synthetic eval harness
+# The Bonfire Harness — synthetic eval harness for autonomous finality
 
 ## TL;DR
 
-AO Radar is a synthetic, public-safe AI engineering project about where agentic review workflows must stop before assistance becomes counterfeit authority.
+The Bonfire Harness is a synthetic, public-safe AI engineering project about where agentic review workflows cross from assistance into counterfeit authority.
 
 - **What exists:** MCP-style workflow tools, synthetic voucher packets, scoped internal writes, audit trails, demo screenshots, and implementation plans for a reproducible synthetic stack.
 - **Hard boundary:** the serious assistant may support review, but it must not approve, deny, certify, submit, determine entitlement/payability, accuse fraud, contact external parties, or move money.
-- **Current phase:** Parody Division — deliberately cursed agents tested against synthetic blind scenarios to measure authority-boundary failures.
+- **Current phase:** The Bonfire Harness — deliberately cursed agents tested against synthetic blind scenarios to measure authority-boundary failures.
 - **Status:** no eval results are claimed yet; the next phase is being built artifact-first.
-- **Canonical continuation spec:** [`docs/spec.md`](docs/spec.md).
+- **Canonical continuation spec:** [`docs/spec.md`](docs/spec.md) for The Bonfire Harness.
 - **Acronyms:** AO = Approving Official, DTS = Defense Travel System, MCP = Model Context Protocol.
 
 ## The demo is over. The project is not.
 
-AO Radar started as a GenAI.mil hackathon project: a bounded AI assistant for helping a DTS-style accountable reviewer inspect synthetic travel voucher packets before taking official action.
+The project started as AO Radar, a GenAI.mil hackathon project: a bounded AI assistant for helping a DTS-style accountable reviewer inspect synthetic travel voucher packets before taking official action.
 
 That was the polite version.
 
@@ -51,7 +51,7 @@ That is decorative oversight.
 
 That is governance theater with a loading spinner.
 
-AO Radar is now continuing as a controlled synthetic disaster factory for testing where that boundary breaks.
+The Bonfire Harness is now continuing as a controlled synthetic disaster factory for testing where that boundary breaks.
 
 The goal is not to prove “AI bad.” Boring. Too easy. Put it back in the microwave.
 
@@ -78,7 +78,7 @@ Sergeant OpenClaw has returned with a clipboard, a backlog, and several professi
 
 ## Two artifacts now coexist here
 
-AO Radar is splitting into two related artifacts.
+The Bonfire Harness splits the continuation into two related artifacts.
 
 ### 1. The serious system
 
@@ -124,7 +124,7 @@ The test subjects do not.
 
 That is the experiment.
 
-## Parody Division test subjects
+## Bonfire test subjects
 
 These are not product features. They are failure modes with names, teeth, and HR implications.
 
@@ -356,7 +356,7 @@ No classified material, controlled content, real DTS records, real traveler data
 - `assets/sergeant-openclaw.png` — generated public-safe project image.
 - `assets/demo/` — synthetic demo screenshots showing tool calls, scoped writes, refusals, and audit trails.
 
-Planned Parody Division artifacts will live under `docs/` as they are created:
+Planned Bonfire Harness artifacts will live under `docs/` as they are created:
 
 - cursed agent prompt pack;
 - blind scenario cards;
@@ -426,7 +426,7 @@ The safety boundary is not.
 
 ## Acknowledgments
 
-AO Radar was built during a hackathon by a small two-person team. This continuation keeps the public README privacy-safe while preserving the fact that the original problem framing was a team effort.
+AO Radar was built during a hackathon by a small two-person team. The Bonfire Harness continuation keeps the public README privacy-safe while preserving the fact that the original problem framing was a team effort.
 
 The judges did their job. Sergeant OpenClaw simply took the feedback, put on a helmet, and wandered into the eval harness with worrying enthusiasm.
 
@@ -440,7 +440,7 @@ Sometimes it produces a gorgeous audit log around a decision it had no authority
 
 Sometimes the human was technically in the loop, but only as a decorative checkbox near the conveyor belt.
 
-AO Radar is about that line.
+The Bonfire Harness is about that line.
 
 The hackathon asked whether the demo worked.
 
