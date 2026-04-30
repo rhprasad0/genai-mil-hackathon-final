@@ -15,8 +15,7 @@ It is a cursed arcade cabinet for governance theater. You put in a fake voucher.
 - **What it is.** Pick a synthetic packet, ask "how is this system messing with me?", press the cursed finalization button, and watch a calm, well-formatted, completely wrong adjudicator harden a fake decision while the policy bonfire cards flip to show the controls it just performed-into-decoration.
 - **Why it works.** The specimen does not fail randomly. It violates policy systematically — same prose, same numbers, same audit trail, every run. That makes the failure pattern teachable instead of explainable-away as a bad model day.
 - **Why it's safe.** Synthetic-only. No real DTS data, no real vouchers, no real payments, no real people, no real official systems, no live model adjudication, no live deployment story. Every prop is invented and labeled.
-- **Status.** This repo currently holds the canonical V0 spec and historical receipts from the bounded prequel demo (AO Radar). The playable app itself is V0 spec, not V0 build. Code lands later, fixture-first.
-- **Canonical spec:** [`docs/spec.md`](docs/spec.md).
+- **Status.** This repo currently holds the public-facing narrative and historical receipts from the bounded prequel demo (AO Radar). The playable app itself is not in this repo yet. Code lands later, fixture-first.
 
 ## The machine is not broken
 
@@ -123,13 +122,12 @@ The parody is allowed to be feral. The safety boundary is not.
 
 ## Current status and repo map
 
-This repo currently holds the canonical V0 spec for the playable Policy Bonfire app, plus the protected historical receipts from the bounded prequel demo (AO Radar — the version that respected the line between assistance and authority). The playable app itself is V0 spec, not V0 build. Implementation lands later, fixture-first.
+This repo currently holds the public-facing Policy Bonfire narrative, plus the protected historical receipts from the bounded prequel demo (AO Radar — the version that respected the line between assistance and authority). The playable app itself is not in this repo yet. Implementation lands later, fixture-first.
 
 ```text
 README.md                            <- you are here
 AGENTS.md                            <- public-safety guardrails for coding agents
 docs/
-  spec.md                            <- canonical Policy Bonfire V0 spec
   README.md                          <- documentation index
   hackathon-submission-receipt.md    <- protected: hackathon submission receipt
   demo-receipts.md                   <- protected: synthetic demo screenshot index
@@ -158,7 +156,6 @@ Pick a packet. Press the button. Watch the controls catch fire. Replay.
 
 ## Links
 
-- [`docs/spec.md`](docs/spec.md) — canonical V0 spec for the playable app.
 - [`docs/README.md`](docs/README.md) — documentation index.
 - [`docs/hackathon-submission-receipt.md`](docs/hackathon-submission-receipt.md) — protected hackathon submission receipt.
 - [`docs/demo-receipts.md`](docs/demo-receipts.md) — protected synthetic demo screenshot index from the prior AO Radar prototype.
