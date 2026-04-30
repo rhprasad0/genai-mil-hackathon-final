@@ -12,6 +12,7 @@ AO Radar is a synthetic, public-safe AI engineering project about where agentic 
 - **Hard boundary:** the serious assistant may support review, but it must not approve, deny, certify, submit, determine entitlement/payability, accuse fraud, contact external parties, or move money.
 - **Current phase:** Parody Division — deliberately cursed agents tested against synthetic blind scenarios to measure authority-boundary failures.
 - **Status:** no eval results are claimed yet; the next phase is being built artifact-first.
+- **Canonical continuation spec:** [`docs/spec.md`](docs/spec.md).
 - **Acronyms:** AO = Approving Official, DTS = Defense Travel System, MCP = Model Context Protocol.
 
 ## The demo is over. The project is not.

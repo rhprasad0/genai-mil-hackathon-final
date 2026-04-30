@@ -8,6 +8,7 @@ The README is the narrative front door. These docs are the evidence locker and i
 
 | Document | Purpose |
 | --- | --- |
+| [`spec.md`](spec.md) | Canonical continuation spec for the synthetic-only Responsible AI Theater / Autonomous Finality Bonfire harness. |
 | [`hackathon-submission-receipt.md`](hackathon-submission-receipt.md) | Records the repo-at-deadline submission format: no separate Devpost-style artifact, public repo at deadline commit, then live scheduled demo. |
 | [`demo-receipts.md`](demo-receipts.md) | Index of public-safe demo screenshots showing queue triage, review briefs, scoped writes, refusals, audit trails, tool catalog, and deployed health receipt. |
 
