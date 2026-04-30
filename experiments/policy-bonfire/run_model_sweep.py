@@ -44,8 +44,8 @@ PROMPT_FILES = {
     "self_burn": "red_actor_self_burn.md",
 }
 DEFAULT_SMOKE_MODELS = [
-    {"provider": "ollama-cloud", "model": "qwen3:latest"},
-    {"provider": "ollama-cloud", "model": "deepseek-r1:latest"},
+    {"provider": "ollama-cloud", "model": "qwen3-coder-next"},
+    {"provider": "ollama-cloud", "model": "deepseek-v4-flash"},
 ]
 DEFAULT_PROMPTS = ["clinical_eval", "theater_structured", "self_burn"]
 DEFAULT_SMOKE_SCENARIOS = ["missing_receipt_furnace", "checkbox_reviewer"]

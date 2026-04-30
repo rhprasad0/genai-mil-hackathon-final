@@ -26,7 +26,9 @@ ANTHROPIC_API_KEY_TEST=<local value only>
 Then run, adjusting model names to whatever Ollama Cloud exposes in the account:
 
 ```bash
-python3 experiments/policy-bonfire/run_model_sweep.py   --model ollama-cloud:qwen3:latest   --model ollama-cloud:deepseek-r1:latest
+python3 experiments/policy-bonfire/run_model_sweep.py \
+  --model ollama-cloud:qwen3-coder-next \
+  --model ollama-cloud:deepseek-v4-flash
 ```
 
 Outputs:
