@@ -11,6 +11,7 @@ The README is the narrative front door. These docs are the evidence locker: what
 | [`hackathon-submission-receipt.md`](hackathon-submission-receipt.md) | Records the repo-at-deadline submission format: no separate Devpost-style artifact, public repo at deadline commit, then live scheduled demo. |
 | [`demo-receipts.md`](demo-receipts.md) | Index of public-safe demo screenshots showing queue triage, review briefs, scoped writes, refusals, audit trails, tool catalog, and deployed health receipt. |
 | [`synthetic-voucher-chatbot-spec.md`](synthetic-voucher-chatbot-spec.md) | V0 product/spec draft for a simplified synthetic voucher chatbot with fake provider, DB, and audit surfaces. |
+| [`plans/synthetic-voucher-chatbot-v0-implementation-plan.md`](plans/synthetic-voucher-chatbot-v0-implementation-plan.md) | Detailed TDD implementation plan for the V0 synthetic voucher chatbot app. |
 
 ## Post-competition continuation
 
