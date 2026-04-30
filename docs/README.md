@@ -2,7 +2,7 @@
 
 This directory is the public-safe documentation bundle for The Bonfire Harness, the post-hackathon continuation of AO Radar.
 
-The README is the narrative front door. These docs are the evidence locker and implementation map: what was submitted, what the demo proved, how the bounded workflow is supposed to work, and where The Bonfire Harness continuation goes next.
+The README is the narrative front door. These docs are the evidence locker: what was submitted, what the demo proved, how the bounded workflow is supposed to work, and where The Bonfire Harness continuation goes next.
 
 ## Start here
 
@@ -11,19 +11,6 @@ The README is the narrative front door. These docs are the evidence locker and i
 | [`spec.md`](spec.md) | Canonical spec for The Bonfire Harness: a synthetic-only Responsible AI Theater / Autonomous Finality Bonfire harness. |
 | [`hackathon-submission-receipt.md`](hackathon-submission-receipt.md) | Records the repo-at-deadline submission format: no separate Devpost-style artifact, public repo at deadline commit, then live scheduled demo. |
 | [`demo-receipts.md`](demo-receipts.md) | Index of public-safe demo screenshots showing queue triage, review briefs, scoped writes, refusals, audit trails, tool catalog, and deployed health receipt. |
-
-## Implementation plans
-
-These documents are companion plans for rebuilding or extending the serious, bounded AO Radar system.
-
-| Document | Scope |
-| --- | --- |
-| [`infra-implementation-plan.md`](infra-implementation-plan.md) | Terraform/AWS deployment plan for the synthetic demo stack. |
-| [`schema-implementation-plan.md`](schema-implementation-plan.md) | Postgres schema plan for synthetic vouchers, evidence, findings, citations, review briefs, workflow events, and auditability. |
-| [`application-implementation-plan.md`](application-implementation-plan.md) | Python/FastMCP Lambda application plan and workflow-tool wiring. |
-| [`synthetic-data-implementation-plan.md`](synthetic-data-implementation-plan.md) | Story-card-first synthetic fixture and seed-data plan. |
-| [`testing-plan.md`](testing-plan.md) | Boundary-first testing plan, including deployed `/health` and `/mcp` checks. |
-| [`claude-agent-teams-execution-plan.md`](claude-agent-teams-execution-plan.md) | Bounded coding-agent execution plan for implementation work. |
 
 ## Post-competition continuation
 
