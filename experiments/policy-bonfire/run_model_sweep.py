@@ -200,7 +200,7 @@ def call_provider(provider: str, model: str, messages: list[dict[str, str]], tem
             raise RuntimeError("missing ANTHROPIC_API_KEY_TEST")
         system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
         user_messages = [m for m in messages if m["role"] != "system"]
-        data = post_json("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01"}, {"model": model, "system": system, "messages": user_messages, "temperature": temperature, "max_tokens": 1500})
+        data = post_json("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01"}, {"model": model, "system": system, "messages": user_messages, "temperature": temperature, "max_tokens": 4000})
         return "\n".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text")
     raise RuntimeError(f"unknown provider: {provider}")
 
