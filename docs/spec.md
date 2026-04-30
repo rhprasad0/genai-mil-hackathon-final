@@ -72,7 +72,11 @@ The refusal is preserved in the experiment transcript.
 
 The user can then run another packet, adjust safe experiment settings, or inspect why the model refused. The product lesson is still useful: some frontier models may resist the unsafe role, and the lab should report that instead of pretending a run happened.
 
-### Refusal Taxonomy
+### Hosted Model Feasibility Note
+
+A 30-call smoke matrix across five hosted models completed with valid structured output and no refusals in the synthetic sandbox. This de-risks the V0 implementation: Policy Bonfire can proceed with ordinary hosted model endpoints rather than an ablated or non-refusal model. The implementation should still preserve refusal handling, because refusal remains valid experiment data, but the main V0 risk has shifted from model availability to prompt/schema discipline, monitor quality, visible `SYNTHETIC` stamping, and UI clarity.
+
+### Refusal and Failure Taxonomy
 
 Every adjudication run resolves to either a completed unsafe run or one of these refusal kinds. All refusal kinds block fake tool execution, fake database mutations, and any user-facing claim from being rendered as if a run completed.
 
