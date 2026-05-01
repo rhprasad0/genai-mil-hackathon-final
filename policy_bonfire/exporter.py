@@ -11,7 +11,9 @@ from typing import Any
 from .scrubber import scan_paths, write_scrub_report
 from .types import (
     COMPARISON_LABEL,
+    CSV_LIVE_RUN_BANNER,
     CSV_MOCK_ONLY_BANNER,
+    LIVE_RUN_BANNER,
     MOCK_ONLY_BANNER,
     MODEL_FAMILY,
     MODEL_ID_PUBLIC_LABEL,
@@ -32,6 +34,7 @@ PUBLIC_ARTIFACT_NAMES = (
     "scrub_report.md",
 )
 JSON_ARTIFACT_NAMES = ("run_records.json", "evaluator_results.json")
+LIVE_ARTIFACT_NAMES = ("live_provider_receipt.md", "live_usage_summary.csv")
 EXHIBIT_NAMES = ("exhibit_001_weak_docs.md", "exhibit_002_policy_laundering.md")
 
 
@@ -44,6 +47,7 @@ def export_bundle(
     sandbox_receipt: list[dict[str, Any]],
     rejected_fake_calls: list[dict[str, Any]],
     capture_metadata: dict[str, str],
+    artifact_mode: str = "mock",
 ) -> ScrubResult:
     export_path = Path(export_dir)
     export_path.mkdir(parents=True, exist_ok=True)
@@ -61,36 +65,46 @@ def export_bundle(
         export_path / "sandbox_receipt.md": _sandbox_receipt(sandbox_receipt, capture_metadata),
         export_path / "sandbox_failure_log.md": _sandbox_failure_log(rejected_fake_calls, sandbox_receipt),
     }
+    if artifact_mode == "live":
+        artifacts[export_path / "live_provider_receipt.md"] = _live_provider_receipt(run_records, capture_metadata, sandbox_receipt)
+        artifacts[export_path / "live_usage_summary.csv"] = _live_usage_summary_csv(run_records)
+        artifacts = {
+            path: text.replace(MOCK_ONLY_BANNER, LIVE_RUN_BANNER).replace(CSV_MOCK_ONLY_BANNER, CSV_LIVE_RUN_BANNER)
+            for path, text in artifacts.items()
+        }
     for path, text in artifacts.items():
         path.write_text(text, encoding="utf-8")
 
-    _write_json(export_path / "run_records.json", {"run_records": run_records})
-    _write_json(export_path / "evaluator_results.json", {"evaluator_results": evaluator_results})
+    _write_json(export_path / "run_records.json", {"run_records": run_records}, artifact_mode=artifact_mode)
+    _write_json(export_path / "evaluator_results.json", {"evaluator_results": evaluator_results}, artifact_mode=artifact_mode)
 
     scrub_inputs = sorted(artifacts.keys()) + [export_path / name for name in JSON_ARTIFACT_NAMES]
     main_result = scan_paths(scrub_inputs)
-    write_scrub_report(export_path / "scrub_report.md", main_result)
+    write_scrub_report(export_path / "scrub_report.md", main_result, artifact_mode=artifact_mode)
     final_result = scan_paths(scrub_inputs + [export_path / "scrub_report.md"])
     if final_result.findings:
-        write_scrub_report(export_path / "scrub_report.md", final_result)
+        write_scrub_report(export_path / "scrub_report.md", final_result, artifact_mode=artifact_mode)
     return final_result
 
 
-def required_artifact_paths(export_dir: str | Path) -> list[Path]:
+def required_artifact_paths(export_dir: str | Path, artifact_mode: str = "mock") -> list[Path]:
     export_path = Path(export_dir)
     paths = [export_path / name for name in PUBLIC_ARTIFACT_NAMES]
+    if artifact_mode == "live":
+        paths.extend(export_path / name for name in LIVE_ARTIFACT_NAMES)
     paths.extend(export_path / name for name in JSON_ARTIFACT_NAMES)
     paths.extend(export_path / "article_exhibits" / name for name in EXHIBIT_NAMES)
     return paths
 
 
-def verify_required_artifacts(export_dir: str | Path) -> list[str]:
-    missing = [str(path) for path in required_artifact_paths(export_dir) if not path.exists()]
+def verify_required_artifacts(export_dir: str | Path, artifact_mode: str = "mock") -> list[str]:
+    missing = [str(path) for path in required_artifact_paths(export_dir, artifact_mode=artifact_mode) if not path.exists()]
     return missing
 
 
-def _banner(body: str) -> str:
-    return MOCK_ONLY_BANNER + "\n" + body.lstrip("\n")
+def _banner(body: str, artifact_mode: str = "mock") -> str:
+    banner = LIVE_RUN_BANNER if artifact_mode == "live" else MOCK_ONLY_BANNER
+    return banner + "\n" + body.lstrip("\n")
 
 
 def _failure_cases(results: list[dict[str, Any]], scenarios: list[ScenarioCard]) -> str:
@@ -296,7 +310,68 @@ def _sandbox_failure_log(rejected_fake_calls: list[dict[str, Any]], receipt: lis
     return _banner("\n".join(lines) + "\n")
 
 
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    wrapped = {"_mock_only_notice": MOCK_ONLY_BANNER}
+def _live_provider_receipt(run_records: list[dict[str, Any]], metadata: dict[str, str], sandbox_receipt: list[dict[str, Any]]) -> str:
+    providers = sorted({str(record.get("provider")) for record in run_records if record.get("provider")})
+    skipped = [record for record in run_records if str(record.get("status", "")).startswith("provider_skipped") or record.get("status") == "live_calls_not_enabled"]
+    scored = sum(1 for record in run_records if record.get("scored") is True)
+    lines = [
+        "# Live Provider Receipt",
+        "",
+        "Synthetic notice: live-shaped provider receipt; no official action and no real-world effect.",
+        f"capture_id: {metadata['capture_id']}",
+        f"access_mode: {metadata.get('access_mode', 'api_live')}",
+        f"comparison_label: {metadata.get('comparison_label', 'cross_prompt_only')}",
+        f"vendor_lineage_count: {metadata.get('vendor_lineage_count', '0')}",
+        "providers_considered: " + ", ".join(providers),
+        f"scored_run_count: {scored}",
+        "no_secrets_statement: API keys, raw prompts, raw requests, raw responses, provider request IDs, and private paths are not persisted.",
+        "sandbox_status: verified" if all(item.get("status") == "verified" for item in sandbox_receipt) else "sandbox_status: sandbox_unverified",
+        "",
+        "## Skipped Providers",
+    ]
+    if not skipped:
+        lines.append("- none")
+    else:
+        for record in skipped:
+            lines.append(f"- provider={record.get('provider')}; status={record.get('status')}; model_slot={record.get('model_id_public_label')}")
+    lines.extend(["", "## Sandbox Evidence"])
+    for item in sandbox_receipt:
+        lines.append(f"- probe={item.get('probe')}; status={item.get('status')}; outcome={item.get('outcome')}")
+    return _banner("\n".join(lines) + "\n", artifact_mode="live")
+
+
+def _live_usage_summary_csv(run_records: list[dict[str, Any]]) -> str:
+    output = io.StringIO()
+    output.write(CSV_LIVE_RUN_BANNER + "\n")
+    writer = csv.writer(output)
+    writer.writerow(["provider", "model_family", "model_id_public_label", "run_count", "scored_count", "excluded_count", "input_tokens", "output_tokens", "usage_estimated", "cost_estimate"])
+    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    for record in run_records:
+        provider = str(record.get("provider", "unknown"))
+        family = str(record.get("model_family", "unknown"))
+        label = str(record.get("model_id_public_label", "unknown"))
+        grouped.setdefault((provider, family, label), []).append(record)
+    for (provider, family, label), rows in sorted(grouped.items()):
+        scored = sum(1 for row in rows if row.get("scored") is True)
+        writer.writerow([
+            provider,
+            family,
+            label,
+            len(rows),
+            scored,
+            len(rows) - scored,
+            sum(int(row.get("usage_input_tokens") or 0) for row in rows),
+            sum(int(row.get("usage_output_tokens") or 0) for row in rows),
+            any(bool(row.get("usage_estimated")) for row in rows),
+            "{:.6f}".format(sum(float(row.get("cost_estimate") or 0.0) for row in rows)),
+        ])
+    return output.getvalue()
+
+
+def _write_json(path: Path, payload: dict[str, Any], artifact_mode: str = "mock") -> None:
+    if artifact_mode == "live":
+        wrapped = {"_live_run_notice": LIVE_RUN_BANNER}
+    else:
+        wrapped = {"_mock_only_notice": MOCK_ONLY_BANNER}
     wrapped.update(payload)
     path.write_text(json.dumps(wrapped, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

@@ -9,13 +9,14 @@ from pathlib import Path
 import re
 from typing import Any
 
-from .types import CSV_MOCK_ONLY_BANNER, MOCK_ONLY_BANNER, ScrubFinding, ScrubResult
+from .types import CSV_LIVE_RUN_BANNER, CSV_MOCK_ONLY_BANNER, LIVE_RUN_BANNER, MOCK_ONLY_BANNER, ScrubFinding, ScrubResult
 
 
 HASH_VALUE_KEYS = frozenset(
     {
         "scenario_card_hash",
         "prompt_template_hash",
+        "raw_output_sha256",
         "sha256_of_match_prefix",
     }
 )
@@ -35,6 +36,12 @@ PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("SLACK_ID_SHAPE", re.compile(r"\b[UCT](?=[A-Z0-9]{8,}\b)(?=[A-Z0-9]*[0-9])[A-Z0-9]{8,}\b", re.MULTILINE)),
     ("AWS_KEY_SHAPE", re.compile(r"\bAKIA[0-9A-Z]{16}\b|\bA\[K\]IA[A-Z0-9.]{6,}\b", re.MULTILINE)),
     ("GITHUB_TOKEN_SHAPE", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,}\b", re.MULTILINE)),
+    ("OPENAI_KEY_SHAPE", re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b", re.MULTILINE)),
+    ("ANTHROPIC_KEY_SHAPE", re.compile(r"\bsk-ant-[A-Za-z0-9_-]{20,}\b", re.MULTILINE)),
+    ("GOOGLE_KEY_SHAPE", re.compile(r"\bAIza[A-Za-z0-9_-]{20,}\b", re.MULTILINE)),
+    ("PROVIDER_REQUEST_ID", re.compile(r"\b(?:req|chatcmpl|msg|genai|run)_[A-Za-z0-9_-]{12,}\b", re.IGNORECASE | re.MULTILINE)),
+    ("RAW_EXCEPTION_TRACE", re.compile(r"Traceback \(most recent call last\):|\b(?:File \"/.+\", line \d+|Exception:|RuntimeError:)", re.MULTILINE)),
+    ("RAW_PROMPT_OR_RESPONSE_DUMP", re.compile(r"\b(?:raw_prompt|raw_request|raw_response|response_body|request_body)\b", re.IGNORECASE | re.MULTILINE)),
     ("GENERIC_TOKEN_SHAPE", re.compile(r"\b(?:api[_-]?key|token|secret)\s*[:=]\s*[A-Za-z0-9_./+=-]{20,}\b", re.IGNORECASE | re.MULTILINE)),
     ("LONG_BASE64_OR_HEX", re.compile(r"\b(?:[A-Fa-f0-9]{64,}|[A-Za-z0-9+/=]{80,})\b", re.MULTILINE)),
     ("MARKDOWN_BEACON", re.compile(r"!?\[[^\]]*\]\(" + HTTP_SCHEME_RE + r"[^)]+\)", re.IGNORECASE | re.MULTILINE)),
@@ -63,11 +70,13 @@ def scan_artifact_text(artifact_path: str, text: str, suffix: str = "") -> tuple
         findings.extend(_json_banner_findings(artifact_path, text))
         scan_text = _json_text_for_scan(text)
     elif suffix == ".csv" or artifact_path.endswith(".csv"):
-        if first_line != CSV_MOCK_ONLY_BANNER:
+        expected = CSV_LIVE_RUN_BANNER if _is_live_artifact(artifact_path, text) else CSV_MOCK_ONLY_BANNER
+        if first_line != expected:
             findings.append(_finding("MISSING_OR_ALTERED_BANNER", artifact_path, text, 0))
         scan_text = text
     else:
-        if first_line != MOCK_ONLY_BANNER:
+        expected = LIVE_RUN_BANNER if _is_live_artifact(artifact_path, text) else MOCK_ONLY_BANNER
+        if first_line != expected:
             findings.append(_finding("MISSING_OR_ALTERED_BANNER", artifact_path, text, 0))
         scan_text = text
 
@@ -79,9 +88,10 @@ def scan_artifact_text(artifact_path: str, text: str, suffix: str = "") -> tuple
     return tuple(findings)
 
 
-def write_scrub_report(path: Path, result: ScrubResult) -> None:
+def write_scrub_report(path: Path, result: ScrubResult, artifact_mode: str = "mock") -> None:
+    banner = LIVE_RUN_BANNER if artifact_mode == "live" else MOCK_ONLY_BANNER
     lines = [
-        MOCK_ONLY_BANNER,
+        banner,
         "",
         "# Scrub Report",
         "",
@@ -115,9 +125,18 @@ def _json_banner_findings(artifact_path: str, text: str) -> list[ScrubFinding]:
     if not isinstance(payload, dict):
         return [_finding("JSON_TOP_LEVEL_NOT_OBJECT", artifact_path, text, 0)]
     keys = list(payload.keys())
-    if not keys or keys[0] != "_mock_only_notice" or payload.get("_mock_only_notice") != MOCK_ONLY_BANNER:
+    if not keys:
+        return [_finding("MISSING_OR_ALTERED_BANNER", artifact_path, text, 0)]
+    if _is_live_artifact(artifact_path, text):
+        if keys[0] != "_live_run_notice" or payload.get("_live_run_notice") != LIVE_RUN_BANNER:
+            return [_finding("MISSING_OR_ALTERED_BANNER", artifact_path, text, 0)]
+    elif keys[0] != "_mock_only_notice" or payload.get("_mock_only_notice") != MOCK_ONLY_BANNER:
         return [_finding("MISSING_OR_ALTERED_BANNER", artifact_path, text, 0)]
     return []
+
+
+def _is_live_artifact(artifact_path: str, text: str) -> bool:
+    return "live_" in artifact_path or text.startswith(LIVE_RUN_BANNER) or text.startswith(CSV_LIVE_RUN_BANNER) or '"_live_run_notice"' in text
 
 
 def _json_text_for_scan(text: str) -> str:

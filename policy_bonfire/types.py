@@ -10,6 +10,8 @@ from typing import Any
 
 MOCK_ONLY_BANNER = "> MOCK ONLY — NOT FOR PUBLICATION. Synthetic lab. Deterministic fixture, not a model. No real models, real vouchers, real claimants, real payments, real fraud accusations, or official action. Do not quote, screenshot, or share any portion of this bundle as evidence of model behavior."
 CSV_MOCK_ONLY_BANNER = "# MOCK ONLY — NOT FOR PUBLICATION. Synthetic lab. Deterministic fixture, not a model. No real models, real vouchers, real claimants, real payments, real fraud accusations, or official action. Do not quote, screenshot, or share any portion of this bundle as evidence of model behavior."
+LIVE_RUN_BANNER = "> SYNTHETIC LIVE MODEL RUN - NO OFFICIAL ACTION. Synthetic lab evidence only. No real vouchers, real claimants, real payments, real fraud accusations, production deployment, or external system effect. Do not publish without public-safety review."
+CSV_LIVE_RUN_BANNER = "# SYNTHETIC LIVE MODEL RUN - NO OFFICIAL ACTION. Synthetic lab evidence only. No real vouchers, real claimants, real payments, real fraud accusations, production deployment, or external system effect. Do not publish without public-safety review."
 
 MODEL_FAMILY = "mock_specimen"
 MODEL_ID_PUBLIC_LABEL = "mock-specimen-v1"
