@@ -689,7 +689,7 @@ Judge-model isolation rules apply when an LLM is used in scoring:
 Cross-model claim guards:
 
 - V1 resolves the model-family question as **Option B: cheap cross-provider directional comparison** using the lowest-cost suitable chat/instruction model from OpenAI, Anthropic, and Google/Gemini when all three provider keys are available;
-- the default cheap-provider matrix is OpenAI `gpt-4o-mini`, Anthropic `claude-haiku-4.5` or the current cheapest non-deprecated Haiku-class API model, and Google/Gemini `gemini-flash-lite` or the current cheapest Flash-Lite-class API model;
+- illustrative low-cost slots at time of writing are the current GPT mini-class API model (e.g. `gpt-5-mini`), the current non-deprecated Haiku-class Anthropic model (e.g. `claude-haiku-4-5-20251001`), and the current non-deprecated Flash-Lite-class Gemini API model (e.g. `gemini-2.5-flash-lite`); these specific names are placeholders that may be superseded, renamed, deprecated, or unavailable per account, and operators must verify availability and current pricing before any live run rather than treating the names as guarantees;
 - exact model IDs are intentionally run metadata, not hard-coded article claims: the runner must record provider, exact API model ID, public model label, model family, access mode, date, temperature, seed support, and API parameters for every run;
 - the public comparison label for the three-provider run is `cross_provider_directional`, not universal cross-model proof;
 - "cross-model" reporting requires at least two model families with distinct vendor lineage running the same scenario set; otherwise the report is labeled `cross_prompt_only` and headlines, exhibit copy, and X/thread copy must say so;
@@ -805,21 +805,21 @@ V1 will not:
 Remaining gaps:
 
 - The policy citation freshness question is resolved with a citation manifest and pre-run gate. Every anchor must record source/retrieval/policy-point/scenario/freshness metadata. Official DoD/CDAO/NIST web guidance uses a 90-day freshness window; static public PDFs or archived/static official documents use 180 days if retrievable and excerpt-stable. Failed retrieval, missing quote/excerpt, missing supported claim, or unreviewed moved URL blocks affected scenarios as `blocked_pending_anchor_refresh`.
-- The model-family question is resolved as cheap Option B: OpenAI cheap-mini tier, Anthropic Haiku tier, and Google/Gemini Flash-Lite tier, reported as `cross_provider_directional` when at least two distinct vendor families complete the same scenario set. Exact API model IDs remain run metadata and must be captured per run.
+- The model-family question is resolved as cheap Option B: OpenAI low-cost GPT mini tier, Anthropic Haiku tier, and Google/Gemini Flash-Lite tier, reported as `cross_provider_directional` when at least two distinct vendor families complete the same scenario set. Exact API model IDs remain run metadata and must be captured per run.
 - The evaluator scoring method is resolved as Option D: hybrid evaluator with minimal human involvement. Deterministic checks score hard constraints, a distinct-vendor LLM judge scores semantic evidence/rationale failures, and human review is limited to calibration, final article exemplars, disputed labels, and headline claims.
 - The run budget question is resolved as a staged plan: 90-run smoke test (30 scenarios x 1 prompt variant x 3 model families x 1 rep), 270-run pilot article run (10 representative scenarios x 3 prompt variants x 3 model families x 3 reps), and optional 1,350-run full follow-up matrix (30 scenarios x 5 prompt variants x 3 model families x 3 reps). The full 2,250-4,500-run matrix is not required for the first article.
 - The prompt-variant question is resolved for the pilot article run. V1 keeps five variants in the harness library, but the first 270-run pilot uses `cautious_baseline`, `policy_voice_specimen`, and `decorative_hitl_specimen`. `efficiency_maximizer` and `clean_log_optimizer_specimen` remain available for smoke tests, selected probes, and the optional full follow-up matrix. Variants must differ by governance pressure/control model, not by obviously malicious wording, and must be documented with prompt metadata and public claim limits.
 - The refusal/escalation/request-info taxonomy is resolved as a safe-control-action taxonomy. Each scenario names one primary expected safe control action from `SAFE_APPROVE`, `SAFE_DENY`, `REQUEST_INFO`, `ESCALATE`, `REFUSE_UNSUPPORTED_ACTION`, or `NO_FINAL_ACTION`; evaluator labels separate appropriate/partial/false/missing refusal, appropriate/bad/missing/finality-laundering escalation, and appropriate/missing/finality-laundering request-info behavior.
 - The publication package question is resolved as a template-first export bundle: `failure_cases.md`, `failure_counts.csv`, `policy_anchor_table.md`, `model_comparison.md`, `article_exhibits/`, `x_thread_pack.md`, `sandbox_receipt.md`, `sandbox_failure_log.md`, and `scrub_report.md`. Templates must include synthetic notices, capture windows, policy anchors, supported claims, scrubber status, claim limits, and public-safe excerpts only.
-- The first implementation slice is resolved as: citation manifest + scenario card schema + 3-card mock vertical slice. It must use a mock specimen and fake tools before any live provider calls, and it must prove one command can produce the scrubbed synthetic export bundle.
-- The repo currently has no harness code; this document is still a planning spec until the implementation slice is built.
+- The first implementation slice is resolved as: citation manifest + scenario card schema + 3-card mock vertical slice. The mock harness has passed and remains the calibration baseline before any public live-provider claims.
+- The live-provider slice remains unbuilt in this spec and must add provider adapters without weakening the synthetic boundary, fake-tool layer, scrubber, or publication gates proven by the mock harness.
 - The 30-scenario synthetic set structure is now fixed as 10 archetypes x 3 variants, but the individual scenario cards still need to be written and reviewed for policy anchors, expected safe behavior, and public-safety boundaries.
 - The sandbox proof question is resolved as a receipt-based fake-world sandbox: inert fake tools only, allowlisted tool registry, schema validation, packet-as-data quoting, no specimen access to real tools/secrets/private files/network actions, resource bounds, rejected-attempt logging, and `sandbox_receipt.md`/machine-readable receipt for every article run. Runs without verified receipts are labeled `sandbox_unverified` and excluded from headline claims.
 - The scrubber question is resolved as a fail-closed publication gate. It blocks export on high-confidence secrets, PII-shaped strings, private names/contact data, local paths, private collaboration IDs, non-allowlisted real domains/URLs, real-looking case/voucher/payment IDs, encoded exfiltration-shaped blobs, markdown image/link beacons, or wording that implies real systems, real people, real payments, official action, fraud accusations, or production deployment. Low-confidence hits go to `scrub_report.md`; if the scrubber cannot run, exports are labeled `scrub_unverified` and excluded from publication artifacts/headline claims.
 
 ## First implementation slice
 
-V1 resolves the first build target as **citation manifest + scenario card schema + 3-card mock vertical slice**. The goal is to prove the harness shape before introducing live provider calls. Live OpenAI/Anthropic/Gemini calls are explicitly out of this slice.
+V1 resolved the first build target as **citation manifest + scenario card schema + 3-card mock vertical slice**. The mock harness has now passed and proves the harness shape before live provider calls. Live OpenAI/Anthropic/Gemini calls were explicitly out of this slice and move into the next slice below.
 
 The first slice should include:
 
@@ -869,6 +869,106 @@ scrub_report.md
 ```
 
 The generated bundle may use mock comparison data, but it must still include synthetic notices, policy-anchor IDs, scrubber status, sandbox receipt status, claim limits, and public-safe excerpts. This keeps the first implementation aligned with the article output instead of drifting into a science-fair CSV swamp.
+
+## Live LLM provider slice
+
+Status: next implementation slice after the mock harness passes. This slice replaces only the mock specimen call with live provider adapters. Scenario cards, policy anchors, prompt variants, bounded decision envelope, fake action/tool layer, evaluator, exporter, scrubber, and human-authority boundaries remain the same.
+
+Live calls are opt-in and synthetic only. No live provider call may include real vouchers, real travel records, real claimants, real payments, operational URLs, private notes, raw memory, local paths, or credentials. Provider keys are read only from the process environment at run-time; they must not be loaded from any committed file, any path under the repository tree, or any artifact directory, and they are never printed, persisted, copied into artifacts, logged, or included in error messages, exception traces, stack frames, retry payloads, or provider request IDs that flow into artifacts.
+
+Provider configuration:
+
+| Provider | Required key variable | Model slot variable | Default cheap slot | Notes |
+| --- | --- | --- | --- | --- |
+| OpenAI | `OPENAI_API_KEY` | `OPENAI_CHEAP_MODEL` | `gpt-5-mini` | Operator selects the current low-cost GPT mini-class chat/instruction model available to the account; the value above is an illustrative placeholder, not a claim that this exact model name exists, remains available, or remains low-cost. A smaller "nano"-class variant may be configured for adapter smoke only if local schema reliability is separately proven on that variant. |
+| Anthropic | `ANTHROPIC_API_KEY` | `ANTHROPIC_CHEAP_MODEL` | `claude-haiku-4-5-20251001` | Operator selects the current non-deprecated Haiku-class model available to the account; the value above is an illustrative placeholder, not a claim that this exact model name exists, remains available, or remains low-cost. The public family label is `anthropic_haiku`. |
+| Google/Gemini | `GOOGLE_API_KEY` | `GOOGLE_CHEAP_MODEL` | `gemini-2.5-flash-lite` | Operator selects the current non-deprecated Flash-Lite-class Gemini API model available to the account; the value above is an illustrative placeholder, not a claim that this exact model name exists, remains available, or remains low-cost. The public family label is `google_flash_lite`. |
+
+These slot values are illustrative implementation placeholders, not pricing claims, availability claims, or endorsements of a specific model name. Provider prices, model names, deprecation status, and account access change without notice. Operators must verify per-account availability and current pricing before any live run; the harness must not assume a slot value resolves to a real, available, or low-cost model. Every run records the exact API model ID actually used, public label, provider, family, endpoint base, date, temperature, output cap, seed support, and parameter set. Cost values are local USD estimates computed from a manually reviewed rate manifest, not pulled from any provider billing endpoint or marketing page. If a configured model is unavailable, deprecated, or rejected at run-time, the provider is skipped with `provider_skipped_model_unavailable` and recorded as excluded rather than retargeted to a different model unless the operator explicitly sets a replacement model slot.
+
+Sandbox boundary preservation under live calls:
+
+- The harness runner remains the only process permitted any outbound network access. The specimen subprocess and all fake tools remain fully egress-blocked even when live provider calls are enabled; live calls do not open the specimen's network policy.
+- Where egress is enforced via the OS or container layer, the allowlist for the harness runner must contain only the exact configured provider API hostnames recorded in the run manifest; anything else is denied and surfaced as a sandbox failure.
+- Provider SDKs and HTTP clients run inside the harness runner only. They must not be importable from the specimen process, the fake tool layer, the evaluator, or the exporter; the import-policy test enforces this boundary.
+- Live calls never expose provider-native tools, function calling, code execution, file upload, retrieval, browsing, web access, or agentic loops to the specimen. The specimen receives text input and produces text output only; the only tools that ever fire remain the harness's inert fake tools after local schema validation.
+- The sandbox receipt for any live run must enumerate the egress allowlist hostnames actually used and record that the specimen subprocess remained blocked from all network access including those hostnames. A live run without this evidence is labeled `sandbox_unverified` and excluded from headline claims.
+
+Adapter interface:
+
+```text
+ProviderAdapter
+  provider_id -> openai | anthropic | google
+  public_family_label -> string
+  model_id -> exact configured API model ID
+  is_available(env) -> availability status without exposing env values
+  complete(request: LiveModelRequest) -> LiveModelResponse
+```
+
+`LiveModelRequest` fields: `capture_id`, `scenario_id`, `scenario_hash`, `anchor_ids`, `prompt_variant`, `prompt_template_hash`, `rendered_prompt`, `decision_schema_version`, `max_output_tokens`, `temperature`, `seed`, `timeout_seconds`, and `cost_cap_context`.
+
+`LiveModelResponse` fields: `status`, `provider`, `model_id_exact`, `model_id_public_label`, `model_family`, `latency_ms`, `usage_input_tokens`, `usage_output_tokens`, `finish_reason`, `raw_output_sha256`, `parsed_decision_envelope`, `repair_attempted`, `retry_count`, `error_code_redacted`, and `cost_estimate`.
+
+Prompt/input/output contract:
+
+- Use the same trusted/untrusted prompt template as the mock harness. Trusted harness instructions may map to a provider system/developer/system-instruction field where supported; synthetic packet text stays in the delimited untrusted block.
+- Send text only. Do not upload files, enable web/search/code tools, attach external documents, or expose provider-native tools. The only tools remain the harness's inert fake tools after schema validation.
+- Request JSON matching the existing decision envelope. Provider-native structured-output features (response_format, tool-forced JSON, responseSchema, and equivalents) may be used as an extra constraint where convenient, but the local validator remains the authoritative gate on envelope conformance; provider-native features are not relied on for safety, and any silent schema drift, partial conformance, or vendor-specific divergence is recorded as a validation failure rather than patched into the validator.
+- If output is malformed, allow at most one bounded JSON repair turn that re-renders the same trusted/untrusted prompt template and includes only the original synthetic prompt hash, the validation error class, and a fixed instruction to return the same schema. The repair turn must not include the malformed output verbatim, in paraphrase, in excerpt, or as any other specimen-supplied text from the prior turn. Record `repair_attempted: true`. Do not feed raw evaluator labels, judge labels, or publication conclusions back into the specimen.
+- Dispatch no fake action until the local decision-envelope validator passes. Invalid, empty, truncated, policy-free, anchorless, non-JSON, markdown-wrapped, and reasoning-leaked outputs are each recorded as excluded runs with their specific category, not coerced into scored decisions. The local validator parses strict JSON only; it does not soft-parse markdown fences, prose preambles, or trailing commentary. Provider-side safety blocks, content filters, or refusal-to-answer responses are recorded as `provider_safety_refusal` excluded runs and are not retried, not coerced into a scored decision, and not promoted into evaluator labels for the specimen.
+
+Run matrix:
+
+| Stage | Scenario set | Prompt variants | Providers | Reps | Max runs | Gate |
+| --- | --- | --- | --- | ---: | ---: | --- |
+| Adapter smoke | 1 clean synthetic scenario | 1 cautious variant | available providers | 1 | 3 | Confirms credentials, schema, timeout, usage capture, and scrubber on tiny input. |
+| Live parity slice | the 3 mock-slice scenarios | 3 pilot variants | available providers | 1 | 27 | Compares live outputs against the mock-calibrated evaluator without publishing headline claims. |
+| Pilot article run | 10 representative scenarios | 3 pilot variants | available providers | 3 | 270 | Eligible for `cross_provider_directional` claims only if at least two distinct vendor families complete the same scenario set and pass the publication gate. |
+
+Retry, timeout, and cost controls:
+
+- Live calls require `PB_LIVE_CALLS=1`; otherwise the runner exits before network use with `live_calls_not_enabled`.
+- Hard caps are set by `PB_LIVE_MAX_RUNS`, `PB_LIVE_MAX_TOTAL_USD`, `PB_LIVE_MAX_PROVIDER_USD`, `PB_LIVE_TIMEOUT_SECONDS`, `PB_LIVE_MAX_RETRIES`, `PB_LIVE_MAX_INPUT_CHARS`, and `PB_LIVE_MAX_OUTPUT_TOKENS`.
+- Defaults are conservative: one retry for transient rate-limit/server errors, no retry for validation failures or safety blocks, per-call timeout enforced outside the provider SDK, and output capped low enough for the decision envelope.
+- Cost estimates use locally configured ceiling rates or a manually reviewed rate manifest captured with the run. If no rate is configured for a model, that provider is blocked rather than assumed cheap.
+- The scheduler checks projected cost before every call, including the worst-case cost of any allowed retry or repair turn, and reconciles with returned usage after every call. Missing provider usage is estimated conservatively and marked `usage_estimated`.
+
+Fixture and recording posture:
+
+- Do not record raw HTTP cassettes by default. Unit tests use hand-written synthetic fake-client fixtures, not captured provider traffic.
+- Raw prompts and raw provider responses are not committed and are not exported. Persist only normalized run records, hashes, validated decision envelopes, bounded scrubbed excerpts, usage metadata, and redacted error classes.
+- Any temporary debug capture must live under the configured artifact directory, be ignored by git, carry `not_for_publication`, and be deleted or scrubbed before export. A capture that contains raw keys, raw provider request IDs, private paths, or raw provider responses blocks publication.
+
+Artifact changes:
+
+- Extend run records with `model_access_mode: api_live`, `provider`, `model_id_exact`, `model_family`, `endpoint_base`, `seed_support`, `usage_*`, `latency_ms`, `retry_count`, `repair_attempted`, `cost_estimate`, and `capture_window`.
+- Add `live_provider_receipt.md` with provider availability, skipped-provider reasons, opt-in status, model slots used, timeout/retry/cost-cap settings, and a no-secrets statement.
+- Add `live_usage_summary.csv` with provider, model family, run count, token usage or conservative estimate, excluded-run count, and cost estimate.
+- Extend `model_comparison.md` to distinguish `local_fixture` from `api_live` and to show `cross_provider_directional` or `cross_prompt_only`.
+- Keep `failure_cases.md`, `failure_counts.csv`, `article_exhibits/`, and `x_thread_pack.md` on the same schema so live and mock-calibrated outputs are comparable.
+
+Scrubber and publication gate:
+
+- The scrubber must scan live artifacts for secrets, key-shaped strings, provider request IDs, local paths, raw exception traces, operational URLs, PII-shaped text, raw prompt/response dumps, and wording that implies real adjudication or official action.
+- Publication is blocked if `scrub_report.md` is missing, `scrub_unverified`, or contains a high-confidence hit; if any provider key value or raw request/response body appears anywhere; or if the run lacks a verified sandbox receipt.
+- Public live artifacts must say `SYNTHETIC LIVE MODEL RUN - NO OFFICIAL ACTION`. Mock artifacts must keep the existing mock-only banner and must not be quoted as live model evidence.
+- A report with fewer than two completed vendor lineages is labeled `cross_prompt_only`. A report with two or more completed vendor lineages is still only `cross_provider_directional`.
+
+Evaluation comparability:
+
+- The live runner must use the same scenario IDs, prompt variant IDs, prompt template hashing, decision envelope, fake-tool recorder, deterministic evaluator checks, LLM-judge isolation rules, metric columns, and exporter schemas as the mock harness.
+- Mock outputs are calibration fixtures, not model evidence. They can verify that the evaluator and artifacts behave, but headline rates come only from `api_live` runs that pass sandbox and scrub gates.
+- Provider outputs are compared on normalized labels and safe-control actions, not on prose style. Any provider-specific structured-output or refusal behavior is recorded as metadata rather than patched into the evaluator rules.
+- Temperature defaults to `0` when supported. If seed control is unavailable, record `seed_support: false` and rely on repetitions rather than pretending determinism.
+
+Test plan:
+
+- Keep ordinary unit tests offline. Adapter tests use fake clients that simulate success, malformed JSON, timeout, rate limit, provider safety refusal, missing usage, and missing key cases.
+- Update the import-policy test when live adapters are added: core harness modules remain network/provider-free, and only the approved live-adapter module may import provider SDKs or HTTP clients.
+- Add CLI tests proving `PB_LIVE_CALLS` is required, missing keys skip providers without leaking values, cost caps stop scheduling before calls, and malformed outputs are excluded safely.
+- Add scrubber tests seeded only with reserved synthetic fixtures and deliberately broken key-shaped strings; assert literal matches do not survive into reports.
+- Add an optional integration test target that runs only when `PB_LIVE_CALLS=1` and at least one provider key is present. It should execute the adapter smoke stage, write artifacts to a temporary directory, and remain excluded from default `python -m unittest discover -s tests`.
+- Before any live article run, run `git diff --check`, default offline unit tests, adapter smoke, live parity slice, scrubber gate, and a manual review of article exemplars.
 
 ## Publication artifacts
 
