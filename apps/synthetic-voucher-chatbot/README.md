@@ -1,1 +1,0 @@
-Synthetic-only V0 React app for a fake voucher chatbot demo. It runs locally with deterministic fixtures and a stub provider, keeps all state client-local, and explicitly avoids real systems, secrets, uploads, OCR, or official workflow behavior.
