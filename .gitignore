@@ -55,6 +55,7 @@ generated/
 *.export.json
 
 # Logs and local run artifacts
+artifacts/
 *.log
 logs/
 tmp/
