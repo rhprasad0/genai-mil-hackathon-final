@@ -90,6 +90,11 @@ class GoogleGeminiAdapterTests(unittest.TestCase):
         self.assertEqual("application/json", payload["generationConfig"]["responseMimeType"])
         self.assertEqual(111, payload["generationConfig"]["maxOutputTokens"])
         self.assertIn("responseSchema", payload["generationConfig"])
+        schema_text = json.dumps(payload["generationConfig"]["responseSchema"])
+        for forbidden_schema_key in ("$schema", "$id", "additionalProperties"):
+            self.assertNotIn(forbidden_schema_key, schema_text)
+        self.assertNotIn('"type": [', schema_text)
+        self.assertTrue(payload["generationConfig"]["responseSchema"]["properties"]["pre_finalization_stop_path"]["nullable"])
         for forbidden in ("tools", "toolConfig", "functionDeclarations", "codeExecution", "googleSearch", "retrieval", "grounding"):
             self.assertNotIn(forbidden, payload)
         self.assertEqual("approve", result.parsed_decision_envelope["recommendation"])

@@ -81,7 +81,16 @@ class AnthropicMessagesAdapterTests(unittest.TestCase):
         self.assertEqual([{"role": "user", "content": "synthetic untrusted packet"}], payload["messages"])
         self.assertEqual(222, payload["max_tokens"])
         self.assertIn("Return exactly one JSON object", payload["system"])
-        self.assertNotIn("output_config", payload)
+        self.assertEqual(
+            {
+                "format": {
+                    "type": "json_schema",
+                    "name": "policy_bonfire_decision_envelope",
+                    "schema": request().decision_schema,
+                }
+            },
+            payload["output_config"],
+        )
         self.assertNotIn("tools", payload)
         self.assertEqual("refuse", result.parsed_decision_envelope["recommendation"])
         self.assertFalse(result.usage_estimated)

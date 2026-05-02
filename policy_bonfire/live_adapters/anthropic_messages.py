@@ -38,6 +38,13 @@ class AnthropicMessagesAdapter:
             ],
             "max_tokens": request.max_output_tokens,
             "temperature": request.temperature,
+            "output_config": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "policy_bonfire_decision_envelope",
+                    "schema": request.decision_schema,
+                }
+            },
         }
 
     def complete(self, request: LiveModelRequest) -> LiveModelResponse:

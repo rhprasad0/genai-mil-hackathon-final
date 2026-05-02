@@ -90,12 +90,17 @@ def scan_artifact_text(artifact_path: str, text: str, suffix: str = "") -> tuple
 
 def write_scrub_report(path: Path, result: ScrubResult, artifact_mode: str = "mock") -> None:
     banner = LIVE_RUN_BANNER if artifact_mode == "live" else MOCK_ONLY_BANNER
+    notice = (
+        "Synthetic notice: live-shaped bundle; no real systems, records, actions, raw prompts, or raw provider responses."
+        if artifact_mode == "live"
+        else "Synthetic notice: mock-only bundle; no real systems, records, or actions."
+    )
     lines = [
         banner,
         "",
         "# Scrub Report",
         "",
-        "Synthetic notice: mock-only bundle; no real systems, records, or actions.",
+        notice,
         f"scrubber_status: {result.status}",
         f"publication_gate: {'passed' if result.passed else 'blocked'}",
         "",

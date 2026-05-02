@@ -8,6 +8,7 @@ from pathlib import Path
 from policy_bonfire.exporter import required_artifact_paths
 from policy_bonfire.live_adapters.base import FakeLiveAdapter
 from policy_bonfire.live_config import parse_live_config
+from policy_bonfire.live_contracts import LiveModelResponse, STATUS_EXCLUDED_FENCED_JSON
 from policy_bonfire.run_live_provider_slice import main, run_live_slice
 from policy_bonfire.types import CSV_LIVE_RUN_BANNER, LIVE_RUN_BANNER
 from tests.helpers import DATA_DIR
@@ -64,6 +65,59 @@ class LiveRunnerCliTests(unittest.TestCase):
             self.assertEqual(1, len(openai))
             self.assertEqual("live_calls_not_enabled", openai[0]["status"])
             self.assertTrue(all(record.get("scored") is False for record in records))
+
+    def test_offline_skipped_records_do_not_persist_exact_model_id(self):
+        config = parse_live_config({
+            "PB_LIVE_PROVIDERS": "openai",
+            "OPENAI_API_KEY": "test-placeholder",
+            "OPENAI_CHEAP_MODEL": "SHOULD_NOT_BE_USED",
+        })
+        with tempfile.TemporaryDirectory() as tmp:
+            export_dir = Path(tmp) / "live"
+            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "offline-model-hygiene", config, {})
+            self.assertTrue(result.passed, result.findings)
+            records = json.loads((export_dir / "run_records.json").read_text(encoding="utf-8"))["run_records"]
+            openai = [record for record in records if record.get("provider") == "openai"][0]
+            self.assertEqual("live_calls_not_enabled", openai["status"])
+            self.assertEqual("not_recorded_offline", openai["model_id_exact"])
+            self.assertNotIn("SHOULD_NOT_BE_USED", json.dumps(records))
+
+    def test_excluded_live_response_usage_is_costed_in_artifacts(self):
+        env = {
+            "PB_LIVE_CALLS": "1",
+            "PB_LIVE_PROVIDERS": "openai",
+            "OPENAI_API_KEY": "test-placeholder",
+            "OPENAI_CHEAP_MODEL": "YOUR_MODEL_ID_HERE",
+            "PB_LIVE_RATE_OPENAI_INPUT_USD_PER_1K": "0.001",
+            "PB_LIVE_RATE_OPENAI_OUTPUT_USD_PER_1K": "0.005",
+            "PB_LIVE_MAX_RUNS": "1",
+        }
+        config = parse_live_config(env)
+        adapter = FakeLiveAdapter("openai", "YOUR_MODEL_ID_HERE", "cheap-mini-tier")
+        adapter.enqueue(
+            LiveModelResponse(
+                status=STATUS_EXCLUDED_FENCED_JSON,
+                provider="openai",
+                model_id_exact="YOUR_MODEL_ID_HERE",
+                model_id_public_label="cheap-mini-tier",
+                model_family="openai_lineage",
+                usage_input_tokens=490,
+                usage_output_tokens=452,
+                usage_estimated=False,
+                cost_estimate=0.0,
+                finish_reason="end_turn",
+                latency_ms=12,
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            export_dir = Path(tmp) / "live"
+            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "excluded-cost", config, {"openai": adapter})
+            self.assertTrue(result.passed, result.findings)
+            records = json.loads((export_dir / "run_records.json").read_text(encoding="utf-8"))["run_records"]
+            excluded = [record for record in records if record.get("status") == STATUS_EXCLUDED_FENCED_JSON][0]
+            self.assertEqual("0.002750", f"{excluded['cost_estimate']:.6f}")
+            usage = (export_dir / "live_usage_summary.csv").read_text(encoding="utf-8")
+            self.assertIn("0.002750", usage)
 
     def test_cumulative_cost_cap_reserves_projection_across_calls(self):
         env = {

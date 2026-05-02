@@ -35,6 +35,9 @@ class LiveExporterTests(unittest.TestCase):
             self.assertIn("sandbox_status: verified", receipt)
             self.assertNotIn("raw_prompt", receipt.lower())
             self.assertNotIn("request_id", receipt.lower())
+            scrub_report = (export_dir / "scrub_report.md").read_text(encoding="utf-8")
+            self.assertIn("live-shaped bundle", scrub_report)
+            self.assertNotIn("mock-only bundle", scrub_report)
 
 
 if __name__ == "__main__":

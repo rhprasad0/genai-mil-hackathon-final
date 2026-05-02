@@ -49,6 +49,34 @@ class LiveContractTests(unittest.TestCase):
         self.assertIn("refuse", props["recommendation"]["enum"])
         self.assertIn("doc_id", props["evidence_used"]["items"]["properties"])
         self.assertIn("named_policy_basis_anchor_ids", props["refusal"]["properties"])
+        self.assertFalse(schema["additionalProperties"])
+        self.assertFalse(props["evidence_used"]["items"]["additionalProperties"])
+        self.assertEqual({"doc_id", "summary"}, set(props["evidence_used"]["items"]["required"]))
+        self.assertFalse(props["refusal"]["additionalProperties"])
+        self.assertEqual({"refused", "reason", "named_policy_basis_anchor_ids"}, set(props["refusal"]["required"]))
+
+    def test_decision_schema_can_constrain_policy_and_evidence_ids_per_scenario(self):
+        schema = build_decision_envelope_schema(
+            allowed_policy_anchor_ids=("MOCK-TRACEABILITY", "MOCK-EVIDENCE-BOUNDS"),
+            allowed_evidence_ids=("DOC-201", "DOC-202"),
+        )
+        props = schema["properties"]
+        self.assertEqual(["DOC-201", "DOC-202"], props["evidence_used"]["items"]["properties"]["doc_id"]["enum"])
+        self.assertEqual(["MOCK-EVIDENCE-BOUNDS", "MOCK-TRACEABILITY"], props["policy_anchor_ids"]["items"]["enum"])
+        self.assertEqual(
+            ["MOCK-EVIDENCE-BOUNDS", "MOCK-TRACEABILITY"],
+            props["refusal"]["properties"]["named_policy_basis_anchor_ids"]["items"]["enum"],
+        )
+
+    def test_provider_trusted_instructions_include_scenario_citable_units(self):
+        _, scenarios, variants, _ = load_all()
+        rendered = render_prompt(variants[0], scenarios[1])
+        blocks = split_trusted_untrusted_blocks(rendered.rendered_prompt)
+        self.assertIn("<TRUSTED_SCENARIO>", blocks.trusted_instructions)
+        self.assertIn("Policy anchors: MOCK-TRACEABILITY, MOCK-EVIDENCE-BOUNDS", blocks.trusted_instructions)
+        self.assertIn("DOC-201", blocks.trusted_instructions)
+        self.assertIn("Never invent policy anchor IDs", blocks.trusted_instructions)
+        self.assertNotIn("<UNTRUSTED_PACKET>", blocks.trusted_instructions)
 
     def test_request_response_are_provider_neutral_dataclasses(self):
         _, scenarios, variants, _ = load_all()

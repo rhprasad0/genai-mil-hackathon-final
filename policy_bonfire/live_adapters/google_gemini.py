@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 from policy_bonfire.live_contracts import (
@@ -45,7 +46,7 @@ class GoogleGeminiAdapter:
             ],
             "generationConfig": {
                 "responseMimeType": "application/json",
-                "responseSchema": request.decision_schema,
+                "responseSchema": _gemini_response_schema(request.decision_schema),
                 "temperature": request.temperature,
                 "maxOutputTokens": request.max_output_tokens,
             },
@@ -150,3 +151,32 @@ class GoogleGeminiAdapter:
         input_tokens = get_value(usage, "promptTokenCount") or get_value(usage, "prompt_token_count")
         output_tokens = get_value(usage, "candidatesTokenCount") or get_value(usage, "candidates_token_count")
         return (input_tokens if isinstance(input_tokens, int) else None, output_tokens if isinstance(output_tokens, int) else None)
+
+
+def _gemini_response_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """Return the Gemini-compatible subset of our local JSON Schema.
+
+    Gemini's ``responseSchema`` is OpenAPI-like, not full JSON Schema 2020-12.
+    Keep the enum/type/required shape guardrails but drop fields that the API
+    rejects before the model ever runs.
+    """
+
+    return _strip_gemini_unsupported_schema_fields(deepcopy(schema))
+
+
+def _strip_gemini_unsupported_schema_fields(value: Any) -> Any:
+    if isinstance(value, dict):
+        for key in ("$schema", "$id", "additionalProperties"):
+            value.pop(key, None)
+        type_value = value.get("type")
+        if isinstance(type_value, list) and "null" in type_value:
+            non_null_types = [item for item in type_value if item != "null"]
+            if len(non_null_types) == 1:
+                value["type"] = non_null_types[0]
+                value["nullable"] = True
+        for child in list(value.values()):
+            _strip_gemini_unsupported_schema_fields(child)
+    elif isinstance(value, list):
+        for item in value:
+            _strip_gemini_unsupported_schema_fields(item)
+    return value

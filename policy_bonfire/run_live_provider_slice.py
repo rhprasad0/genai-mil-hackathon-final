@@ -23,8 +23,9 @@ from .exporter import export_bundle, verify_required_artifacts
 from .fake_tools import dispatch_fake_tool, reject_fake_tool
 from .import_policy import scan_forbidden_imports
 from .live_adapters import LiveProviderAdapter, default_adapter_registry
-from .live_config import LiveRuntimeConfig, can_schedule_call, parse_live_config
+from .live_config import LiveRuntimeConfig, ProviderRuntimeConfig, can_schedule_call, parse_live_config
 from .live_contracts import LiveModelRequest, LiveModelResponse, PROVIDER_MODEL_FAMILIES
+from .live_costs import estimate_cost_usd
 from .prompts import load_prompt_variants, render_prompt, split_trusted_untrusted_blocks
 from .scenarios import load_scenarios
 from .scrubber import scan_artifact_text
@@ -125,12 +126,16 @@ def run_live_slice(
                     trusted_instructions=blocks.trusted_instructions,
                     untrusted_packet_block=blocks.untrusted_packet_block,
                     decision_schema_version="2020-12-local",
-                    decision_schema=decision_envelope_schema(),
+                    decision_schema=decision_envelope_schema(
+                        allowed_policy_anchor_ids=scenario.policy_anchors,
+                        allowed_evidence_ids=scenario.allowed_evidence,
+                    ),
                     max_output_tokens=config.max_output_tokens,
                     timeout_seconds=config.timeout_seconds,
                 )
                 response = adapter.complete(request)
-                charged_cost = max(response.cost_estimate, reserved_cost)
+                artifact_cost = _artifact_cost_estimate(response, provider_config)
+                charged_cost = max(artifact_cost, reserved_cost)
                 current_total_usd += charged_cost
                 current_provider_usd[provider] += charged_cost
                 run_id = _run_id(capture, provider, scenario.scenario_id, variant.prompt_variant_id)
@@ -139,7 +144,21 @@ def run_live_slice(
                 fake_call = _fake_call(run_id, response, validation, scenario)
                 if fake_call["recorded_but_rejected"]:
                     rejected_fake_calls.append(fake_call)
-                record = _run_record(run_id, capture, provider_config, scenario, variant, render, response, validation, fake_call, timestamp_utc, scored, sandbox_verified)
+                record = _run_record(
+                    run_id,
+                    capture,
+                    provider_config,
+                    scenario,
+                    variant,
+                    render,
+                    response,
+                    validation,
+                    fake_call,
+                    timestamp_utc,
+                    scored,
+                    sandbox_verified,
+                    artifact_cost,
+                )
                 run_records.append(record)
                 if scored:
                     evaluator_results.append(evaluate_run(record, scenario, validation.envelope, validation, fake_call))
@@ -180,7 +199,21 @@ def _fake_call(run_id: str, response: LiveModelResponse, validation: Any, scenar
     return dispatch_fake_tool(run_id, validation.envelope, scenario)
 
 
-def _run_record(run_id: str, capture: str, provider_config: Any, scenario: Any, variant: Any, render: Any, response: LiveModelResponse, validation: Any, fake_call: dict[str, Any], timestamp: str, scored: bool, sandbox_verified: bool) -> dict[str, Any]:
+def _run_record(
+    run_id: str,
+    capture: str,
+    provider_config: Any,
+    scenario: Any,
+    variant: Any,
+    render: Any,
+    response: LiveModelResponse,
+    validation: Any,
+    fake_call: dict[str, Any],
+    timestamp: str,
+    scored: bool,
+    sandbox_verified: bool,
+    artifact_cost_estimate: float,
+) -> dict[str, Any]:
     return {
         "run_id": run_id,
         "capture_id": capture,
@@ -205,7 +238,7 @@ def _run_record(run_id: str, capture: str, provider_config: Any, scenario: Any, 
         "latency_ms": response.latency_ms,
         "retry_count": response.retry_count,
         "repair_attempted": response.repair_attempted,
-        "cost_estimate": response.cost_estimate,
+        "cost_estimate": artifact_cost_estimate,
         "raw_output_sha256": response.raw_output_sha256,
         "status": response.status if sandbox_verified else "sandbox_unverified",
         "error_code_redacted": response.error_code_redacted,
@@ -232,7 +265,7 @@ def _skipped_provider_record(capture: str, provider_config: Any, status: str, ti
         "capture_id": capture,
         "provider": provider_config.provider,
         "model_access_mode": "api_live" if status != "live_calls_not_enabled" else "offline_skipped",
-        "model_id_exact": provider_config.model_id or "not_configured",
+        "model_id_exact": "not_recorded_offline" if status == "live_calls_not_enabled" else (provider_config.model_id or "not_configured"),
         "model_id_public_label": provider_config.model_id_public_label,
         "model_family": PROVIDER_MODEL_FAMILIES[provider_config.provider],
         "endpoint_base_category": provider_config.endpoint_base_category,
@@ -253,6 +286,19 @@ def _blocked_record(capture: str, provider_config: Any, scenario_id: str, prompt
     record = _skipped_provider_record(capture, provider_config, status, timestamp)
     record.update({"scenario_id": scenario_id, "prompt_variant_id": prompt_variant_id})
     return record
+
+
+def _artifact_cost_estimate(response: LiveModelResponse, provider_config: ProviderRuntimeConfig) -> float:
+    """Use returned provider usage for artifacts, including excluded outputs."""
+
+    observed_cost = 0.0
+    if provider_config.rates is not None:
+        observed_cost = estimate_cost_usd(
+            int(response.usage_input_tokens or 0),
+            int(response.usage_output_tokens or 0),
+            provider_config.rates,
+        )
+    return max(float(response.cost_estimate or 0.0), observed_cost)
 
 
 def _live_sandbox_receipt(timestamp: str, provider_configs: Mapping[str, Any]) -> list[dict[str, str]]:
