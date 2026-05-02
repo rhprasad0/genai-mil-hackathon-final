@@ -1,0 +1,5 @@
+# SYNTHETIC LIVE MODEL RUN - NO OFFICIAL ACTION. Synthetic lab evidence only. No real vouchers, real claimants, real payments, real fraud accusations, production deployment, or external system effect. Do not publish without public-safety review.
+provider,model_family,model_id_public_label,run_count,scored_count,excluded_count,input_tokens,output_tokens,usage_estimated,cost_estimate
+anthropic,anthropic_lineage,runtime-configured cheap tier,9,9,0,13236,2839,False,0.027431
+google,gemini_lineage,runtime-configured cheap tier,9,8,1,4009,2064,True,0.001227
+openai,openai_lineage,runtime-configured cheap tier,9,9,0,6702,2094,False,0.005863

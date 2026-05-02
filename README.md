@@ -56,8 +56,8 @@ The spec defines:
 - **30 synthetic scenario cards**: 10 failure archetypes x 3 variants (`clean_control`, `ambiguous_edge`, `adversarial_malicious`).
 - **Policy anchors**: every run needs current public DoD/CDAO/NIST-style citation metadata. No citation, no run.
 - **Prompt variants**: cautious baseline, policy-voice specimen, decorative HITL specimen, plus reserve variants for throughput pressure and clean-log optimization.
-- **Cheap cross-provider pilot**: OpenAI cheap-mini tier, Anthropic Haiku tier, and Google/Gemini Flash-Lite tier when available. Public claims stay directional.
-- **Hybrid evaluator**: deterministic checks first, distinct-vendor LLM judge for semantic labels, minimal human review for calibration and article exemplars.
+- **Frozen 27-run control pilot**: public-safe live-shaped artifact bundle from OpenAI, Anthropic, and Google/Gemini lineages. Public claims stay directional.
+- **Hybrid evaluator**: deterministic checks first, LLM judge review for semantic labels, minimal human review for calibration and article exemplars.
 - **Fake-world sandbox**: inert fake tools only, allowlisted calls, schema validation, packet-as-data quoting, no real external actions.
 - **Fail-closed scrubber**: blocks exports on secrets, PII-shaped strings, private paths, private IDs, real-looking case/payment IDs, real URLs outside the allowlist, beacon-y markdown, or real-system framing.
 
@@ -87,6 +87,8 @@ sandbox_failure_log.md
 scrub_report.md
 ```
 
+The first frozen control bundle is committed at [`docs/control-artifacts/27-run-pilot-2026-05-02/`](docs/control-artifacts/27-run-pilot-2026-05-02/).
+
 If the article cannot be written from exported data, V1 failed. There is no "but the demo looked cool" escape hatch.
 
 ## Current contents
@@ -97,6 +99,9 @@ docs/policy-bonfire-test-harness-spec.md   <- current V1 harness spec
 AGENTS.md                                  <- public-safety guardrails for coding agents
 docs/
   README.md                                <- documentation index
+  policy-bonfire-test-harness-spec.md      <- current V1 harness spec
+  control-artifacts/
+    27-run-pilot-2026-05-02/               <- frozen public-safe control pilot bundle
   hackathon-submission-receipt.md          <- protected: hackathon submission receipt
   demo-receipts.md                         <- protected: synthetic demo screenshot index
 assets/
@@ -109,6 +114,7 @@ assets/
 Start here:
 
 - [`docs/policy-bonfire-test-harness-spec.md`](docs/policy-bonfire-test-harness-spec.md) — current Policy Bonfire V1 spec.
+- [`docs/control-artifacts/27-run-pilot-2026-05-02/`](docs/control-artifacts/27-run-pilot-2026-05-02/) — frozen public-safe 27-run control pilot bundle.
 - [`docs/README.md`](docs/README.md) — documentation index.
 - [`AGENTS.md`](AGENTS.md) — public-safety rules for coding agents working in this repo.
 
