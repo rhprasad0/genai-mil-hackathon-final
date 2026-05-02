@@ -55,7 +55,7 @@ def export_bundle(
     exhibit_dir.mkdir(parents=True, exist_ok=True)
 
     artifacts: dict[Path, str] = {
-        export_path / "failure_cases.md": _failure_cases(evaluator_results, scenarios),
+        export_path / "failure_cases.md": _failure_cases(evaluator_results, scenarios, run_records, artifact_mode=artifact_mode),
         export_path / "failure_counts.csv": _failure_counts_csv(evaluator_results),
         export_path / "policy_anchor_table.md": _policy_anchor_table(anchors),
         export_path / "model_comparison.md": _model_comparison(capture_metadata, run_records),
@@ -107,7 +107,16 @@ def _banner(body: str, artifact_mode: str = "mock") -> str:
     return banner + "\n" + body.lstrip("\n")
 
 
-def _failure_cases(results: list[dict[str, Any]], scenarios: list[ScenarioCard]) -> str:
+def _failure_cases(
+    results: list[dict[str, Any]],
+    scenarios: list[ScenarioCard],
+    run_records: list[dict[str, Any]] | None = None,
+    *,
+    artifact_mode: str = "mock",
+) -> str:
+    if artifact_mode == "live":
+        return _live_failure_cases(results, scenarios, run_records or [])
+
     scenario_by_id = {scenario.scenario_id: scenario for scenario in scenarios}
     lines = [
         "# Failure Cases",
@@ -136,6 +145,88 @@ def _failure_cases(results: list[dict[str, Any]], scenarios: list[ScenarioCard])
             ]
         )
     return _banner("\n".join(lines) + "\n")
+
+
+def _live_failure_cases(results: list[dict[str, Any]], scenarios: list[ScenarioCard], run_records: list[dict[str, Any]]) -> str:
+    scenario_by_id = {scenario.scenario_id: scenario for scenario in scenarios}
+    record_by_run_id = {record.get("run_id"): record for record in run_records}
+    finding_results = [result for result in results if result.get("labels")]
+    excluded_records = [
+        record
+        for record in run_records
+        if record.get("scored") is False
+        and record.get("scenario_id")
+        and record.get("status") != "live_calls_not_enabled"
+    ]
+    lines = [
+        "# Failure Cases",
+        "",
+        "Synthetic notice: live-shaped provider evidence from synthetic packets only; no real records, official action, production deployment, or external system effect.",
+        "claim_limits: explain scored evaluator labels and excluded validation findings separately; do not convert excluded records into model-behavior claims.",
+        "",
+        "## Scored policy/control findings",
+    ]
+    if not finding_results:
+        lines.append("No scored policy/control findings were assigned in this artifact set.")
+    for result in finding_results:
+        record = record_by_run_id.get(result.get("run_id"), {})
+        scenario = scenario_by_id[result["scenario_id"]]
+        labels = [item["label"] for item in result["labels"]]
+        label_reasons = [f"{item['label']}: {item.get('reason', 'deterministic evaluator label')}" for item in result["labels"]]
+        provider = record.get("provider", "unknown_provider")
+        model_family = record.get("model_family", "unknown_lineage")
+        observed = result.get("observed_action", record.get("final_recommendation", "unknown"))
+        expected = result.get("appropriate_action", scenario.expected_safe_behavior.primary_expected_safe_control_action)
+        finding = _live_finding_sentence(observed, expected, record)
+        lines.extend(
+            [
+                "",
+                f"### {provider} / {model_family} / {scenario.scenario_id} / {result['prompt_variant_id']}",
+                f"title: {scenario.title}",
+                f"finding: {finding}",
+                "policy/control failure: " + "; ".join(label_reasons),
+                "labels: " + ", ".join(labels),
+                "policy_anchors: " + ", ".join(scenario.policy_anchors),
+                f"scenario_trap: {scenario.temptation_or_unsafe_shortcut}",
+                f"audit_trail_risk: {scenario.audit_trail_risk}",
+                "evaluator_summary: deterministic rules compared the observed action to the scenario's expected safe control and assigned the labels above.",
+                "architectural_lesson: policy citations and human-review language are not controls unless they preserve a real pre-finalization stop path.",
+                "claim_limit: synthetic live-provider parity evidence only; no real adjudication system, claimant, payment, or production behavior is implicated.",
+            ]
+        )
+    lines.extend(["", "## Excluded semantic/schema findings"])
+    if not excluded_records:
+        lines.append("No live records were excluded by schema or semantic validation.")
+    for record in excluded_records:
+        scenario = scenario_by_id.get(str(record.get("scenario_id")))
+        errors = [str(error) for error in record.get("decision_envelope_errors", [])]
+        error_text = "; ".join(errors) if errors else str(record.get("status", "excluded_without_detail"))
+        expected = scenario.expected_safe_behavior.primary_expected_safe_control_action if scenario else "unknown"
+        lines.extend(
+            [
+                "",
+                f"### {record.get('provider', 'unknown_provider')} / {record.get('model_family', 'unknown_lineage')} / {record.get('scenario_id')} / {record.get('prompt_variant_id')}",
+                "finding: Harness excluded this output before scoring because it failed schema or semantic validation.",
+                f"status: {record.get('status')}",
+                f"expected_safe_control: {expected}",
+                f"observed_recommendation: {record.get('final_recommendation')}",
+                f"validation_errors: {error_text}",
+                "claim_limit: This is not counted as a scored policy-break claim; it is evidence that the harness refused to launder an invalid accountability path into a scored result.",
+            ]
+        )
+    return _banner("\n".join(lines) + "\n", artifact_mode="live")
+
+
+def _live_finding_sentence(observed: Any, expected: Any, record: dict[str, Any]) -> str:
+    fake_calls = record.get("fake_tool_calls")
+    fake_call = fake_calls[0] if isinstance(fake_calls, list) and fake_calls and isinstance(fake_calls[0], dict) else {}
+    requested_action = fake_call.get("requested_action")
+    if requested_action and requested_action != "unknown" and requested_action != observed:
+        return (
+            f"We caught this specimen recommending `{observed}` while the fake tool layer requested "
+            f"`{requested_action}`, with expected safe control `{expected}`."
+        )
+    return f"We caught this specimen requesting `{observed}` when the expected safe control was `{expected}`."
 
 
 def _failure_counts_csv(results: list[dict[str, Any]]) -> str:

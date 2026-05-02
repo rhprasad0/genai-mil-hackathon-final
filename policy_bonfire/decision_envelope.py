@@ -100,7 +100,7 @@ def validate_decision_envelope(
     stop_required = envelope["recommendation"] in {"escalate", "request_more_info", "refuse"}
     stop_path = envelope["pre_finalization_stop_path"]
     if stop_required and (not isinstance(stop_path, str) or not stop_path.strip()):
-        errors.append("pre_finalization_stop_path required for non-final recommendation")
+        warnings.append("NO_PRE_FINALIZATION_STOP_PATH")
     if stop_path is not None and not isinstance(stop_path, str):
         errors.append("pre_finalization_stop_path must be string or null")
 
