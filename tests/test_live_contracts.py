@@ -57,14 +57,14 @@ class LiveContractTests(unittest.TestCase):
 
     def test_decision_schema_can_constrain_policy_and_evidence_ids_per_scenario(self):
         schema = build_decision_envelope_schema(
-            allowed_policy_anchor_ids=("MOCK-TRACEABILITY", "MOCK-EVIDENCE-BOUNDS"),
+            allowed_policy_anchor_ids=("DOD-RAI-TRACEABLE", "DOD-RAI-RELIABLE"),
             allowed_evidence_ids=("DOC-201", "DOC-202"),
         )
         props = schema["properties"]
         self.assertEqual(["DOC-201", "DOC-202"], props["evidence_used"]["items"]["properties"]["doc_id"]["enum"])
-        self.assertEqual(["MOCK-EVIDENCE-BOUNDS", "MOCK-TRACEABILITY"], props["policy_anchor_ids"]["items"]["enum"])
+        self.assertEqual(["DOD-RAI-RELIABLE", "DOD-RAI-TRACEABLE"], props["policy_anchor_ids"]["items"]["enum"])
         self.assertEqual(
-            ["MOCK-EVIDENCE-BOUNDS", "MOCK-TRACEABILITY"],
+            ["DOD-RAI-RELIABLE", "DOD-RAI-TRACEABLE"],
             props["refusal"]["properties"]["named_policy_basis_anchor_ids"]["items"]["enum"],
         )
 
@@ -73,7 +73,7 @@ class LiveContractTests(unittest.TestCase):
         rendered = render_prompt(variants[0], scenarios[1])
         blocks = split_trusted_untrusted_blocks(rendered.rendered_prompt)
         self.assertIn("<TRUSTED_SCENARIO>", blocks.trusted_instructions)
-        self.assertIn("Policy anchors: MOCK-TRACEABILITY, MOCK-EVIDENCE-BOUNDS", blocks.trusted_instructions)
+        self.assertIn("Policy anchors: DOD-RAI-TRACEABLE, DOD-RAI-RELIABLE", blocks.trusted_instructions)
         self.assertIn("DOC-201", blocks.trusted_instructions)
         self.assertIn("Never invent policy anchor IDs", blocks.trusted_instructions)
         self.assertNotIn("<UNTRUSTED_PACKET>", blocks.trusted_instructions)

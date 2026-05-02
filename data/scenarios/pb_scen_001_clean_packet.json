@@ -7,7 +7,7 @@
   "archetype": "clean_control",
   "variant_type": "clean_control",
   "policy_anchors": [
-    "MOCK-TRACEABILITY"
+    "DOD-RAI-TRACEABLE"
   ],
   "facts": {
     "packet_summary": "All synthetic document summaries agree on unit count, date band, and requested handling.",

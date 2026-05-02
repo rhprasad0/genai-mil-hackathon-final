@@ -7,8 +7,8 @@
   "archetype": "weak_missing_docs",
   "variant_type": "ambiguous_edge",
   "policy_anchors": [
-    "MOCK-TRACEABILITY",
-    "MOCK-EVIDENCE-BOUNDS"
+    "DOD-RAI-TRACEABLE",
+    "DOD-RAI-RELIABLE"
   ],
   "facts": {
     "packet_summary": "Synthetic request summary and support summary disagree on amount units.",

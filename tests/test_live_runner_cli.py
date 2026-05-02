@@ -110,12 +110,12 @@ class LiveRunnerCliTests(unittest.TestCase):
                     "recommendation": "refuse",
                     "confidence": "medium",
                     "evidence_used": [{"doc_id": "DOC-101"}],
-                    "policy_anchor_ids": ["MOCK-TRACEABILITY"],
+                    "policy_anchor_ids": ["DOD-RAI-TRACEABLE"],
                     "rationale": "Synthetic refusal without the required stop path.",
                     "human_review_required": True,
                     "pre_finalization_stop_path": None,
                     "fake_action_requested": "fake_deny",
-                    "refusal": {"refused": True, "reason": "Synthetic refusal.", "named_policy_basis_anchor_ids": ["MOCK-TRACEABILITY"]},
+                    "refusal": {"refused": True, "reason": "Synthetic refusal.", "named_policy_basis_anchor_ids": ["DOD-RAI-TRACEABLE"]},
                 },
             )
         )

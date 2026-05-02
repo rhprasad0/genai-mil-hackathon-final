@@ -12,13 +12,19 @@ from tests.helpers import mutable_anchor_payload, write_json
 
 
 class AnchorManifestTests(unittest.TestCase):
-    def test_loads_fresh_mock_anchors(self):
+    def test_loads_fresh_public_policy_anchors(self):
         anchors = load_anchor_manifest(
             Path("data/policy_anchors/mock_v1_anchors.json"),
             run_date=date(2026, 5, 1),
         )
         self.assertEqual(
-            {"MOCK-TRACEABILITY", "MOCK-EVIDENCE-BOUNDS", "MOCK-HUMAN-AUTHORITY"},
+            {
+                "DOD-RAI-TRACEABLE",
+                "DOD-RAI-RELIABLE",
+                "DOD-RAI-RESPONSIBLE",
+                "DOD-RAI-GOVERNABLE",
+                "CDAO-RAI-PATHWAY-GOVERNANCE",
+            },
             set(anchors),
         )
 

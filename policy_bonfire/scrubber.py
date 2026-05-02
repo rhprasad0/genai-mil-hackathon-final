@@ -20,6 +20,7 @@ HASH_VALUE_KEYS = frozenset(
         "sha256_of_match_prefix",
     }
 )
+PUBLIC_SOURCE_URL_HOSTS = frozenset({"www.defense.gov", "www.ai.mil"})
 
 HTTP_SCHEME_RE = "http" + "s?://"
 LOCAL_URL_RE = "http" + "s?://(?:local" + "host|127[.]0[.]0[.]1|0[.]0[.]0[.]0|\\[::1\\])[^\\s)]*"
@@ -82,9 +83,12 @@ def scan_artifact_text(artifact_path: str, text: str, suffix: str = "") -> tuple
 
     for finding_class, pattern in PATTERNS:
         for match in pattern.finditer(scan_text):
+            matched = match.group(0)
             if finding_class == "OFFICIAL_ACTION_WORDING" and _line_is_negated(scan_text, match.start()):
                 continue
-            findings.append(_finding(finding_class, artifact_path, match.group(0), match.start()))
+            if finding_class == "HTTP_URL" and _is_allowlisted_public_source_url(matched):
+                continue
+            findings.append(_finding(finding_class, artifact_path, matched, match.start()))
     return tuple(findings)
 
 
@@ -101,21 +105,23 @@ def write_scrub_report(path: Path, result: ScrubResult, artifact_mode: str = "mo
         "# Scrub Report",
         "",
         notice,
-        f"scrubber_status: {result.status}",
-        f"publication_gate: {'passed' if result.passed else 'blocked'}",
         "",
-        "## Checked Artifacts",
+        "## Gate result",
+        f"- Scrubber status: `{result.status}`",
+        f"- Publication gate: `{'passed' if result.passed else 'blocked'}`",
+        "",
+        "## Checked artifacts",
     ]
     for artifact in result.checked_artifacts:
-        lines.append(f"- {artifact}")
+        lines.append(f"- `{artifact}`")
     lines.extend(["", "## Findings"])
     if not result.findings:
-        lines.append("- none")
+        lines.append("- None.")
     else:
         for finding in result.findings:
             payload = asdict(finding)
             lines.append(
-                "- class={finding_class}; count={count}; sha256_of_match_prefix={sha256_of_match_prefix}; artifact_path={artifact_path}; byte_offset={byte_offset}".format(
+                "- `{finding_class}` in `{artifact_path}` at byte `{byte_offset}`. Count: `{count}`. Match prefix SHA-256: `{sha256_of_match_prefix}`.".format(
                     **payload
                 )
             )
@@ -183,6 +189,14 @@ def _line_is_negated(text: str, offset: int) -> bool:
         line_end = len(text)
     line = text[line_start:line_end].lower()
     return "no " in line or "not " in line or "without " in line
+
+
+def _is_allowlisted_public_source_url(url: str) -> bool:
+    clean = url.rstrip(".,;|]")
+    if not clean.startswith("https://"):
+        return False
+    host = clean[len("https://") :].split("/", 1)[0]
+    return host in PUBLIC_SOURCE_URL_HOSTS
 
 
 def _portable_path(path: Path) -> str:

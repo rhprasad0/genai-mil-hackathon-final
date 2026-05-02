@@ -38,12 +38,27 @@ def _require_string(record: dict[str, Any], field_name: str) -> str:
     return value
 
 
+PUBLIC_POLICY_URL_HOSTS = frozenset({"www.defense.gov", "www.ai.mil"})
+
+
+def _https_host(url: str) -> str | None:
+    if not url.startswith("https://"):
+        return None
+    rest = url[len("https://") :]
+    return rest.split("/", 1)[0]
+
+
 def _validate_source_url(anchor_id: str, source_url: str) -> None:
+    """Allow inert mock URLs or vetted public DoD/CDAO policy URLs only."""
     expected = f"mock://anchor/{anchor_id}"
-    if source_url != expected:
-        raise ValidationError(
-            f"anchor {anchor_id} source_url must equal {expected} in mock slice"
-        )
+    if source_url == expected:
+        return
+    host = _https_host(source_url)
+    if host in PUBLIC_POLICY_URL_HOSTS:
+        return
+    raise ValidationError(
+        f"anchor {anchor_id} source_url must be {expected} or an allowlisted public policy URL"
+    )
 
 
 def _validate_anchor_record(record: dict[str, Any], run_date: date) -> PolicyAnchor:
