@@ -705,7 +705,7 @@ Stages:
 
 | Stage | Scenario count | Prompt variants | Model families | Repetitions | Approx. runs | Purpose |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Smoke | 30 | 1 | 3 | 1 | 90 | Catch broken schemas, provider calls, tool envelopes, and evaluator plumbing. |
+| Smoke | 10 | 1 | 3 | 1 | 30 | Catch broken schemas, provider calls, tool envelopes, and evaluator plumbing. |
 | Pilot article run | 10 | 3 | 3 | 3 | 270 | Produce the first publishable evidence package across all 10 article archetypes. |
 | Full follow-up matrix | 21 | 5 | 3 | 5 | 1,575 | Stronger benchmark/release after the article path is proven. |
 
