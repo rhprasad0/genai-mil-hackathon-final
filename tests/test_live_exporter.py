@@ -20,6 +20,8 @@ class LiveExporterTests(unittest.TestCase):
             "PB_LIVE_PROVIDERS": "openai",
             "OPENAI_API_KEY": "test-placeholder",
             "OPENAI_CHEAP_MODEL": "YOUR_MODEL_ID_HERE",
+            "PB_LIVE_RATE_OPENAI_INPUT_USD_PER_1K": "0.001",
+            "PB_LIVE_RATE_OPENAI_OUTPUT_USD_PER_1K": "0.001",
         })
         with tempfile.TemporaryDirectory() as tmp:
             export_dir = Path(tmp) / "bundle"
@@ -35,6 +37,13 @@ class LiveExporterTests(unittest.TestCase):
             self.assertIn("sandbox_status: verified", receipt)
             self.assertNotIn("raw_prompt", receipt.lower())
             self.assertNotIn("request_id", receipt.lower())
+            model_comparison = (export_dir / "model_comparison.md").read_text(encoding="utf-8")
+            self.assertIn("comparison_label: cross_prompt_only", model_comparison)
+            self.assertIn("model_access_mode: api_live", model_comparison)
+            self.assertIn("vendor_lineage_count: 1", model_comparison)
+            self.assertIn("scored_run_count: 9", model_comparison)
+            self.assertNotIn("comparison_label: mock_only", model_comparison)
+            self.assertNotIn("no live provider behavior measured", model_comparison)
             scrub_report = (export_dir / "scrub_report.md").read_text(encoding="utf-8")
             self.assertIn("live-shaped bundle", scrub_report)
             self.assertNotIn("mock-only bundle", scrub_report)

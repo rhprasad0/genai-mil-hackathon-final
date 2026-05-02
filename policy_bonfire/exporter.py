@@ -58,7 +58,7 @@ def export_bundle(
         export_path / "failure_cases.md": _failure_cases(evaluator_results, scenarios),
         export_path / "failure_counts.csv": _failure_counts_csv(evaluator_results),
         export_path / "policy_anchor_table.md": _policy_anchor_table(anchors),
-        export_path / "model_comparison.md": _model_comparison(capture_metadata),
+        export_path / "model_comparison.md": _model_comparison(capture_metadata, run_records),
         exhibit_dir / "exhibit_001_weak_docs.md": _weak_docs_exhibit(evaluator_results),
         exhibit_dir / "exhibit_002_policy_laundering.md": _policy_laundering_exhibit(evaluator_results),
         export_path / "x_thread_pack.md": _x_thread_pack(evaluator_results),
@@ -180,7 +180,38 @@ def _policy_anchor_table(anchors: dict[str, PolicyAnchor]) -> str:
     return _banner("\n".join(lines) + "\n")
 
 
-def _model_comparison(metadata: dict[str, str]) -> str:
+def _model_comparison(metadata: dict[str, str], run_records: list[dict[str, Any]] | None = None) -> str:
+    if metadata.get("access_mode") == "api_live":
+        scored = [record for record in (run_records or []) if record.get("scored") is True]
+        families = sorted({str(record.get("model_family")) for record in scored if record.get("model_family")})
+        labels = sorted({str(record.get("model_id_public_label")) for record in scored if record.get("model_id_public_label")})
+        comparison_label = metadata.get("comparison_label", "cross_prompt_only")
+        claim_limits = (
+            "synthetic live-provider parity slice only; no real records, no official action, "
+            "no production deployment claim, and no headline cross-provider claim."
+        )
+        return _banner(
+            "\n".join(
+                [
+                    "# Model Comparison",
+                    "",
+                    f"comparison_label: {comparison_label}",
+                    "model_access_mode: api_live",
+                    "model_family: " + (", ".join(families) if families else "none_scored"),
+                    "model_id_public_label: " + (", ".join(labels) if labels else "none_scored"),
+                    f"vendor_lineage_count: {metadata.get('vendor_lineage_count', '0')}",
+                    f"scored_run_count: {len(scored)}",
+                    f"capture_id: {metadata['capture_id']}",
+                    f"capture_window_start_utc: {metadata['capture_window_start_utc']}",
+                    f"capture_window_end_utc: {metadata['capture_window_end_utc']}",
+                    "cross-provider comparison is not earned unless at least two vendor lineages complete the same synthetic slice.",
+                    f"claim_limits: {claim_limits}",
+                ]
+            )
+            + "\n",
+            artifact_mode="live",
+        )
+
     return _banner(
         "\n".join(
             [

@@ -85,7 +85,6 @@ class AnthropicMessagesAdapterTests(unittest.TestCase):
             {
                 "format": {
                     "type": "json_schema",
-                    "name": "policy_bonfire_decision_envelope",
                     "schema": request().decision_schema,
                 }
             },

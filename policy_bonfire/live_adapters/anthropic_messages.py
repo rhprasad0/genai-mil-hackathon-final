@@ -41,7 +41,6 @@ class AnthropicMessagesAdapter:
             "output_config": {
                 "format": {
                     "type": "json_schema",
-                    "name": "policy_bonfire_decision_envelope",
                     "schema": request.decision_schema,
                 }
             },
