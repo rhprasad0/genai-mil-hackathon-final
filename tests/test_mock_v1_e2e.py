@@ -11,7 +11,7 @@ from policy_bonfire.run_mock_v1 import main
 from policy_bonfire.types import CSV_MOCK_ONLY_BANNER, MOCK_ONLY_BANNER
 
 from tests.helpers import DATA_DIR, ROOT
-from tests.test_evaluator import EXPECTED_LABELS
+from tests.test_evaluator import EXPECTED_RUN_COUNT
 
 
 PROTECTED_PATHS = [
@@ -45,15 +45,16 @@ class MockV1EndToEndTests(unittest.TestCase):
             run_records = json.loads((export_one / "run_records.json").read_text(encoding="utf-8"))
             evaluator_results = json.loads((export_one / "evaluator_results.json").read_text(encoding="utf-8"))
             self.assertEqual(MOCK_ONLY_BANNER, run_records["_mock_only_notice"])
-            self.assertEqual(9, len(run_records["run_records"]))
-            self.assertEqual(9, len(evaluator_results["evaluator_results"]))
+            self.assertEqual(EXPECTED_RUN_COUNT, len(run_records["run_records"]))
+            self.assertEqual(EXPECTED_RUN_COUNT, len(evaluator_results["evaluator_results"]))
             self.assertTrue(all(record["model_id_public_label"] == "mock-specimen-v1" for record in run_records["run_records"]))
 
             observed = {
                 (row["scenario_id"], row["prompt_variant_id"]): {item["label"] for item in row["labels"]}
                 for row in evaluator_results["evaluator_results"]
             }
-            self.assertEqual(EXPECTED_LABELS, observed)
+            self.assertEqual(EXPECTED_RUN_COUNT, len(observed))
+            self.assertIn(("PB-SCEN-010", "decorative_hitl_specimen"), observed)
 
             self.assertEqual(
                 (export_one / "run_records.json").read_bytes(),

@@ -11,15 +11,17 @@ from policy_bonfire.live_config import parse_live_config
 from policy_bonfire.live_contracts import LiveModelResponse, STATUS_COMPLETED_VALID, STATUS_EXCLUDED_FENCED_JSON
 from policy_bonfire.run_live_provider_slice import main, run_live_slice
 from policy_bonfire.types import CSV_LIVE_RUN_BANNER, LIVE_RUN_BANNER
-from tests.helpers import DATA_DIR
+from tests.helpers import copy_live_test_data
 from policy_bonfire.anchors import parse_run_date
 
 
 class LiveRunnerCliTests(unittest.TestCase):
     def test_cli_default_is_offline_and_writes_skipped_receipt(self):
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "live"
-            status = main(["--data-dir", str(DATA_DIR), "--export-dir", str(export_dir), "--run-date", "2026-05-01", "--capture-id", "offline-skip"])
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "live"
+            status = main(["--data-dir", str(data_dir), "--export-dir", str(export_dir), "--run-date", "2026-05-01", "--capture-id", "offline-skip"])
             self.assertEqual(0, status)
             receipt = (export_dir / "live_provider_receipt.md").read_text(encoding="utf-8")
             self.assertEqual(LIVE_RUN_BANNER, receipt.splitlines()[0])
@@ -40,16 +42,32 @@ class LiveRunnerCliTests(unittest.TestCase):
         config = parse_live_config(env)
         adapters = {"openai": FakeLiveAdapter("openai", "YOUR_MODEL_ID_HERE", "cheap-mini-tier")}
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "live"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "fake-live", config, adapters)
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "live"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "fake-live", config, adapters)
             self.assertTrue(result.passed, result.findings)
             for path in required_artifact_paths(export_dir, artifact_mode="live"):
                 self.assertTrue(path.exists(), path)
             usage = (export_dir / "live_usage_summary.csv").read_text(encoding="utf-8")
             self.assertEqual(CSV_LIVE_RUN_BANNER, usage.splitlines()[0])
+            self.assertIn("repetition_id", usage.splitlines()[1])
             records = json.loads((export_dir / "run_records.json").read_text(encoding="utf-8"))["run_records"]
             scored = [record for record in records if record.get("scored") is True]
-            self.assertEqual(9, len(scored))
+            self.assertEqual(3, config.repetitions)
+            self.assertEqual(27, len(scored))
+            self.assertEqual(len(records), len({record["run_id"] for record in records}))
+            self.assertEqual({"rep_001", "rep_002", "rep_003"}, {record["repetition_id"] for record in scored})
+            self.assertTrue(all(record["repetition_id"] == "rep_000" for record in records if record["status"] == "live_calls_not_enabled"))
+            by_combo: dict[tuple[str, str], list[dict[str, object]]] = {}
+            for record in scored:
+                by_combo.setdefault((str(record["scenario_id"]), str(record["prompt_variant_id"])), []).append(record)
+            self.assertEqual(9, len(by_combo))
+            for rows in by_combo.values():
+                self.assertEqual(3, len(rows))
+                self.assertEqual({"rep_001", "rep_002", "rep_003"}, {str(row["repetition_id"]) for row in rows})
+                for field in ("scenario_card_hash", "prompt_template_hash", "prompt_inventory_template_hash"):
+                    self.assertEqual(1, len({str(row[field]) for row in rows}))
             self.assertNotIn("rendered_prompt", json.dumps(records))
             self.assertNotIn("raw_response", json.dumps(records).lower())
 
@@ -57,13 +75,16 @@ class LiveRunnerCliTests(unittest.TestCase):
         config = parse_live_config({})
         adapters = {"openai": FakeLiveAdapter("openai", "offline-fake-model", "cheap-mini-tier")}
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "live"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "no-live", config, adapters)
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "live"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "no-live", config, adapters)
             self.assertTrue(result.passed, result.findings)
             records = json.loads((export_dir / "run_records.json").read_text(encoding="utf-8"))["run_records"]
             openai = [record for record in records if record.get("provider") == "openai"]
             self.assertEqual(1, len(openai))
             self.assertEqual("live_calls_not_enabled", openai[0]["status"])
+            self.assertEqual("rep_000", openai[0]["repetition_id"])
             self.assertTrue(all(record.get("scored") is False for record in records))
 
     def test_offline_skipped_records_do_not_persist_exact_model_id(self):
@@ -73,8 +94,10 @@ class LiveRunnerCliTests(unittest.TestCase):
             "OPENAI_CHEAP_MODEL": "SHOULD_NOT_BE_USED",
         })
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "live"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "offline-model-hygiene", config, {})
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "live"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "offline-model-hygiene", config, {})
             self.assertTrue(result.passed, result.findings)
             records = json.loads((export_dir / "run_records.json").read_text(encoding="utf-8"))["run_records"]
             openai = [record for record in records if record.get("provider") == "openai"][0]
@@ -91,6 +114,7 @@ class LiveRunnerCliTests(unittest.TestCase):
             "PB_LIVE_RATE_OPENAI_INPUT_USD_PER_1K": "0.001",
             "PB_LIVE_RATE_OPENAI_OUTPUT_USD_PER_1K": "0.001",
             "PB_LIVE_MAX_RUNS": "1",
+            "PB_LIVE_REPETITIONS": "1",
         }
         config = parse_live_config(env)
         adapter = FakeLiveAdapter("openai", "YOUR_MODEL_ID_HERE", "cheap-mini-tier")
@@ -120,8 +144,10 @@ class LiveRunnerCliTests(unittest.TestCase):
             )
         )
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "live"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "semantic-error", config, {"openai": adapter})
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "live"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "semantic-error", config, {"openai": adapter})
             self.assertTrue(result.passed, result.findings)
             records = json.loads((export_dir / "run_records.json").read_text(encoding="utf-8"))["run_records"]
             completed = [record for record in records if record.get("status") == STATUS_COMPLETED_VALID][0]
@@ -144,6 +170,7 @@ class LiveRunnerCliTests(unittest.TestCase):
             "PB_LIVE_RATE_OPENAI_INPUT_USD_PER_1K": "0.001",
             "PB_LIVE_RATE_OPENAI_OUTPUT_USD_PER_1K": "0.005",
             "PB_LIVE_MAX_RUNS": "1",
+            "PB_LIVE_REPETITIONS": "1",
         }
         config = parse_live_config(env)
         adapter = FakeLiveAdapter("openai", "YOUR_MODEL_ID_HERE", "cheap-mini-tier")
@@ -163,14 +190,42 @@ class LiveRunnerCliTests(unittest.TestCase):
             )
         )
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "live"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "excluded-cost", config, {"openai": adapter})
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "live"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "excluded-cost", config, {"openai": adapter})
             self.assertTrue(result.passed, result.findings)
             records = json.loads((export_dir / "run_records.json").read_text(encoding="utf-8"))["run_records"]
             excluded = [record for record in records if record.get("status") == STATUS_EXCLUDED_FENCED_JSON][0]
             self.assertEqual("0.002750", f"{excluded['cost_estimate']:.6f}")
             usage = (export_dir / "live_usage_summary.csv").read_text(encoding="utf-8")
             self.assertIn("0.002750", usage)
+
+    def test_max_runs_blocks_repetition_expanded_schedule(self):
+        env = {
+            "PB_LIVE_CALLS": "1",
+            "PB_LIVE_PROVIDERS": "openai",
+            "OPENAI_API_KEY": "test-placeholder",
+            "OPENAI_CHEAP_MODEL": "YOUR_MODEL_ID_HERE",
+            "PB_LIVE_RATE_OPENAI_INPUT_USD_PER_1K": "0.001",
+            "PB_LIVE_RATE_OPENAI_OUTPUT_USD_PER_1K": "0.001",
+            "PB_LIVE_MAX_RUNS": "1",
+        }
+        config = parse_live_config(env)
+        adapters = {"openai": FakeLiveAdapter("openai", "YOUR_MODEL_ID_HERE", "cheap-mini-tier")}
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "live"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "max-runs-reps", config, adapters)
+            self.assertTrue(result.passed, result.findings)
+            records = json.loads((export_dir / "run_records.json").read_text(encoding="utf-8"))["run_records"]
+            openai = [record for record in records if record.get("provider") == "openai" and record.get("scenario_id")]
+            self.assertEqual(27, len(openai))
+            self.assertEqual(1, sum(1 for record in openai if record["status"] == "completed_valid"))
+            self.assertEqual(26, sum(1 for record in openai if record["status"] == "blocked_cost_cap"))
+            self.assertEqual({"rep_001", "rep_002", "rep_003"}, {record["repetition_id"] for record in openai})
+            self.assertEqual(27, len({record["run_id"] for record in openai}))
 
     def test_cumulative_cost_cap_reserves_projection_across_calls(self):
         env = {
@@ -185,13 +240,17 @@ class LiveRunnerCliTests(unittest.TestCase):
         config = parse_live_config(env)
         adapters = {"openai": FakeLiveAdapter("openai", "YOUR_MODEL_ID_HERE", "cheap-mini-tier")}
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "live"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "cost-reserve", config, adapters)
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "live"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "cost-reserve", config, adapters)
             self.assertTrue(result.passed, result.findings)
             records = json.loads((export_dir / "run_records.json").read_text(encoding="utf-8"))["run_records"]
             openai = [record for record in records if record.get("provider") == "openai"]
+            scheduled = [record for record in openai if record.get("scenario_id")]
             self.assertEqual(1, sum(1 for record in openai if record["status"] == "completed_valid"))
-            self.assertEqual(8, sum(1 for record in openai if record["status"] == "blocked_cost_cap"))
+            self.assertEqual(len(scheduled) - 1, sum(1 for record in openai if record["status"] == "blocked_cost_cap"))
+            self.assertEqual({"rep_001", "rep_002", "rep_003"}, {record["repetition_id"] for record in scheduled})
 
 
 if __name__ == "__main__":

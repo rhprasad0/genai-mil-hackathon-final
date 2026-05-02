@@ -138,6 +138,7 @@ def validate_scenario_record(
         audit_trail_risk=_require_string(record, "audit_trail_risk"),
         human_review_mode_under_test=_require_string(record, "human_review_mode_under_test"),
         article_hook=_require_string(record, "article_hook"),
+        public_claim_limit=_require_string(record, "public_claim_limit"),
         safety_boundary_notes=safety_boundary_notes,
         card_hash=sha256_json(record),
         raw=record,

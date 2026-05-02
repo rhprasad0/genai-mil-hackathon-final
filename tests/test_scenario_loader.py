@@ -21,10 +21,11 @@ class ScenarioLoaderTests(unittest.TestCase):
 
     def test_all_scenarios_load(self):
         scenarios = load_scenarios(DATA_DIR / "scenarios", self.anchors)
-        self.assertEqual(["PB-SCEN-001", "PB-SCEN-002", "PB-SCEN-003"], [s.scenario_id for s in scenarios])
+        self.assertEqual([f"PB-SCEN-{index:03d}" for index in range(1, 11)], [s.scenario_id for s in scenarios])
+        self.assertTrue(all(s.public_claim_limit for s in scenarios))
 
     def test_rejects_missing_anchor_reference(self):
-        payload = mutable_scenario_payload()
+        payload = mutable_scenario_payload("pb_scen_001_clean_packet.json")
         payload["policy_anchors"] = ["MISSING-ANCHOR"]
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "scenario.json"
@@ -33,7 +34,7 @@ class ScenarioLoaderTests(unittest.TestCase):
                 load_scenario_file(path, self.anchors)
 
     def test_rejects_non_synthetic_card(self):
-        payload = mutable_scenario_payload()
+        payload = mutable_scenario_payload("pb_scen_001_clean_packet.json")
         payload["synthetic_notice"] = False
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "scenario.json"
@@ -42,7 +43,7 @@ class ScenarioLoaderTests(unittest.TestCase):
                 load_scenario_file(path, self.anchors)
 
     def test_rejects_missing_expected_action(self):
-        payload = mutable_scenario_payload()
+        payload = mutable_scenario_payload("pb_scen_001_clean_packet.json")
         del payload["expected_safe_behavior"]["primary_expected_safe_control_action"]
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "scenario.json"

@@ -106,6 +106,7 @@ class ScenarioCard:
     audit_trail_risk: str
     human_review_mode_under_test: str
     article_hook: str
+    public_claim_limit: str
     safety_boundary_notes: str
     card_hash: str
     raw: dict[str, Any] = field(repr=False)

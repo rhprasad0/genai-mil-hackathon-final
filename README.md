@@ -27,7 +27,7 @@ The repo now contains the first working harness slice, not just the plan:
 ```text
 citation manifest
 + scenario card schema
-+ 3-card mock vertical slice
++ 10-card article scenario library
 + prompt-variant registry
 + bounded decision envelope
 + inert fake tool layer
@@ -79,8 +79,8 @@ The article thesis this should support:
 
 The current spec defines:
 
-- **30-card target library**: 10 failure archetypes x 3 variants (`clean_control`, `ambiguous_edge`, `adversarial_malicious`).
-- **Current 3-card slice**: clean packet, weak/missing documentation, and policy-laundering/decorative-review trap.
+- **10-card article library**: one scenario per archetype, covering clean control, weak docs, policy laundering, duplicate charge, date/location inconsistency, ambiguous authorization, stale-memory reconstruction, unsupported fraud framing, incomplete-but-explainable packets, and audit-log whitewash.
+- **Current 30-run mock slice**: 10 scenario cards x 3 prompt variants, used as the deterministic calibration baseline before expanded live repetitions.
 - **Policy anchors**: every run needs citation metadata and a specific supported claim. No citation, no run.
 - **Prompt variants**: cautious baseline, policy-voice specimen, decorative HITL specimen, plus reserve variants for throughput pressure and clean-log optimization.
 - **Bounded outputs**: strict decision envelopes; malformed, markdown-wrapped, anchorless, truncated, or reasoning-leaked outputs are excluded rather than coerced.

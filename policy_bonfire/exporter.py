@@ -180,7 +180,7 @@ def _failure_cases(
                 "",
                 "**Audit trail risk:** " + scenario.audit_trail_risk,
                 "**Architectural lesson:** Human authority must control consequential finalization before the system can close the loop.",
-                "**Claim limit:** Mock-only exemplar candidate, not publication evidence.",
+                "**Claim limit:** " + scenario.public_claim_limit,
             ]
         )
     if not any_findings:
@@ -247,7 +247,7 @@ def _live_failure_cases(
         "",
         "## Counting and nondeterminism note",
         "Failure count in this file is the number of scored evaluator results with one or more labels in this capture. Excluded semantic/schema rows and unscored provider/cap rows are reported below but are not counted as scored policy/control findings.",
-        "The exporter orders records deterministically by provider, model family, scenario, prompt variant, and run ID. Live provider calls in this harness use unsupported or unused seeds, so later captures can differ when a provider returns a different recommendation, fake action request, validation warning/error, or non-completing status.",
+        "The exporter orders records deterministically by provider, model family, scenario, prompt variant, repetition, and run ID. Live provider calls in this harness use unsupported or unused seeds, so later captures can differ when a provider returns a different recommendation, fake action request, validation warning/error, or non-completing status.",
         "",
         "## Common scored patterns",
     ]
@@ -271,7 +271,7 @@ def _live_failure_cases(
         lines.extend(
             [
                 "",
-                f"### {provider} / {model_family} / {scenario.scenario_id} / {result['prompt_variant_id']}",
+                f"### {provider} / {model_family} / {scenario.scenario_id} / {result['prompt_variant_id']} / {record.get('repetition_id', 'unknown_repetition')}",
                 "",
                 f"**Run ID:** `{record.get('run_id', result.get('run_id', 'unknown'))}`",
                 f"**Provider/model lineage:** `{provider}` / `{model_family}`",
@@ -280,6 +280,7 @@ def _live_failure_cases(
                 f"**Scenario:** {scenario.title}",
                 f"**Scenario card hash prefix:** `{_short_hash(record.get('scenario_card_hash', scenario.card_hash))}`",
                 f"**Prompt variant:** `{result['prompt_variant_id']}`",
+                f"**Repetition:** `{record.get('repetition_id', result.get('repetition_id', 'unknown'))}`",
                 f"**Prompt template hash prefix:** `{_short_hash(record.get('prompt_inventory_template_hash', record.get('prompt_template_hash', 'unknown')))}`",
                 f"**Prompt pressure:** {record.get('intended_pressure', 'unknown')}",
                 f"**Expected safe control:** `{expected}`",
@@ -301,7 +302,7 @@ def _live_failure_cases(
                 "**Scenario trap:** " + scenario.temptation_or_unsafe_shortcut,
                 "**Audit trail risk:** " + scenario.audit_trail_risk,
                 "**Architectural lesson:** Policy citations and human-review language are not controls unless they preserve a real pre-finalization stop path.",
-                "**Claim limit:** Scored synthetic live-provider parity evidence only. No real adjudication system, claimant, payment, or production behavior is implicated.",
+                "**Claim limit:** " + scenario.public_claim_limit,
             ]
         )
 
@@ -333,7 +334,7 @@ def _live_failure_cases(
         lines.extend(
             [
                 "",
-                f"### {record.get('provider', 'unknown_provider')} / {record.get('model_family', 'unknown_lineage')} / {record.get('scenario_id')} / {record.get('prompt_variant_id')}",
+                f"### {record.get('provider', 'unknown_provider')} / {record.get('model_family', 'unknown_lineage')} / {record.get('scenario_id')} / {record.get('prompt_variant_id')} / {record.get('repetition_id', 'unknown_repetition')}",
                 "",
                 "**Finding:** Harness excluded this output before scoring because it failed output-shape, schema, or semantic validation.",
                 f"**Run ID:** `{record.get('run_id', 'unknown')}`",
@@ -341,6 +342,7 @@ def _live_failure_cases(
                 f"**Model public label:** `{record.get('model_id_public_label', 'unknown')}`",
                 f"**Status:** `{record.get('status')}`",
                 f"**Prompt variant:** `{record.get('prompt_variant_id', 'unknown')}`",
+                f"**Repetition:** `{record.get('repetition_id', 'unknown')}`",
                 f"**Expected safe control:** `{expected}`",
                 f"**Observed recommendation:** `{record.get('final_recommendation')}`",
                 f"**Fake tool request:** {_fake_tool_summary(record)}",
@@ -361,7 +363,7 @@ def _live_failure_cases(
         lines.extend(
             [
                 "",
-                f"### {record.get('provider', 'unknown_provider')} / {record.get('model_family', 'unknown_lineage')} / {record.get('scenario_id')} / {record.get('prompt_variant_id')}",
+                f"### {record.get('provider', 'unknown_provider')} / {record.get('model_family', 'unknown_lineage')} / {record.get('scenario_id')} / {record.get('prompt_variant_id')} / {record.get('repetition_id', 'unknown_repetition')}",
                 "",
                 "**Finding:** Harness did not score this row because it did not produce a completed, validated decision envelope for scoring.",
                 f"**Run ID:** `{record.get('run_id', 'unknown')}`",
@@ -369,6 +371,7 @@ def _live_failure_cases(
                 f"**Model public label:** `{record.get('model_id_public_label', 'unknown')}`",
                 f"**Status:** `{record.get('status')}`",
                 f"**Prompt variant:** `{record.get('prompt_variant_id', 'unknown')}`",
+                f"**Repetition:** `{record.get('repetition_id', 'unknown')}`",
                 f"**Expected safe control:** `{expected}`",
                 f"**Observed recommendation:** `{record.get('final_recommendation')}`",
                 f"**Decision envelope warnings:** {_format_values(record.get('decision_envelope_warnings', []))}",
@@ -379,17 +382,18 @@ def _live_failure_cases(
     return _banner("\n".join(lines) + "\n", artifact_mode="live")
 
 
-def _live_record_sort_key(record: dict[str, Any]) -> tuple[str, str, str, str, str]:
+def _live_record_sort_key(record: dict[str, Any]) -> tuple[str, str, str, str, str, str]:
     return (
         str(record.get("provider", "")),
         str(record.get("model_family", "")),
         str(record.get("scenario_id", "")),
         str(record.get("prompt_variant_id", "")),
+        str(record.get("repetition_id", "")),
         str(record.get("run_id", "")),
     )
 
 
-def _live_result_sort_key(result: dict[str, Any], record_by_run_id: dict[Any, dict[str, Any]]) -> tuple[str, str, str, str, str]:
+def _live_result_sort_key(result: dict[str, Any], record_by_run_id: dict[Any, dict[str, Any]]) -> tuple[str, str, str, str, str, str]:
     record = record_by_run_id.get(result.get("run_id"), {})
     if record:
         return _live_record_sort_key(record)
@@ -398,6 +402,7 @@ def _live_result_sort_key(result: dict[str, Any], record_by_run_id: dict[Any, di
         "",
         str(result.get("scenario_id", "")),
         str(result.get("prompt_variant_id", "")),
+        str(result.get("repetition_id", "")),
         str(result.get("run_id", "")),
     )
 
@@ -503,10 +508,11 @@ def _common_live_patterns(
         for row in sorted(rows, key=lambda result: _live_result_sort_key(result, record_by_run_id)):
             record = record_by_run_id.get(row.get("run_id"), {})
             record_refs.append(
-                "{provider}/{model}/{prompt}:{run_id}".format(
+                "{provider}/{model}/{prompt}/{repetition}:{run_id}".format(
                     provider=record.get("provider", "unknown_provider"),
                     model=record.get("model_family", "unknown_lineage"),
                     prompt=row.get("prompt_variant_id", "unknown_prompt"),
+                    repetition=record.get("repetition_id", row.get("repetition_id", "unknown_repetition")),
                     run_id=record.get("run_id", row.get("run_id", "unknown")),
                 )
             )
@@ -628,6 +634,7 @@ def _model_comparison(metadata: dict[str, str], run_records: list[dict[str, Any]
                     "- Access mode: `api_live`",
                     "- Model families: " + (", ".join(f"`{family}`" for family in families) if families else "none scored"),
                     "- Public model labels: " + (", ".join(f"`{label}`" for label in labels) if labels else "none scored"),
+                    f"- Repetitions configured: `{metadata.get('repetitions', 'unknown')}`",
                     f"- Vendor lineages completed: `{metadata.get('vendor_lineage_count', '0')}`",
                     f"- Scored runs: `{len(scored)}`",
                     "",
@@ -817,6 +824,7 @@ def _live_provider_receipt(run_records: list[dict[str, Any]], metadata: dict[str
         f"- Capture ID: `{metadata['capture_id']}`",
         f"- Access mode: `{metadata.get('access_mode', 'api_live')}`",
         f"- Comparison label: `{metadata.get('comparison_label', 'cross_prompt_only')}`",
+        f"- Repetitions configured: `{metadata.get('repetitions', 'unknown')}`",
         f"- Vendor lineages completed: `{metadata.get('vendor_lineage_count', '0')}`",
         "- Providers considered: " + (", ".join(f"`{provider}`" for provider in providers) if providers else "none"),
         f"- Scored runs: `{scored}`",
@@ -844,19 +852,39 @@ def _live_usage_summary_csv(run_records: list[dict[str, Any]]) -> str:
     output = io.StringIO()
     output.write(CSV_LIVE_RUN_BANNER + "\n")
     writer = csv.writer(output)
-    writer.writerow(["provider", "model_family", "model_id_public_label", "run_count", "scored_count", "excluded_count", "input_tokens", "output_tokens", "usage_estimated", "cost_estimate"])
-    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    writer.writerow([
+        "provider",
+        "model_family",
+        "model_id_public_label",
+        "scenario_id",
+        "prompt_variant_id",
+        "repetition_id",
+        "run_count",
+        "scored_count",
+        "excluded_count",
+        "input_tokens",
+        "output_tokens",
+        "usage_estimated",
+        "cost_estimate",
+    ])
+    grouped: dict[tuple[str, str, str, str, str, str], list[dict[str, Any]]] = {}
     for record in run_records:
         provider = str(record.get("provider", "unknown"))
         family = str(record.get("model_family", "unknown"))
         label = str(record.get("model_id_public_label", "unknown"))
-        grouped.setdefault((provider, family, label), []).append(record)
-    for (provider, family, label), rows in sorted(grouped.items()):
+        scenario_id = str(record.get("scenario_id", "unknown"))
+        prompt_variant_id = str(record.get("prompt_variant_id", "unknown"))
+        repetition_id = str(record.get("repetition_id", "unknown"))
+        grouped.setdefault((provider, family, label, scenario_id, prompt_variant_id, repetition_id), []).append(record)
+    for (provider, family, label, scenario_id, prompt_variant_id, repetition_id), rows in sorted(grouped.items()):
         scored = sum(1 for row in rows if row.get("scored") is True)
         writer.writerow([
             provider,
             family,
             label,
+            scenario_id,
+            prompt_variant_id,
+            repetition_id,
             len(rows),
             scored,
             len(rows) - scored,

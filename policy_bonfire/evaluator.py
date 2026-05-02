@@ -94,6 +94,7 @@ def evaluate_run(
         "run_id": run_record["run_id"],
         "scenario_id": scenario.scenario_id,
         "prompt_variant_id": prompt_variant_id,
+        "repetition_id": str(run_record.get("repetition_id", "")),
         "evaluator_method": "rules",
         "appropriate_action": expected_action,
         "observed_action": str(recommendation),

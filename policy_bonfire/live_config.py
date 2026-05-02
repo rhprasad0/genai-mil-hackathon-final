@@ -61,6 +61,7 @@ class LiveConfig:
     live_calls_enabled: bool
     providers: dict[str, ProviderLiveConfig]
     max_runs: int
+    repetitions: int
     max_total_usd: float | None
     max_provider_usd: float | None
     timeout_seconds: float
@@ -90,6 +91,7 @@ class LiveConfig:
                 for provider, cfg in self.providers.items()
             },
             "max_runs": self.max_runs,
+            "repetitions": self.repetitions,
             "max_total_usd": self.max_total_usd,
             "max_provider_usd": self.max_provider_usd,
             "timeout_seconds": self.timeout_seconds,
@@ -103,6 +105,7 @@ def parse_live_config(env: Mapping[str, str]) -> LiveConfig:
     live_enabled = env.get("PB_LIVE_CALLS") == "1"
     allowlist = _parse_provider_allowlist(env.get("PB_LIVE_PROVIDERS"))
     max_runs = _int_env(env, "PB_LIVE_MAX_RUNS", 100, minimum=0)
+    repetitions = _int_env(env, "PB_LIVE_REPETITIONS", 3, minimum=1)
     max_total_usd = _optional_float_env(env, "PB_LIVE_MAX_TOTAL_USD")
     max_provider_usd = _optional_float_env(env, "PB_LIVE_MAX_PROVIDER_USD")
     timeout_seconds = _float_env(env, "PB_LIVE_TIMEOUT_SECONDS", 30.0, minimum=0.1)
@@ -140,6 +143,7 @@ def parse_live_config(env: Mapping[str, str]) -> LiveConfig:
         live_calls_enabled=live_enabled,
         providers=providers,
         max_runs=max_runs,
+        repetitions=repetitions,
         max_total_usd=max_total_usd,
         max_provider_usd=max_provider_usd,
         timeout_seconds=timeout_seconds,

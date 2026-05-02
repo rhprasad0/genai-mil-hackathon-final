@@ -18,10 +18,18 @@ class LiveConfigTests(unittest.TestCase):
         config = parse_live_config({})
         self.assertFalse(config.live_calls_enabled)
         self.assertEqual(STATUS_LIVE_CALLS_NOT_ENABLED, config.provider_config("openai").skip_status)
+        self.assertEqual(3, config.repetitions)
         summary = config.redacted_summary()
         self.assertFalse(summary["live_calls_enabled"])
+        self.assertEqual(3, summary["repetitions"])
         self.assertNotIn("secret", repr(summary).lower())
         self.assertNotIn("API_KEY", repr(summary))
+
+    def test_live_repetitions_env_requires_positive_integer(self):
+        config = parse_live_config({"PB_LIVE_REPETITIONS": "5"})
+        self.assertEqual(5, config.repetitions)
+        with self.assertRaises(ValueError):
+            parse_live_config({"PB_LIVE_REPETITIONS": "0"})
 
     def test_missing_key_model_and_rate_are_safe_skips(self):
         missing_key = parse_live_config({"PB_LIVE_CALLS": "1", "OPENAI_CHEAP_MODEL": "YOUR_MODEL_ID_HERE"})

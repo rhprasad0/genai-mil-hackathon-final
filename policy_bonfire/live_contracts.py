@@ -78,6 +78,7 @@ class LiveModelRequest:
     seed: int | None = None
     timeout_seconds: int = 30
     cost_cap_context: dict[str, Any] = field(default_factory=dict)
+    repetition_id: str = "rep_001"
 
 
 @dataclass(frozen=True)

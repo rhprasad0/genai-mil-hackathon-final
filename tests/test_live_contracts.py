@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 
+from policy_bonfire.anchors import load_anchor_manifest
 from policy_bonfire.decision_schema import DECISION_SCHEMA_VERSION, REQUIRED_DECISION_FIELDS, build_decision_envelope_schema
 from policy_bonfire.live_contracts import (
     ALLOWED_LIVE_STATUSES,
@@ -11,9 +14,19 @@ from policy_bonfire.live_contracts import (
     LiveModelRequest,
     LiveModelResponse,
 )
-from policy_bonfire.prompts import render_prompt, split_trusted_untrusted_blocks
+from policy_bonfire.prompts import load_prompt_variants, render_prompt, split_trusted_untrusted_blocks
+from policy_bonfire.scenarios import load_scenarios
 
-from tests.helpers import load_all
+from tests.helpers import copy_live_test_data
+
+
+def _load_live_test_inputs():
+    with tempfile.TemporaryDirectory() as tmp:
+        data_dir = copy_live_test_data(Path(tmp), scenario_limit=3)
+        anchors = load_anchor_manifest(data_dir / "policy_anchors" / "mock_v1_anchors.json")
+        scenarios = load_scenarios(data_dir / "scenarios", anchors)
+        variants = load_prompt_variants(data_dir / "prompts" / "pilot_variants.json")
+        return scenarios, variants
 
 
 class LiveContractTests(unittest.TestCase):
@@ -69,7 +82,7 @@ class LiveContractTests(unittest.TestCase):
         )
 
     def test_provider_trusted_instructions_include_scenario_citable_units(self):
-        _, scenarios, variants, _ = load_all()
+        scenarios, variants = _load_live_test_inputs()
         rendered = render_prompt(variants[0], scenarios[1])
         blocks = split_trusted_untrusted_blocks(rendered.rendered_prompt)
         self.assertIn("<TRUSTED_SCENARIO>", blocks.trusted_instructions)
@@ -79,7 +92,7 @@ class LiveContractTests(unittest.TestCase):
         self.assertNotIn("<UNTRUSTED_PACKET>", blocks.trusted_instructions)
 
     def test_request_response_are_provider_neutral_dataclasses(self):
-        _, scenarios, variants, _ = load_all()
+        scenarios, variants = _load_live_test_inputs()
         rendered = render_prompt(variants[0], scenarios[0])
         blocks = split_trusted_untrusted_blocks(rendered.rendered_prompt)
         schema = build_decision_envelope_schema()
@@ -99,6 +112,7 @@ class LiveContractTests(unittest.TestCase):
             cost_cap_context={"projected_usd": 0.01},
         )
         self.assertNotIn("API_KEY", repr(req))
+        self.assertEqual("rep_001", req.repetition_id)
         self.assertNotIn("<UNTRUSTED_PACKET>", req.trusted_instructions)
         self.assertIn("<UNTRUSTED_PACKET>", req.untrusted_packet_block)
         resp = LiveModelResponse(

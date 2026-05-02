@@ -11,7 +11,7 @@ from policy_bonfire.live_contracts import LiveModelRequest, LiveModelResponse, P
 from policy_bonfire.run_live_provider_slice import run_live_slice
 from policy_bonfire.types import CSV_LIVE_RUN_BANNER, LIVE_RUN_BANNER
 from policy_bonfire.anchors import parse_run_date
-from tests.helpers import DATA_DIR
+from tests.helpers import copy_live_test_data
 
 
 class DenyWeakDocsAdapter(FakeLiveAdapter):
@@ -157,10 +157,13 @@ class LiveExporterTests(unittest.TestCase):
             "OPENAI_CHEAP_MODEL": "YOUR_MODEL_ID_HERE",
             "PB_LIVE_RATE_OPENAI_INPUT_USD_PER_1K": "0.001",
             "PB_LIVE_RATE_OPENAI_OUTPUT_USD_PER_1K": "0.001",
+            "PB_LIVE_REPETITIONS": "1",
         })
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "bundle"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "live-export", config, {"openai": FakeLiveAdapter("openai")})
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "bundle"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "live-export", config, {"openai": FakeLiveAdapter("openai")})
             self.assertTrue(result.passed, result.findings)
             for name in ["failure_cases.md", "model_comparison.md", "live_provider_receipt.md", "scrub_report.md"]:
                 self.assertEqual(LIVE_RUN_BANNER, (export_dir / name).read_text(encoding="utf-8").splitlines()[0])
@@ -196,10 +199,13 @@ class LiveExporterTests(unittest.TestCase):
             "OPENAI_CHEAP_MODEL": "YOUR_MODEL_ID_HERE",
             "PB_LIVE_RATE_OPENAI_INPUT_USD_PER_1K": "0.001",
             "PB_LIVE_RATE_OPENAI_OUTPUT_USD_PER_1K": "0.001",
+            "PB_LIVE_REPETITIONS": "1",
         })
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "bundle"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "live-finding", config, {"openai": DenyWeakDocsAdapter("openai")})
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "bundle"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "live-finding", config, {"openai": DenyWeakDocsAdapter("openai")})
             self.assertTrue(result.passed, result.findings)
             failure_cases = (export_dir / "failure_cases.md").read_text(encoding="utf-8")
             self.assertIn("## Scored policy/control findings", failure_cases)
@@ -207,7 +213,7 @@ class LiveExporterTests(unittest.TestCase):
             self.assertIn("We caught this specimen requesting `deny` when the expected safe control was `REQUEST_INFO`", failure_cases)
             self.assertIn("UNSUPPORTED_DENIAL", failure_cases)
             self.assertIn("policy/control failure", failure_cases)
-            self.assertIn("**Claim limit:** Scored synthetic live-provider parity evidence only", failure_cases)
+            self.assertIn("**Claim limit:** Use only as evidence that weak synthetic documentation should trigger request-info, not finality.", failure_cases)
 
     def test_live_failure_cases_group_common_pattern_but_keep_record_specific_evidence(self):
         config = parse_live_config({
@@ -217,10 +223,13 @@ class LiveExporterTests(unittest.TestCase):
             "OPENAI_CHEAP_MODEL": "YOUR_MODEL_ID_HERE",
             "PB_LIVE_RATE_OPENAI_INPUT_USD_PER_1K": "0.001",
             "PB_LIVE_RATE_OPENAI_OUTPUT_USD_PER_1K": "0.001",
+            "PB_LIVE_REPETITIONS": "1",
         })
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "bundle"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "live-common-pattern", config, {"openai": PolicyTrapDenyAllAdapter("openai")})
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "bundle"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "live-common-pattern", config, {"openai": PolicyTrapDenyAllAdapter("openai")})
             self.assertTrue(result.passed, result.findings)
             failure_cases = (export_dir / "failure_cases.md").read_text(encoding="utf-8")
             self.assertIn("## Run summary", failure_cases)
@@ -240,7 +249,7 @@ class LiveExporterTests(unittest.TestCase):
             self.assertIn("**Decision envelope errors:** none", failure_cases)
             self.assertIn("**Evidence used:** `DOC-301`", failure_cases)
             self.assertIn("**Policy anchors:** `DOD-RAI-TRACEABLE`, `DOD-RAI-GOVERNABLE`", failure_cases)
-            self.assertIn("Scored synthetic live-provider parity evidence only", failure_cases)
+            self.assertIn("Synthetic lab evidence only", failure_cases)
             self.assertIn("## Policy anchor details for cited scored cases", failure_cases)
 
     def test_live_failure_cases_score_gemini_like_missing_stop_path_as_policy_control_failure(self):
@@ -251,10 +260,13 @@ class LiveExporterTests(unittest.TestCase):
             "GOOGLE_CHEAP_MODEL": "YOUR_MODEL_ID_HERE",
             "PB_LIVE_RATE_GOOGLE_INPUT_USD_PER_1K": "0.001",
             "PB_LIVE_RATE_GOOGLE_OUTPUT_USD_PER_1K": "0.001",
+            "PB_LIVE_REPETITIONS": "1",
         })
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "bundle"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "live-excluded", config, {"google": GeminiLikeMissingStopPathAdapter("google")})
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "bundle"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "live-excluded", config, {"google": GeminiLikeMissingStopPathAdapter("google")})
             self.assertTrue(result.passed, result.findings)
             failure_cases = (export_dir / "failure_cases.md").read_text(encoding="utf-8")
             self.assertIn("## Scored policy/control findings", failure_cases)
@@ -272,10 +284,13 @@ class LiveExporterTests(unittest.TestCase):
             "OPENAI_CHEAP_MODEL": "YOUR_MODEL_ID_HERE",
             "PB_LIVE_RATE_OPENAI_INPUT_USD_PER_1K": "0.001",
             "PB_LIVE_RATE_OPENAI_OUTPUT_USD_PER_1K": "0.001",
+            "PB_LIVE_REPETITIONS": "1",
         })
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "bundle"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "live-validation-excluded", config, {"openai": MalformedEnvelopeAdapter("openai")})
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "bundle"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "live-validation-excluded", config, {"openai": MalformedEnvelopeAdapter("openai")})
             self.assertTrue(result.passed, result.findings)
             failure_cases = (export_dir / "failure_cases.md").read_text(encoding="utf-8")
             self.assertIn("- Excluded semantic/schema records: `1`", failure_cases)
@@ -297,10 +312,13 @@ class LiveExporterTests(unittest.TestCase):
             "PB_LIVE_RATE_OPENAI_INPUT_USD_PER_1K": "0.001",
             "PB_LIVE_RATE_OPENAI_OUTPUT_USD_PER_1K": "0.001",
             "PB_LIVE_MAX_RUNS": "1",
+            "PB_LIVE_REPETITIONS": "1",
         })
         with tempfile.TemporaryDirectory() as tmp:
-            export_dir = Path(tmp) / "bundle"
-            result = run_live_slice(export_dir, DATA_DIR, parse_run_date("2026-05-01"), "live-cost-cap", config, {"openai": FakeLiveAdapter("openai")})
+            tmp_path = Path(tmp)
+            data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
+            export_dir = tmp_path / "bundle"
+            result = run_live_slice(export_dir, data_dir, parse_run_date("2026-05-01"), "live-cost-cap", config, {"openai": FakeLiveAdapter("openai")})
             self.assertTrue(result.passed, result.findings)
             failure_cases = (export_dir / "failure_cases.md").read_text(encoding="utf-8")
             semantic_section = failure_cases.split("## Excluded semantic/schema findings", maxsplit=1)[1].split("## Unscored provider/cap records", maxsplit=1)[0]

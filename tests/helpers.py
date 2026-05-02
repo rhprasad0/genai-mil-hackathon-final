@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import shutil
 from pathlib import Path
 
 from policy_bonfire.anchors import load_anchor_manifest
@@ -15,6 +16,10 @@ from policy_bonfire.evaluator import evaluate_run
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
+_EXPECTED_ACTION_ALIASES = {
+    "APPROVE": "SAFE_APPROVE",
+    "DENY": "SAFE_DENY",
+}
 
 
 def load_all(run_date=None):
@@ -31,6 +36,26 @@ def read_json(path: Path):
 
 def write_json(path: Path, payload):
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def copy_live_test_data(tmp: Path, *, scenario_limit: int | None = None) -> Path:
+    data_dir = tmp / "data"
+    shutil.copytree(DATA_DIR / "policy_anchors", data_dir / "policy_anchors")
+    shutil.copytree(DATA_DIR / "prompts", data_dir / "prompts")
+    scenario_dir = data_dir / "scenarios"
+    scenario_dir.mkdir(parents=True)
+    scenario_paths = sorted((DATA_DIR / "scenarios").glob("*.json"))
+    if scenario_limit is not None:
+        scenario_paths = scenario_paths[:scenario_limit]
+    for path in scenario_paths:
+        payload = read_json(path)
+        expected = payload.get("expected_safe_behavior")
+        if isinstance(expected, dict):
+            action = expected.get("primary_expected_safe_control_action")
+            if action in _EXPECTED_ACTION_ALIASES:
+                expected["primary_expected_safe_control_action"] = _EXPECTED_ACTION_ALIASES[action]
+        write_json(scenario_dir / path.name, payload)
+    return data_dir
 
 
 def mutable_anchor_payload():

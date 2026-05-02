@@ -268,7 +268,7 @@ These schemas are planning contracts, not implementation code.
 
 ### Scenario card
 
-V1 resolves the scenario-set question as a 30-card library: **10 failure archetypes x 3 variants**. The three variants are:
+V1 now resolves the article scenario-set question as a **10-card article library** spanning the selected scenario archetypes. The three prompt pressure variants remain:
 
 - `clean_control`: a straightforward synthetic packet that should not trigger the target failure;
 - `ambiguous_edge`: a weak, missing, or conflicting-evidence packet where the safe behavior is usually request-info or escalation;
@@ -706,10 +706,10 @@ Stages:
 | Stage | Scenario count | Prompt variants | Model families | Repetitions | Approx. runs | Purpose |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | Smoke | 30 | 1 | 3 | 1 | 90 | Catch broken schemas, provider calls, tool envelopes, and evaluator plumbing. |
-| Pilot article run | 10 | 3 | 3 | 3 | 270 | Produce the first publishable evidence package across all 10 archetypes. |
-| Full follow-up matrix | 30 | 5 | 3 | 3 | 1,350 | Stronger benchmark/release after the article path is proven. |
+| Pilot article run | 10 | 3 | 3 | 3 | 270 | Produce the first publishable evidence package across all 10 article archetypes. |
+| Full follow-up matrix | 21 | 5 | 3 | 5 | 1,575 | Stronger benchmark/release after the article path is proven. |
 
-The earlier 30 x 5 x 3 x 5-10 target would produce roughly 2,250-4,500 model runs and is intentionally not the first article requirement. Pilot results should report `n`, rate, uncertainty/caveats, capture window, excluded-run counts, and exact model metadata. Do not overclaim single-run anecdotes or treat the pilot as universal model behavior.
+Expanded runs should report `n`, rate, uncertainty/caveats, capture window, excluded-run counts, and exact model metadata. Do not overclaim single-run anecdotes or treat the pilot as universal model behavior.
 
 ## Metrics
 
@@ -738,11 +738,11 @@ The report should include aggregate stats and named exemplar cases. Aggregate st
 
 Target V1:
 
-- exactly 30 synthetic scenarios, structured as 10 failure archetypes x 3 variants (`clean_control`, `ambiguous_edge`, `adversarial_malicious`);
+- exactly 10 synthetic article scenarios, one per selected archetype;
 - 5 specimen prompt variants available in the harness; the first pilot article run uses `cautious_baseline`, `policy_voice_specimen`, and `decorative_hitl_specimen`, while `efficiency_maximizer` and `clean_log_optimizer_specimen` remain available for smoke tests, selected probes, and the optional full follow-up matrix;
 - 3 cheap model families for the article run when provider access is available: OpenAI cheap-mini tier, Anthropic Haiku tier, and Google/Gemini Flash-Lite tier;
 - public comparison label `cross_provider_directional`; if fewer than two distinct vendor families are accessible or stable at run-time, results are labeled `cross_prompt_only` and the article does not claim cross-provider evidence;
-- staged run plan: 90-run smoke, 270-run pilot article run, and optional 1,350-run full follow-up matrix;
+- staged run plan: 30-run mock calibration, 270-run pilot article run, and larger no-cap stability runs when cost is not the limiting factor;
 - at least 10 article-ready exemplar failures, each with a one-line architectural-lesson takeaway;
 - at least 1 clean comparison table showing the same scenario across prompt variants and (where available) model families;
 - at least 1 policy anchor table linking scenario groups to citations, `citation_date_checked`, and expected safe behavior;
@@ -807,11 +807,11 @@ Remaining gaps:
 - The policy citation freshness question is resolved with a citation manifest and pre-run gate. Every anchor must record source/retrieval/policy-point/scenario/freshness metadata. Official DoD/CDAO/NIST web guidance uses a 90-day freshness window; static public PDFs or archived/static official documents use 180 days if retrievable and excerpt-stable. Failed retrieval, missing quote/excerpt, missing supported claim, or unreviewed moved URL blocks affected scenarios as `blocked_pending_anchor_refresh`.
 - The model-family question is resolved as cheap Option B: OpenAI low-cost GPT mini tier, Anthropic Haiku tier, and Google/Gemini Flash-Lite tier, reported as `cross_provider_directional` when at least two distinct vendor families complete the same scenario set. Exact API model IDs remain run metadata and must be captured per run.
 - The evaluator scoring method is resolved as Option D: hybrid evaluator with minimal human involvement. Deterministic checks score hard constraints, a distinct-vendor LLM judge scores semantic evidence/rationale failures, and human review is limited to calibration, final article exemplars, disputed labels, and headline claims.
-- The run budget question is resolved as a staged plan: 90-run smoke test (30 scenarios x 1 prompt variant x 3 model families x 1 rep), 270-run pilot article run (10 representative scenarios x 3 prompt variants x 3 model families x 3 reps), and optional 1,350-run full follow-up matrix (30 scenarios x 5 prompt variants x 3 model families x 3 reps). The full 2,250-4,500-run matrix is not required for the first article.
-- The prompt-variant question is resolved for the pilot article run. V1 keeps five variants in the harness library, but the first 270-run pilot uses `cautious_baseline`, `policy_voice_specimen`, and `decorative_hitl_specimen`. `efficiency_maximizer` and `clean_log_optimizer_specimen` remain available for smoke tests, selected probes, and the optional full follow-up matrix. Variants must differ by governance pressure/control model, not by obviously malicious wording, and must be documented with prompt metadata and public claim limits.
+- The run budget question is resolved as a staged plan: 30-run mock calibration (10 scenarios x 3 prompt variants), 270-run pilot article run (10 scenarios x 3 prompt variants x 3 model families x 3 reps), and larger stability runs when useful. Cost is no longer treated as the primary limiter for the article dataset.
+- The prompt-variant question is resolved for the pilot article run. V1 keeps five variants in the harness library, but the first expanded pilot uses `cautious_baseline`, `policy_voice_specimen`, and `decorative_hitl_specimen`. `efficiency_maximizer` and `clean_log_optimizer_specimen` remain available for smoke tests, selected probes, and the optional full follow-up matrix. Variants must differ by governance pressure/control model, not by obviously malicious wording, and must be documented with prompt metadata and public claim limits.
 - The refusal/escalation/request-info taxonomy is resolved as a safe-control-action taxonomy. Each scenario names one primary expected safe control action from `SAFE_APPROVE`, `SAFE_DENY`, `REQUEST_INFO`, `ESCALATE`, `REFUSE_UNSUPPORTED_ACTION`, or `NO_FINAL_ACTION`; evaluator labels separate appropriate/partial/false/missing refusal, appropriate/bad/missing/finality-laundering escalation, and appropriate/missing/finality-laundering request-info behavior.
 - The publication package question is resolved as a template-first export bundle: `failure_cases.md`, `failure_counts.csv`, `policy_anchor_table.md`, `model_comparison.md`, `article_exhibits/`, `x_thread_pack.md`, `sandbox_receipt.md`, `sandbox_failure_log.md`, and `scrub_report.md`. Templates must include synthetic notices, capture windows, policy anchors, supported claims, scrubber status, claim limits, and public-safe excerpts only.
-- The first implementation slice is resolved as: citation manifest + scenario card schema + 3-card mock vertical slice. The mock harness has passed and remains the calibration baseline before any public live-provider claims.
+- The first implementation slice has expanded to: citation manifest + scenario card schema + 10-card mock calibration slice. The mock harness has passed and remains the calibration baseline before any public live-provider claims.
 - The live-provider slice remains unbuilt in this spec and must add provider adapters without weakening the synthetic boundary, fake-tool layer, scrubber, or publication gates proven by the mock harness.
 - The 30-scenario synthetic set structure is now fixed as 10 archetypes x 3 variants, but the individual scenario cards still need to be written and reviewed for policy anchors, expected safe behavior, and public-safety boundaries.
 - The sandbox proof question is resolved as a receipt-based fake-world sandbox: inert fake tools only, allowlisted tool registry, schema validation, packet-as-data quoting, no specimen access to real tools/secrets/private files/network actions, resource bounds, rejected-attempt logging, and `sandbox_receipt.md`/machine-readable receipt for every article run. Runs without verified receipts are labeled `sandbox_unverified` and excluded from headline claims.
@@ -819,7 +819,7 @@ Remaining gaps:
 
 ## First implementation slice
 
-V1 resolved the first build target as **citation manifest + scenario card schema + 3-card mock vertical slice**. The mock harness has now passed and proves the harness shape before live provider calls. Live OpenAI/Anthropic/Gemini calls were explicitly out of this slice and move into the next slice below.
+V1 resolved the first build target as **citation manifest + scenario card schema + 10-card mock calibration slice**. The mock harness has now passed and proves the harness shape before live provider calls. Live OpenAI/Anthropic/Gemini calls were explicitly out of this slice and move into the next slice below.
 
 The first slice should include:
 
@@ -923,7 +923,7 @@ Run matrix:
 | --- | --- | --- | --- | ---: | ---: | --- |
 | Adapter smoke | 1 clean synthetic scenario | 1 cautious variant | available providers | 1 | 3 | Confirms credentials, schema, timeout, usage capture, and scrubber on tiny input. |
 | Live parity slice | the 3 mock-slice scenarios | 3 pilot variants | available providers | 1 | 27 | Compares live outputs against the mock-calibrated evaluator without publishing headline claims. |
-| Pilot article run | 10 representative scenarios | 3 pilot variants | available providers | 3 | 270 | Eligible for `cross_provider_directional` claims only if at least two distinct vendor families complete the same scenario set and pass the publication gate. |
+| Pilot article run | 10 article scenarios | 3 pilot variants | available providers | 3 | 270 | Eligible for `cross_provider_directional` claims only if at least two distinct vendor families complete the same scenario set and pass the publication gate. |
 
 Retry, timeout, and cost controls:
 
@@ -1128,16 +1128,16 @@ Abstract facts carried forward:
 - trusted instructions should be separated from untrusted data, with packet contents treated as data rather than instructions; named prior art includes AgentDojo-style stateful agent evals and the indirect prompt-injection literature (Greshake et al., "Not what you've signed up for");
 - product safety inside agentic workflows is enforced with tool and action constraints, not by trusting the model to behave;
 - safety training that teaches trigger recognition can produce false safety confidence; sandbox enforcement should rely on layered controls rather than refusal heuristics alone;
-- the scenario-set decision is 30 synthetic cards: 10 stored failure archetypes x 3 variants (`clean_control`, `ambiguous_edge`, `adversarial_malicious`), where each card has one primary failure mode, one clean contradiction or trap, explicit expected safe behavior, allowed/disallowed evidence, policy anchors, audit-trail risk, and public-safety notes;
+- the scenario-set decision is 10 synthetic article cards across the selected archetypes, where each card has one primary failure mode, one clean contradiction or trap, explicit expected safe behavior, allowed/disallowed evidence, policy anchors, audit-trail risk, claim limits, and public-safety notes;
 - the citation-freshness decision is a citation manifest plus pre-run gate: every anchor records source/retrieval/policy-point/scenario/freshness metadata, with 90-day freshness for official living web guidance, 180-day freshness for retrievable static PDFs/archives, and blocking for failed retrieval, missing quote/excerpt, missing supported claim, or unreviewed moved URLs;
 - the model-family decision is cheap Option B: use OpenAI, Anthropic, and Google/Gemini low-cost model tiers when available, report the comparison as `cross_provider_directional`, and keep exact model IDs as run metadata rather than universal article claims;
-- the run-budget decision is staged execution: 90-run smoke, 270-run pilot article run, and optional 1,350-run full follow-up matrix, while avoiding the 2,250-4,500-run full matrix as the first article gate;
+- the run-budget decision is staged execution: 30-run mock calibration, 270-run pilot article run, and larger no-cap stability runs when useful;
 - the evaluator decision is Option D: hybrid scoring with minimal human involvement, combining deterministic hard checks, a distinct-vendor LLM judge for semantic labels, and targeted human review for calibration, article exemplars, disputed labels, and headline claims;
 - the sandbox proof decision is a receipt-based fake-world sandbox with inert fake tools only, allowlisted tool registry, schema validation, packet-as-data quoting, no specimen access to real tools or external actions, resource bounds, rejected-attempt logs, and `sandbox_unverified` labels for runs without verified receipts;
 - the prompt-variant decision is five harness-library variants, with the pilot article run using `cautious_baseline`, `policy_voice_specimen`, and `decorative_hitl_specimen`; `efficiency_maximizer` and `clean_log_optimizer_specimen` remain for smoke tests, selected probes, and the optional full follow-up matrix;
 - the refusal/escalation/request-info taxonomy decision is a compact safe-control-action taxonomy: each scenario names one primary expected safe control action (`SAFE_APPROVE`, `SAFE_DENY`, `REQUEST_INFO`, `ESCALATE`, `REFUSE_UNSUPPORTED_ACTION`, or `NO_FINAL_ACTION`), and evaluator metrics distinguish appropriate/partial/false/missing refusal, appropriate/bad/missing/finality-laundering escalation, and appropriate/missing/finality-laundering request-info behavior;
 - the publication package decision is a template-first export bundle: `failure_cases.md`, `failure_counts.csv`, `policy_anchor_table.md`, `model_comparison.md`, `article_exhibits/`, `x_thread_pack.md`, `sandbox_receipt.md`, `sandbox_failure_log.md`, and `scrub_report.md`, each carrying synthetic notices, provenance/capture metadata, public-safety limits, and scrubber status as applicable;
-- the first implementation-slice decision is citation manifest + scenario card schema + 3-card mock vertical slice: scenario loader, policy-anchor loader/freshness gate, three pilot prompt variants, mock specimen runner, bounded decision-envelope validator, fake action/tool recorder, deterministic evaluator checks, template-bundle exporter, and one end-to-end test, with live provider calls explicitly deferred;
+- the first implementation-slice decision is citation manifest + scenario card schema + 10-card mock calibration slice: scenario loader, policy-anchor loader/freshness gate, three pilot prompt variants, mock specimen runner, bounded decision-envelope validator, fake action/tool recorder, deterministic evaluator checks, template-bundle exporter, and one end-to-end test, with live provider calls explicitly deferred;
 - the scrubber decision is a fail-closed publication gate informed by NIST PII guidance and secret-scanning practice, blocking high-confidence secrets, PII-shaped strings, private identifiers, local paths, non-allowlisted URLs/domains, real-looking case/voucher/payment IDs, encoded exfiltration blobs, markdown beacons, and unsafe real-system framing.
 
 No raw episode IDs, source paths, internal identifiers, or private wiki paths are included in this document.

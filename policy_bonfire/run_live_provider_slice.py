@@ -95,73 +95,86 @@ def run_live_slice(
         for scenario in scenarios:
             for variant in prompt_variants:
                 render = render_prompt(variant, scenario)
-                if allow_offline_fake and provider_config.skip_status == "live_calls_not_enabled":
-                    allowed = scheduled < config.max_runs
-                    block_status = "blocked_cost_cap"
-                    reserved_cost = 0.0
-                else:
-                    allowed, block_status, projection = can_schedule_call(
-                        config,
-                        provider,
-                        scheduled_runs=scheduled,
-                        prompt_chars=len(render.rendered_prompt),
-                        current_total_usd=current_total_usd,
-                        current_provider_usd=current_provider_usd[provider],
+                for repetition_id in _repetition_ids(config.repetitions):
+                    if allow_offline_fake and provider_config.skip_status == "live_calls_not_enabled":
+                        allowed = scheduled < config.max_runs
+                        block_status = "blocked_cost_cap"
+                        reserved_cost = 0.0
+                    else:
+                        allowed, block_status, projection = can_schedule_call(
+                            config,
+                            provider,
+                            scheduled_runs=scheduled,
+                            prompt_chars=len(render.rendered_prompt),
+                            current_total_usd=current_total_usd,
+                            current_provider_usd=current_provider_usd[provider],
+                        )
+                        reserved_cost = projection.projected_usd if projection is not None else 0.0
+                    if not allowed:
+                        run_records.append(
+                            _blocked_record(
+                                capture,
+                                provider_config,
+                                scenario.scenario_id,
+                                variant.prompt_variant_id,
+                                repetition_id,
+                                timestamp_utc,
+                                block_status or "blocked_cost_cap",
+                            )
+                        )
+                        continue
+                    scheduled += 1
+                    blocks = split_trusted_untrusted_blocks(render.rendered_prompt)
+                    request = LiveModelRequest(
+                        capture_id=capture,
+                        scenario_id=scenario.scenario_id,
+                        scenario_hash=scenario.card_hash,
+                        anchor_ids=tuple(scenario.policy_anchors),
+                        allowed_evidence_ids=tuple(scenario.allowed_evidence),
+                        prompt_variant_id=variant.prompt_variant_id,
+                        prompt_template_hash=variant.prompt_template_hash,
+                        rendered_prompt_hash=render.rendered_prompt_hash,
+                        trusted_instructions=blocks.trusted_instructions,
+                        untrusted_packet_block=blocks.untrusted_packet_block,
+                        decision_schema_version="2020-12-local",
+                        decision_schema=decision_envelope_schema(
+                            allowed_policy_anchor_ids=scenario.policy_anchors,
+                            allowed_evidence_ids=scenario.allowed_evidence,
+                        ),
+                        max_output_tokens=config.max_output_tokens,
+                        timeout_seconds=config.timeout_seconds,
+                        repetition_id=repetition_id,
                     )
-                    reserved_cost = projection.projected_usd if projection is not None else 0.0
-                if not allowed:
-                    run_records.append(_blocked_record(capture, provider_config, scenario.scenario_id, variant.prompt_variant_id, timestamp_utc, block_status or "blocked_cost_cap"))
-                    continue
-                scheduled += 1
-                blocks = split_trusted_untrusted_blocks(render.rendered_prompt)
-                request = LiveModelRequest(
-                    capture_id=capture,
-                    scenario_id=scenario.scenario_id,
-                    scenario_hash=scenario.card_hash,
-                    anchor_ids=tuple(scenario.policy_anchors),
-                    allowed_evidence_ids=tuple(scenario.allowed_evidence),
-                    prompt_variant_id=variant.prompt_variant_id,
-                    prompt_template_hash=variant.prompt_template_hash,
-                    rendered_prompt_hash=render.rendered_prompt_hash,
-                    trusted_instructions=blocks.trusted_instructions,
-                    untrusted_packet_block=blocks.untrusted_packet_block,
-                    decision_schema_version="2020-12-local",
-                    decision_schema=decision_envelope_schema(
-                        allowed_policy_anchor_ids=scenario.policy_anchors,
-                        allowed_evidence_ids=scenario.allowed_evidence,
-                    ),
-                    max_output_tokens=config.max_output_tokens,
-                    timeout_seconds=config.timeout_seconds,
-                )
-                response = adapter.complete(request)
-                artifact_cost = _artifact_cost_estimate(response, provider_config)
-                charged_cost = max(artifact_cost, reserved_cost)
-                current_total_usd += charged_cost
-                current_provider_usd[provider] += charged_cost
-                run_id = _run_id(capture, provider, scenario.scenario_id, variant.prompt_variant_id)
-                validation = validate_decision_envelope(response.parsed_decision_envelope or {}, scenario)
-                scored = response.status == "completed_valid" and validation.valid and sandbox_verified
-                fake_call = _fake_call(run_id, response, validation, scenario)
-                if fake_call["recorded_but_rejected"]:
-                    rejected_fake_calls.append(fake_call)
-                record = _run_record(
-                    run_id,
-                    capture,
-                    provider_config,
-                    scenario,
-                    variant,
-                    render,
-                    response,
-                    validation,
-                    fake_call,
-                    timestamp_utc,
-                    scored,
-                    sandbox_verified,
-                    artifact_cost,
-                )
-                run_records.append(record)
-                if scored:
-                    evaluator_results.append(evaluate_run(record, scenario, validation.envelope, validation, fake_call))
+                    response = adapter.complete(request)
+                    artifact_cost = _artifact_cost_estimate(response, provider_config)
+                    charged_cost = max(artifact_cost, reserved_cost)
+                    current_total_usd += charged_cost
+                    current_provider_usd[provider] += charged_cost
+                    run_id = _run_id(capture, provider, scenario.scenario_id, variant.prompt_variant_id, repetition_id)
+                    validation = validate_decision_envelope(response.parsed_decision_envelope or {}, scenario)
+                    scored = response.status == "completed_valid" and validation.valid and sandbox_verified
+                    fake_call = _fake_call(run_id, response, validation, scenario)
+                    if fake_call["recorded_but_rejected"]:
+                        rejected_fake_calls.append(fake_call)
+                    record = _run_record(
+                        run_id,
+                        capture,
+                        provider_config,
+                        scenario,
+                        variant,
+                        repetition_id,
+                        render,
+                        response,
+                        validation,
+                        fake_call,
+                        timestamp_utc,
+                        scored,
+                        sandbox_verified,
+                        artifact_cost,
+                    )
+                    run_records.append(record)
+                    if scored:
+                        evaluator_results.append(evaluate_run(record, scenario, validation.envelope, validation, fake_call))
 
     metadata = {
         "capture_id": capture,
@@ -170,6 +183,7 @@ def run_live_slice(
         "comparison_label": _comparison_label(run_records),
         "vendor_lineage_count": str(len({r.get("model_family") for r in run_records if r.get("scored") is True})),
         "access_mode": "api_live" if config.live_calls_enabled else "offline_skipped",
+        "repetitions": str(config.repetitions),
         "scrubber_status": "pending",
     }
     # Local public-safety/import probes. Never echo matched literals.
@@ -205,6 +219,7 @@ def _run_record(
     provider_config: Any,
     scenario: Any,
     variant: Any,
+    repetition_id: str,
     render: Any,
     response: LiveModelResponse,
     validation: Any,
@@ -221,6 +236,7 @@ def _run_record(
         "scenario_version": scenario.version,
         "scenario_card_hash": scenario.card_hash,
         "prompt_variant_id": variant.prompt_variant_id,
+        "repetition_id": repetition_id,
         "prompt_version": variant.prompt_version,
         "prompt_template_hash": render.rendered_prompt_hash,
         "prompt_inventory_template_hash": variant.prompt_template_hash,
@@ -263,9 +279,10 @@ def _run_record(
 
 def _skipped_provider_record(capture: str, provider_config: Any, status: str, timestamp: str) -> dict[str, Any]:
     return {
-        "run_id": _run_id(capture, provider_config.provider, "provider", "skipped"),
+        "run_id": _run_id(capture, provider_config.provider, "provider", "skipped", "rep_000"),
         "capture_id": capture,
         "provider": provider_config.provider,
+        "repetition_id": "rep_000",
         "model_access_mode": "api_live" if status != "live_calls_not_enabled" else "offline_skipped",
         "model_id_exact": "not_recorded_offline" if status == "live_calls_not_enabled" else (provider_config.model_id or "not_configured"),
         "model_id_public_label": provider_config.model_id_public_label,
@@ -284,9 +301,24 @@ def _skipped_provider_record(capture: str, provider_config: Any, status: str, ti
     }
 
 
-def _blocked_record(capture: str, provider_config: Any, scenario_id: str, prompt_variant_id: str, timestamp: str, status: str = "blocked_cost_cap") -> dict[str, Any]:
+def _blocked_record(
+    capture: str,
+    provider_config: Any,
+    scenario_id: str,
+    prompt_variant_id: str,
+    repetition_id: str,
+    timestamp: str,
+    status: str = "blocked_cost_cap",
+) -> dict[str, Any]:
     record = _skipped_provider_record(capture, provider_config, status, timestamp)
-    record.update({"scenario_id": scenario_id, "prompt_variant_id": prompt_variant_id})
+    record.update(
+        {
+            "run_id": _run_id(capture, provider_config.provider, scenario_id, prompt_variant_id, repetition_id),
+            "scenario_id": scenario_id,
+            "prompt_variant_id": prompt_variant_id,
+            "repetition_id": repetition_id,
+        }
+    )
     return record
 
 
@@ -316,8 +348,12 @@ def _comparison_label(records: list[dict[str, Any]]) -> str:
     return "cross_provider_directional" if len(families) >= 2 else "cross_prompt_only"
 
 
-def _run_id(capture: str, provider: str, scenario_id: str, prompt_variant_id: str) -> str:
-    return hashlib.sha256(f"{capture}|{provider}|{scenario_id}|{prompt_variant_id}".encode("utf-8")).hexdigest()[:16]
+def _repetition_ids(repetitions: int) -> tuple[str, ...]:
+    return tuple(f"rep_{index:03d}" for index in range(1, repetitions + 1))
+
+
+def _run_id(capture: str, provider: str, scenario_id: str, prompt_variant_id: str, repetition_id: str) -> str:
+    return hashlib.sha256(f"{capture}|{provider}|{scenario_id}|{prompt_variant_id}|{repetition_id}".encode("utf-8")).hexdigest()[:16]
 
 
 def _default_capture_id(run_date: date, data_dir: Path) -> str:
