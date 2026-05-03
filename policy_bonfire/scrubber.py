@@ -14,6 +14,7 @@ from .types import CSV_LIVE_RUN_BANNER, CSV_MOCK_ONLY_BANNER, LIVE_RUN_BANNER, M
 
 HASH_VALUE_KEYS = frozenset(
     {
+        "sha256",
         "scenario_card_hash",
         "prompt_template_hash",
         "raw_output_sha256",
@@ -67,7 +68,10 @@ def scan_paths(paths: list[Path]) -> ScrubResult:
 def scan_artifact_text(artifact_path: str, text: str, suffix: str = "") -> tuple[ScrubFinding, ...]:
     findings: list[ScrubFinding] = []
     first_line = text.splitlines()[0] if text.splitlines() else ""
-    if suffix == ".json" or artifact_path.endswith(".json"):
+    if suffix == ".jsonl" or artifact_path.endswith(".jsonl"):
+        findings.extend(_jsonl_banner_findings(artifact_path, text))
+        scan_text = _jsonl_text_for_scan(text)
+    elif suffix == ".json" or artifact_path.endswith(".json"):
         findings.extend(_json_banner_findings(artifact_path, text))
         scan_text = _json_text_for_scan(text)
     elif suffix == ".csv" or artifact_path.endswith(".csv"):
@@ -85,6 +89,10 @@ def scan_artifact_text(artifact_path: str, text: str, suffix: str = "") -> tuple
         for match in pattern.finditer(scan_text):
             matched = match.group(0)
             if finding_class == "OFFICIAL_ACTION_WORDING" and _line_is_negated(scan_text, match.start()):
+                continue
+            if finding_class == "PROVIDER_REQUEST_ID" and matched.lower().startswith("run_"):
+                # Live JSONL uses local synthetic event names such as run_checkpoint
+                # and run_finished. Those are not provider-issued request IDs.
                 continue
             if finding_class == "HTTP_URL" and _is_allowlisted_public_source_url(matched):
                 continue
@@ -146,6 +154,26 @@ def _json_banner_findings(artifact_path: str, text: str) -> list[ScrubFinding]:
     return []
 
 
+def _jsonl_banner_findings(artifact_path: str, text: str) -> list[ScrubFinding]:
+    findings: list[ScrubFinding] = []
+    lines = [line for line in text.splitlines() if line.strip()]
+    if not lines:
+        return [_finding("MISSING_OR_ALTERED_BANNER", artifact_path, text, 0)]
+    for index, line in enumerate(lines):
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            findings.append(_finding("INVALID_JSONL", artifact_path, line, 0))
+            continue
+        if not isinstance(payload, dict):
+            findings.append(_finding("JSONL_LINE_NOT_OBJECT", artifact_path, line, 0))
+            continue
+        keys = list(payload.keys())
+        if not keys or keys[0] != "_live_run_notice" or payload.get("_live_run_notice") != LIVE_RUN_BANNER:
+            findings.append(_finding("MISSING_OR_ALTERED_BANNER", artifact_path, line, 0 if index == 0 else text.find(line)))
+    return findings
+
+
 def _is_live_artifact(artifact_path: str, text: str) -> bool:
     return "live_" in artifact_path or text.startswith(LIVE_RUN_BANNER) or text.startswith(CSV_LIVE_RUN_BANNER) or '"_live_run_notice"' in text
 
@@ -157,6 +185,20 @@ def _json_text_for_scan(text: str) -> str:
         return text
     scrubbed = _drop_hash_values(payload, parent_key="")
     return json.dumps(scrubbed, sort_keys=True, ensure_ascii=False)
+
+
+def _jsonl_text_for_scan(text: str) -> str:
+    scrubbed_lines: list[Any] = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            scrubbed_lines.append(line)
+            continue
+        scrubbed_lines.append(_drop_hash_values(payload, parent_key=""))
+    return json.dumps(scrubbed_lines, sort_keys=True, ensure_ascii=False)
 
 
 def _drop_hash_values(value: Any, parent_key: str) -> Any:

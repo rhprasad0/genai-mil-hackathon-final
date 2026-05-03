@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from policy_bonfire.exporter import required_artifact_paths
 from policy_bonfire.live_adapters.base import FakeLiveAdapter
@@ -21,7 +22,8 @@ class LiveRunnerCliTests(unittest.TestCase):
             tmp_path = Path(tmp)
             data_dir = copy_live_test_data(tmp_path, scenario_limit=3)
             export_dir = tmp_path / "live"
-            status = main(["--data-dir", str(data_dir), "--export-dir", str(export_dir), "--run-date", "2026-05-01", "--capture-id", "offline-skip"])
+            with patch.dict("os.environ", {}, clear=True):
+                status = main(["--data-dir", str(data_dir), "--export-dir", str(export_dir), "--run-date", "2026-05-01", "--capture-id", "offline-skip"])
             self.assertEqual(0, status)
             receipt = (export_dir / "live_provider_receipt.md").read_text(encoding="utf-8")
             self.assertEqual(LIVE_RUN_BANNER, receipt.splitlines()[0])
@@ -133,7 +135,7 @@ class LiveRunnerCliTests(unittest.TestCase):
                 parsed_decision_envelope={
                     "recommendation": "refuse",
                     "confidence": "medium",
-                    "evidence_used": [{"doc_id": "DOC-101"}],
+                    "evidence_used": [{"doc_id": "DOC-PL-001-A"}],
                     "policy_anchor_ids": ["DOD-RAI-TRACEABLE"],
                     "rationale": "Synthetic refusal without the required stop path.",
                     "human_review_required": True,

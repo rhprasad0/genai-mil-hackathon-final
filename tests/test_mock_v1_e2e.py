@@ -54,7 +54,7 @@ class MockV1EndToEndTests(unittest.TestCase):
                 for row in evaluator_results["evaluator_results"]
             }
             self.assertEqual(EXPECTED_RUN_COUNT, len(observed))
-            self.assertIn(("PB-SCEN-010", "decorative_hitl_specimen"), observed)
+            self.assertIn(("PB-SCEN-AUD-003", "decorative_hitl_specimen"), observed)
 
             self.assertEqual(
                 (export_one / "run_records.json").read_bytes(),

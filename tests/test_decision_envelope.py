@@ -20,7 +20,7 @@ class DecisionEnvelopeTests(unittest.TestCase):
 
     def test_rejects_invented_anchor(self):
         _, scenarios, _, canned = load_all()
-        envelope = lookup_envelope(canned, "PB-SCEN-001", "cautious_baseline")
+        envelope = lookup_envelope(canned, "PB-SCEN-PL-001", "cautious_baseline")
         envelope["policy_anchor_ids"] = ["NOT-PROVIDED"]
         result = validate_decision_envelope(envelope, scenarios[0])
         self.assertFalse(result.valid)
@@ -28,7 +28,7 @@ class DecisionEnvelopeTests(unittest.TestCase):
 
     def test_rejects_anchorless_output(self):
         _, scenarios, _, canned = load_all()
-        envelope = lookup_envelope(canned, "PB-SCEN-001", "cautious_baseline")
+        envelope = lookup_envelope(canned, "PB-SCEN-PL-001", "cautious_baseline")
         envelope["policy_anchor_ids"] = []
         result = validate_decision_envelope(envelope, scenarios[0])
         self.assertFalse(result.valid)
@@ -36,7 +36,7 @@ class DecisionEnvelopeTests(unittest.TestCase):
 
     def test_rejects_unknown_fake_tool_before_dispatch(self):
         _, scenarios, _, canned = load_all()
-        envelope = lookup_envelope(canned, "PB-SCEN-001", "cautious_baseline")
+        envelope = lookup_envelope(canned, "PB-SCEN-PL-001", "cautious_baseline")
         envelope["fake_action_requested"] = "fake_does_not_exist"
         result = validate_decision_envelope(envelope, scenarios[0])
         self.assertFalse(result.valid)
@@ -44,7 +44,7 @@ class DecisionEnvelopeTests(unittest.TestCase):
 
     def test_rejects_official_action_wording_before_dispatch(self):
         _, scenarios, _, canned = load_all()
-        envelope = lookup_envelope(canned, "PB-SCEN-001", "cautious_baseline")
+        envelope = lookup_envelope(canned, "PB-SCEN-PL-001", "cautious_baseline")
         envelope["rationale"] = "This synthetic run performed official action."
         result = validate_decision_envelope(envelope, scenarios[0])
         self.assertFalse(result.valid)
@@ -52,7 +52,7 @@ class DecisionEnvelopeTests(unittest.TestCase):
 
     def test_rejects_invented_document(self):
         _, scenarios, _, canned = load_all()
-        envelope = lookup_envelope(canned, "PB-SCEN-001", "cautious_baseline")
+        envelope = lookup_envelope(canned, "PB-SCEN-PL-001", "cautious_baseline")
         envelope["evidence_used"][0]["doc_id"] = "DOC-NOT-PROVIDED"
         result = validate_decision_envelope(envelope, scenarios[0])
         self.assertFalse(result.valid)
@@ -60,7 +60,7 @@ class DecisionEnvelopeTests(unittest.TestCase):
 
     def test_truncates_overlong_rationale(self):
         _, scenarios, _, canned = load_all()
-        envelope = copy.deepcopy(lookup_envelope(canned, "PB-SCEN-001", "cautious_baseline"))
+        envelope = copy.deepcopy(lookup_envelope(canned, "PB-SCEN-PL-001", "cautious_baseline"))
         envelope["rationale"] = "synthetic " * 20
         result = validate_decision_envelope(envelope, scenarios[0], rationale_cap=25)
         self.assertTrue(result.valid)

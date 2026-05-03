@@ -27,7 +27,7 @@ The repo now contains the first working harness slice, not just the plan:
 ```text
 citation manifest
 + scenario card schema
-+ 10-card article scenario library
++ 21-card article scenario inferno
 + prompt-variant registry
 + bounded decision envelope
 + inert fake tool layer
@@ -36,6 +36,7 @@ citation manifest
 + template export bundle
 + opt-in live-provider slice
 + frozen 27-run public-safe control artifact
++ 63-run deterministic mock matrix for the 21-card library
 ```
 
 The mock harness proved the lane: scenario loading, policy-anchor gating, fake-world boundaries, scoring, scrubbed exports, and article-shaped artifacts.
@@ -43,6 +44,8 @@ The mock harness proved the lane: scenario loading, policy-anchor gating, fake-w
 The live-provider slice keeps the same lane and swaps only the specimen call for opt-in provider adapters. Live calls are gated by environment flags and keys, record provider/model metadata, preserve fake-tool boundaries, and export only normalized public-safe artifacts. Raw provider traffic is not committed. Tiny mercy: the gremlin gets a bowling ball, not root access.
 
 The first frozen control bundle is committed at [`docs/control-artifacts/27-run-pilot-2026-05-02/`](docs/control-artifacts/27-run-pilot-2026-05-02/). It is directional synthetic-lab evidence only: 27 attempted specimen runs across 3 scenario cards x 3 prompt variants x 3 provider lineages, with scrubbed reports and receipts.
+
+The article library has now scaled from the pilot cards into **21 synthetic failure cards** and **63 deterministic mock envelopes**. This is the spicy wall: policy laundering, rubber-stamp theater, decorative human review, unsupported denial, authority cosplay, and audit-log exorcism — all fake, all contained, all designed to make people gawk without touching real adjudication data.
 
 ## What V1 tests
 
@@ -79,8 +82,8 @@ The article thesis this should support:
 
 The current spec defines:
 
-- **10-card article library**: one scenario per archetype, covering clean control, weak docs, policy laundering, duplicate charge, date/location inconsistency, ambiguous authorization, stale-memory reconstruction, unsupported fraud framing, incomplete-but-explainable packets, and audit-log whitewash.
-- **Current 30-run mock slice**: 10 scenario cards x 3 prompt variants, used as the deterministic calibration baseline before expanded live repetitions.
+- **21-card article library**: a public-safe taxonomy of synthetic adjudication failure modes across policy laundering, rubber-stamp theater, decorative HITL, unsupported finality, human-authority boundary collapse, and audit-log whitewash.
+- **Current 63-run mock slice**: 21 scenario cards x 3 prompt variants, used as the deterministic calibration baseline before expanded live repetitions.
 - **Policy anchors**: every run needs citation metadata and a specific supported claim. No citation, no run.
 - **Prompt variants**: cautious baseline, policy-voice specimen, decorative HITL specimen, plus reserve variants for throughput pressure and clean-log optimization.
 - **Bounded outputs**: strict decision envelopes; malformed, markdown-wrapped, anchorless, truncated, or reasoning-leaked outputs are excluded rather than coerced.
@@ -88,6 +91,36 @@ The current spec defines:
 - **Hybrid evaluator**: deterministic checks first, LLM judge review for semantic labels, minimal human review for calibration and publication-grade exemplars.
 - **Fail-closed scrubber**: blocks exports on secrets, PII-shaped strings, private paths, private IDs, real-looking case/payment IDs, real URLs outside the allowlist, beacon-y markdown, or real-system framing.
 - **Claim limits everywhere**: mock fixtures are not model evidence; live artifacts are directional synthetic-lab evidence, not universal claims about production systems or provider behavior.
+
+## The 21-card wall of spicy synthetic failure
+
+These are not real cases. They are synthetic lab traps built to make the failure modes visible without dragging any real person, payment, voucher, or official workflow into the blast radius. The point is to show how a closed loop can become a haunted clipboard: official tone, weak evidence, decorative review, and a neat audit trail covering the smell of sulfur.
+
+Each card has a scenario JSON and a poster-style SVG in `docs/assets/scenarios/`:
+
+- `PB-SCEN-PL-001` — **Citation Laundromat** ([card](data/scenarios/01_pb_scen_pl_001_citation_laundromat.json) · [poster](docs/assets/scenarios/pb_scen_pl_001.svg))
+- `PB-SCEN-PL-002` — **Guidance Treated as Binding Policy** ([card](data/scenarios/02_pb_scen_pl_002_guidance_treated_as_binding_policy.json) · [poster](docs/assets/scenarios/pb_scen_pl_002.svg))
+- `PB-SCEN-PL-003` — **Local Custom Becomes Official Rule** ([card](data/scenarios/03_pb_scen_pl_003_local_custom_becomes_official_rule.json) · [poster](docs/assets/scenarios/pb_scen_pl_003.svg))
+- `PB-SCEN-PL-004` — **Missing Policy Gap Filled by Model Confidence** ([card](data/scenarios/04_pb_scen_pl_004_missing_policy_gap_filled_by_model_confidence.json) · [poster](docs/assets/scenarios/pb_scen_pl_004.svg))
+- `PB-SCEN-RST-001` — **1.2-Second Batch Review** ([card](data/scenarios/05_pb_scen_rst_001_1_2_second_batch_review.json) · [poster](docs/assets/scenarios/pb_scen_rst_001.svg))
+- `PB-SCEN-RST-002` — **Reviewer Clicks Without Case Evidence** ([card](data/scenarios/06_pb_scen_rst_002_reviewer_clicks_without_case_evidence.json) · [poster](docs/assets/scenarios/pb_scen_rst_002.svg))
+- `PB-SCEN-RST-003` — **Reviewer Entity Wired Only to Approve** ([card](data/scenarios/07_pb_scen_rst_003_reviewer_entity_wired_only_to_approve.json) · [poster](docs/assets/scenarios/pb_scen_rst_003.svg))
+- `PB-SCEN-RST-004` — **Bulk Approval After Model Summary Only** ([card](data/scenarios/08_pb_scen_rst_004_bulk_approval_after_model_summary_only.json) · [poster](docs/assets/scenarios/pb_scen_rst_004.svg))
+- `PB-SCEN-DHR-001` — **Human Reviewer After Final Action** ([card](data/scenarios/09_pb_scen_dhr_001_human_reviewer_after_final_action.json) · [poster](docs/assets/scenarios/pb_scen_dhr_001.svg))
+- `PB-SCEN-DHR-002` — **Human Can Comment But Not Change Outcome** ([card](data/scenarios/10_pb_scen_dhr_002_human_can_comment_but_not_change_outcome.json) · [poster](docs/assets/scenarios/pb_scen_dhr_002.svg))
+- `PB-SCEN-DHR-003` — **Default-approve on Reviewer Timeout** ([card](data/scenarios/11_pb_scen_dhr_003_default_approve_on_reviewer_timeout.json) · [poster](docs/assets/scenarios/pb_scen_dhr_003.svg))
+- `PB-SCEN-UD-001` — **Final Denial on Missing Receipts** ([card](data/scenarios/12_pb_scen_ud_001_final_denial_on_missing_receipts.json) · [poster](docs/assets/scenarios/pb_scen_ud_001.svg))
+- `PB-SCEN-UD-002` — **Approval Despite Duplicate Charge** ([card](data/scenarios/13_pb_scen_ud_002_approval_despite_duplicate_charge.json) · [poster](docs/assets/scenarios/pb_scen_ud_002.svg))
+- `PB-SCEN-UD-003` — **Weak Documentation Overclaimed** ([card](data/scenarios/14_pb_scen_ud_003_weak_documentation_overclaimed.json) · [poster](docs/assets/scenarios/pb_scen_ud_003.svg))
+- `PB-SCEN-UD-004` — **Final Adverse Action Without Notice** ([card](data/scenarios/15_pb_scen_ud_004_final_adverse_action_without_notice.json) · [poster](docs/assets/scenarios/pb_scen_ud_004.svg))
+- `PB-SCEN-HABC-001` — **Agent Told It Has Approving Official Authority** ([card](data/scenarios/16_pb_scen_habc_001_agent_told_it_has_approving_official_authority.json) · [poster](docs/assets/scenarios/pb_scen_habc_001.svg))
+- `PB-SCEN-HABC-002` — **override_human_review Tool Exists** ([card](data/scenarios/17_pb_scen_habc_002_override_human_review_tool_exists.json) · [poster](docs/assets/scenarios/pb_scen_habc_002.svg))
+- `PB-SCEN-HABC-003` — **submit_final_decision Without Human Authorization** ([card](data/scenarios/18_pb_scen_habc_003_submit_final_decision_without_human_authorization.json) · [poster](docs/assets/scenarios/pb_scen_habc_003.svg))
+- `PB-SCEN-AUD-001` — **Audit Log Whitewash** ([card](data/scenarios/19_pb_scen_aud_001_audit_log_whitewash.json) · [poster](docs/assets/scenarios/pb_scen_aud_001.svg))
+- `PB-SCEN-AUD-002` — **Evidence Reviewed That Wasn't** ([card](data/scenarios/20_pb_scen_aud_002_evidence_reviewed_that_wasn_t.json) · [poster](docs/assets/scenarios/pb_scen_aud_002.svg))
+- `PB-SCEN-AUD-003` — **Human Review Fabricated in the Record** ([card](data/scenarios/21_pb_scen_aud_003_human_review_fabricated_in_the_record.json) · [poster](docs/assets/scenarios/pb_scen_aud_003.svg))
+
+If a card looks like hell, good. The specimen is supposed to be unsafe. The harness is supposed to be boring, bounded, cited, and scrubbed.
 
 ## Public artifact target
 

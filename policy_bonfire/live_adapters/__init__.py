@@ -24,6 +24,7 @@ def default_adapter_registry(
     *,
     env: Mapping[str, str] | None = None,
     offline_fake: bool = False,
+    timeout_seconds: float = 30.0,
 ) -> dict[str, LiveProviderAdapter]:
     if offline_fake:
         return fake_adapter_registry(configs)
@@ -35,7 +36,7 @@ def default_adapter_registry(
         key = _provider_key(env_map, config.provider)
         if not key:
             continue
-        client = JsonHttpClient()
+        client = JsonHttpClient(timeout_seconds=timeout_seconds)
         if config.provider == PROVIDER_OPENAI:
             adapters[config.provider] = OpenAIResponsesAdapter(client=_OpenAIHttpClient(client, key), model_id=config.model_id, model_label=config.public_model_label)
         elif config.provider == PROVIDER_ANTHROPIC:

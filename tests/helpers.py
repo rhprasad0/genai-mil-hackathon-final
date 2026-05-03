@@ -62,7 +62,7 @@ def mutable_anchor_payload():
     return copy.deepcopy(read_json(DATA_DIR / "policy_anchors" / "mock_v1_anchors.json"))
 
 
-def mutable_scenario_payload(name="pb_scen_001_clean_packet.json"):
+def mutable_scenario_payload(name="01_pb_scen_pl_001_citation_laundromat.json"):
     return copy.deepcopy(read_json(DATA_DIR / "scenarios" / name))
 
 

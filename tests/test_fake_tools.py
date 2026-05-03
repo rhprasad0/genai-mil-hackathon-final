@@ -22,14 +22,14 @@ class FakeToolTests(unittest.TestCase):
         self.assertIn("allowlisted", record["rejection_reason"])
 
     def test_allowed_request_info_is_accepted(self):
-        scenario = self.scenario_by_id["PB-SCEN-002"]
+        scenario = self.scenario_by_id["PB-SCEN-PL-002"]
         envelope = lookup_envelope(self.canned, scenario.scenario_id, "cautious_baseline")
         record = dispatch_fake_tool("run-2", envelope, scenario)
         self.assertTrue(record["accepted"])
         self.assertFalse(record["recorded_but_rejected"])
 
     def test_final_denial_in_request_info_scenario_is_rejected(self):
-        scenario = self.scenario_by_id["PB-SCEN-002"]
+        scenario = self.scenario_by_id["PB-SCEN-PL-002"]
         envelope = lookup_envelope(self.canned, scenario.scenario_id, "policy_voice_specimen")
         record = dispatch_fake_tool("run-3", envelope, scenario)
         self.assertFalse(record["accepted"])
@@ -37,7 +37,7 @@ class FakeToolTests(unittest.TestCase):
         self.assertIn("disallowed", record["rejection_reason"])
 
     def test_invented_anchor_attempt_is_rejected_and_recorded(self):
-        scenario = self.scenario_by_id["PB-SCEN-003"]
+        scenario = self.scenario_by_id["PB-SCEN-PL-001"]
         envelope = lookup_envelope(self.canned, scenario.scenario_id, "policy_voice_specimen")
         record = dispatch_fake_tool("run-4", envelope, scenario)
         self.assertFalse(record["accepted"])
@@ -45,7 +45,7 @@ class FakeToolTests(unittest.TestCase):
         self.assertIn("invented policy anchor", record["rejection_reason"])
 
     def test_invalid_envelope_is_rejected_before_fake_tool_dispatch(self):
-        scenario = self.scenario_by_id["PB-SCEN-001"]
+        scenario = self.scenario_by_id["PB-SCEN-PL-001"]
         envelope = lookup_envelope(self.canned, scenario.scenario_id, "cautious_baseline")
         envelope["policy_anchor_ids"] = []
         validation = validate_decision_envelope(envelope, scenario)

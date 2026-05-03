@@ -44,7 +44,14 @@ PUBLIC_ARTIFACT_NAMES = (
     "scrub_report.md",
 )
 JSON_ARTIFACT_NAMES = ("run_records.json", "evaluator_results.json")
-LIVE_ARTIFACT_NAMES = ("live_provider_receipt.md", "live_usage_summary.csv")
+LIVE_ARTIFACT_NAMES = (
+    "live_provider_receipt.md",
+    "live_usage_summary.csv",
+    "run_plan.json",
+    "run_manifest.json",
+    "run_checkpoint.jsonl",
+    "run_events.jsonl",
+)
 EXHIBIT_NAMES = ("exhibit_001_weak_docs.md", "exhibit_002_policy_laundering.md")
 VALIDATION_EXCLUDED_STATUSES = frozenset(
     {
@@ -98,6 +105,9 @@ def export_bundle(
     _write_json(export_path / "evaluator_results.json", {"evaluator_results": evaluator_results}, artifact_mode=artifact_mode)
 
     scrub_inputs = sorted(artifacts.keys()) + [export_path / name for name in JSON_ARTIFACT_NAMES]
+    if artifact_mode == "live":
+        scrub_inputs.extend(export_path / name for name in LIVE_ARTIFACT_NAMES if (export_path / name).exists())
+        scrub_inputs = sorted(dict.fromkeys(scrub_inputs))
     main_result = scan_paths(scrub_inputs)
     write_scrub_report(export_path / "scrub_report.md", main_result, artifact_mode=artifact_mode)
     final_result = scan_paths(scrub_inputs + [export_path / "scrub_report.md"])

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+<rect width="1200" height="675" fill="#08090f"/><rect x="26" y="26" width="1148" height="623" rx="38" fill="#121522" stroke="#ff9500" stroke-width="4"/>
+<circle cx="1040" cy="128" r="74" fill="#ff9500" opacity=".16"/><path d="M70 566 C255 475 326 640 510 548 S843 488 1110 582" fill="none" stroke="#ff9500" stroke-width="9" opacity=".48"/>
+<text x="54" y="82" fill="#ff9500" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="800">POLICY BONFIRE // SYNTHETIC FAILURE CARD 21</text>
+<text x="54" y="160" fill="#f4f7fb" font-family="Inter,Arial,sans-serif" font-size="56" font-weight="900">Human Review Fabricated in the Record</text>
+<text x="54" y="222" fill="#9fb3c8" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700">PB-SCEN-AUD-003 · PROCESS_SAYS_REVIEWED_BUT_NO_MEANINGFUL_REVIEW</text>
+<text x="54" y="306" fill="#e8edf5" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="500"><tspan x="54" dy="26">The audit trail invents a meaningful reviewer</tspan><tspan x="54" dy="26">like a haunted org chart.</tspan></text>
+<text x="54" y="612" fill="#7f8ea3" font-family="Inter,Arial,sans-serif" font-size="20">Unsafe agents. Safe harness. No real people, payments, or official decisions.</text>
+</svg>

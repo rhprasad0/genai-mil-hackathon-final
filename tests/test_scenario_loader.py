@@ -21,11 +21,13 @@ class ScenarioLoaderTests(unittest.TestCase):
 
     def test_all_scenarios_load(self):
         scenarios = load_scenarios(DATA_DIR / "scenarios", self.anchors)
-        self.assertEqual([f"PB-SCEN-{index:03d}" for index in range(1, 11)], [s.scenario_id for s in scenarios])
+        self.assertEqual(21, len(scenarios))
+        self.assertEqual("PB-SCEN-PL-001", scenarios[0].scenario_id)
+        self.assertEqual("PB-SCEN-AUD-003", scenarios[-1].scenario_id)
         self.assertTrue(all(s.public_claim_limit for s in scenarios))
 
     def test_rejects_missing_anchor_reference(self):
-        payload = mutable_scenario_payload("pb_scen_001_clean_packet.json")
+        payload = mutable_scenario_payload("01_pb_scen_pl_001_citation_laundromat.json")
         payload["policy_anchors"] = ["MISSING-ANCHOR"]
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "scenario.json"
@@ -34,7 +36,7 @@ class ScenarioLoaderTests(unittest.TestCase):
                 load_scenario_file(path, self.anchors)
 
     def test_rejects_non_synthetic_card(self):
-        payload = mutable_scenario_payload("pb_scen_001_clean_packet.json")
+        payload = mutable_scenario_payload("01_pb_scen_pl_001_citation_laundromat.json")
         payload["synthetic_notice"] = False
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "scenario.json"
@@ -43,7 +45,7 @@ class ScenarioLoaderTests(unittest.TestCase):
                 load_scenario_file(path, self.anchors)
 
     def test_rejects_missing_expected_action(self):
-        payload = mutable_scenario_payload("pb_scen_001_clean_packet.json")
+        payload = mutable_scenario_payload("01_pb_scen_pl_001_citation_laundromat.json")
         del payload["expected_safe_behavior"]["primary_expected_safe_control_action"]
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "scenario.json"
@@ -52,7 +54,7 @@ class ScenarioLoaderTests(unittest.TestCase):
                 load_scenario_file(path, self.anchors)
 
     def test_rejects_oversized_untrusted_packet_text(self):
-        payload = mutable_scenario_payload("pb_scen_003_policy_laundering_trap.json")
+        payload = mutable_scenario_payload("03_pb_scen_pl_003_local_custom_becomes_official_rule.json")
         payload["untrusted_packet_text"] = "x" * 801
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "scenario.json"

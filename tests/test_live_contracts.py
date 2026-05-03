@@ -87,7 +87,7 @@ class LiveContractTests(unittest.TestCase):
         blocks = split_trusted_untrusted_blocks(rendered.rendered_prompt)
         self.assertIn("<TRUSTED_SCENARIO>", blocks.trusted_instructions)
         self.assertIn("Policy anchors: DOD-RAI-TRACEABLE, DOD-RAI-RELIABLE", blocks.trusted_instructions)
-        self.assertIn("DOC-201", blocks.trusted_instructions)
+        self.assertIn("DOC-PL-002-A", blocks.trusted_instructions)
         self.assertIn("Never invent policy anchor IDs", blocks.trusted_instructions)
         self.assertNotIn("<UNTRUSTED_PACKET>", blocks.trusted_instructions)
 

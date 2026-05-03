@@ -109,7 +109,7 @@ def parse_live_config(env: Mapping[str, str]) -> LiveConfig:
     max_total_usd = _optional_float_env(env, "PB_LIVE_MAX_TOTAL_USD")
     max_provider_usd = _optional_float_env(env, "PB_LIVE_MAX_PROVIDER_USD")
     timeout_seconds = _float_env(env, "PB_LIVE_TIMEOUT_SECONDS", 30.0, minimum=0.1)
-    max_retries = min(_int_env(env, "PB_LIVE_MAX_RETRIES", 1, minimum=0), 1)
+    max_retries = min(_int_env(env, "PB_LIVE_MAX_RETRIES", 1, minimum=0), 5)
     max_input_chars = _int_env(env, "PB_LIVE_MAX_INPUT_CHARS", 20000, minimum=1)
     max_output_tokens = _int_env(env, "PB_LIVE_MAX_OUTPUT_TOKENS", 1200, minimum=1)
 
