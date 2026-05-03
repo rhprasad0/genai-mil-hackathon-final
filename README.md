@@ -96,29 +96,108 @@ The current spec defines:
 
 These are not real cases. They are synthetic lab traps built to make the failure modes visible without dragging any real person, payment, voucher, or official workflow into the blast radius. The point is to show how a closed loop can become a haunted clipboard: official tone, weak evidence, decorative review, and a neat audit trail covering the smell of sulfur.
 
-Each card has a scenario JSON and a poster-style SVG in `docs/assets/scenarios/`:
+Each card now has a small README-embedded safety sign, a scenario JSON, and a poster-style SVG in `docs/assets/scenarios/`:
 
-- `PB-SCEN-PL-001` — **Citation Laundromat** ([card](data/scenarios/01_pb_scen_pl_001_citation_laundromat.json) · [poster](docs/assets/scenarios/pb_scen_pl_001.svg))
-- `PB-SCEN-PL-002` — **Guidance Treated as Binding Policy** ([card](data/scenarios/02_pb_scen_pl_002_guidance_treated_as_binding_policy.json) · [poster](docs/assets/scenarios/pb_scen_pl_002.svg))
-- `PB-SCEN-PL-003` — **Local Custom Becomes Official Rule** ([card](data/scenarios/03_pb_scen_pl_003_local_custom_becomes_official_rule.json) · [poster](docs/assets/scenarios/pb_scen_pl_003.svg))
-- `PB-SCEN-PL-004` — **Missing Policy Gap Filled by Model Confidence** ([card](data/scenarios/04_pb_scen_pl_004_missing_policy_gap_filled_by_model_confidence.json) · [poster](docs/assets/scenarios/pb_scen_pl_004.svg))
-- `PB-SCEN-RST-001` — **1.2-Second Batch Review** ([card](data/scenarios/05_pb_scen_rst_001_1_2_second_batch_review.json) · [poster](docs/assets/scenarios/pb_scen_rst_001.svg))
-- `PB-SCEN-RST-002` — **Reviewer Clicks Without Case Evidence** ([card](data/scenarios/06_pb_scen_rst_002_reviewer_clicks_without_case_evidence.json) · [poster](docs/assets/scenarios/pb_scen_rst_002.svg))
-- `PB-SCEN-RST-003` — **Reviewer Entity Wired Only to Approve** ([card](data/scenarios/07_pb_scen_rst_003_reviewer_entity_wired_only_to_approve.json) · [poster](docs/assets/scenarios/pb_scen_rst_003.svg))
-- `PB-SCEN-RST-004` — **Bulk Approval After Model Summary Only** ([card](data/scenarios/08_pb_scen_rst_004_bulk_approval_after_model_summary_only.json) · [poster](docs/assets/scenarios/pb_scen_rst_004.svg))
-- `PB-SCEN-DHR-001` — **Human Reviewer After Final Action** ([card](data/scenarios/09_pb_scen_dhr_001_human_reviewer_after_final_action.json) · [poster](docs/assets/scenarios/pb_scen_dhr_001.svg))
-- `PB-SCEN-DHR-002` — **Human Can Comment But Not Change Outcome** ([card](data/scenarios/10_pb_scen_dhr_002_human_can_comment_but_not_change_outcome.json) · [poster](docs/assets/scenarios/pb_scen_dhr_002.svg))
-- `PB-SCEN-DHR-003` — **Default-approve on Reviewer Timeout** ([card](data/scenarios/11_pb_scen_dhr_003_default_approve_on_reviewer_timeout.json) · [poster](docs/assets/scenarios/pb_scen_dhr_003.svg))
-- `PB-SCEN-UD-001` — **Final Denial on Missing Receipts** ([card](data/scenarios/12_pb_scen_ud_001_final_denial_on_missing_receipts.json) · [poster](docs/assets/scenarios/pb_scen_ud_001.svg))
-- `PB-SCEN-UD-002` — **Approval Despite Duplicate Charge** ([card](data/scenarios/13_pb_scen_ud_002_approval_despite_duplicate_charge.json) · [poster](docs/assets/scenarios/pb_scen_ud_002.svg))
-- `PB-SCEN-UD-003` — **Weak Documentation Overclaimed** ([card](data/scenarios/14_pb_scen_ud_003_weak_documentation_overclaimed.json) · [poster](docs/assets/scenarios/pb_scen_ud_003.svg))
-- `PB-SCEN-UD-004` — **Final Adverse Action Without Notice** ([card](data/scenarios/15_pb_scen_ud_004_final_adverse_action_without_notice.json) · [poster](docs/assets/scenarios/pb_scen_ud_004.svg))
-- `PB-SCEN-HABC-001` — **Agent Told It Has Approving Official Authority** ([card](data/scenarios/16_pb_scen_habc_001_agent_told_it_has_approving_official_authority.json) · [poster](docs/assets/scenarios/pb_scen_habc_001.svg))
-- `PB-SCEN-HABC-002` — **override_human_review Tool Exists** ([card](data/scenarios/17_pb_scen_habc_002_override_human_review_tool_exists.json) · [poster](docs/assets/scenarios/pb_scen_habc_002.svg))
-- `PB-SCEN-HABC-003` — **submit_final_decision Without Human Authorization** ([card](data/scenarios/18_pb_scen_habc_003_submit_final_decision_without_human_authorization.json) · [poster](docs/assets/scenarios/pb_scen_habc_003.svg))
-- `PB-SCEN-AUD-001` — **Audit Log Whitewash** ([card](data/scenarios/19_pb_scen_aud_001_audit_log_whitewash.json) · [poster](docs/assets/scenarios/pb_scen_aud_001.svg))
-- `PB-SCEN-AUD-002` — **Evidence Reviewed That Wasn't** ([card](data/scenarios/20_pb_scen_aud_002_evidence_reviewed_that_wasn_t.json) · [poster](docs/assets/scenarios/pb_scen_aud_002.svg))
-- `PB-SCEN-AUD-003` — **Human Review Fabricated in the Record** ([card](data/scenarios/21_pb_scen_aud_003_human_review_fabricated_in_the_record.json) · [poster](docs/assets/scenarios/pb_scen_aud_003.svg))
+<table>
+<tr>
+<td width="33%" valign="top">
+  <a href="data/scenarios/01_pb_scen_pl_001_citation_laundromat.json"><img src="docs/assets/safety-signs/pb_scen_pl_001_citation_laundromat.svg" alt="Safety sign for PB-SCEN-PL-001 - Citation Laundromat" width="260"></a><br>
+  <sub><code>PB-SCEN-PL-001</code><br><strong>Citation Laundromat</strong><br><a href="data/scenarios/01_pb_scen_pl_001_citation_laundromat.json">card</a> · <a href="docs/assets/scenarios/pb_scen_pl_001.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/02_pb_scen_pl_002_guidance_treated_as_binding_policy.json"><img src="docs/assets/safety-signs/pb_scen_pl_002_guidance_treated_as_binding_policy.svg" alt="Safety sign for PB-SCEN-PL-002 - Guidance Treated as Binding Policy" width="260"></a><br>
+  <sub><code>PB-SCEN-PL-002</code><br><strong>Guidance Treated as Binding Policy</strong><br><a href="data/scenarios/02_pb_scen_pl_002_guidance_treated_as_binding_policy.json">card</a> · <a href="docs/assets/scenarios/pb_scen_pl_002.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/03_pb_scen_pl_003_local_custom_becomes_official_rule.json"><img src="docs/assets/safety-signs/pb_scen_pl_003_local_custom_becomes_official_rule.svg" alt="Safety sign for PB-SCEN-PL-003 - Local Custom Becomes Official Rule" width="260"></a><br>
+  <sub><code>PB-SCEN-PL-003</code><br><strong>Local Custom Becomes Official Rule</strong><br><a href="data/scenarios/03_pb_scen_pl_003_local_custom_becomes_official_rule.json">card</a> · <a href="docs/assets/scenarios/pb_scen_pl_003.svg">poster</a></sub>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+  <a href="data/scenarios/04_pb_scen_pl_004_missing_policy_gap_filled_by_model_confidence.json"><img src="docs/assets/safety-signs/pb_scen_pl_004_missing_policy_gap_filled_by_model_confidence.svg" alt="Safety sign for PB-SCEN-PL-004 - Missing Policy Gap Filled by Model Confidence" width="260"></a><br>
+  <sub><code>PB-SCEN-PL-004</code><br><strong>Missing Policy Gap Filled by Model Confidence</strong><br><a href="data/scenarios/04_pb_scen_pl_004_missing_policy_gap_filled_by_model_confidence.json">card</a> · <a href="docs/assets/scenarios/pb_scen_pl_004.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/05_pb_scen_rst_001_1_2_second_batch_review.json"><img src="docs/assets/safety-signs/pb_scen_rst_001_1_2_second_batch_review.svg" alt="Safety sign for PB-SCEN-RST-001 - 1.2-Second Batch Review" width="260"></a><br>
+  <sub><code>PB-SCEN-RST-001</code><br><strong>1.2-Second Batch Review</strong><br><a href="data/scenarios/05_pb_scen_rst_001_1_2_second_batch_review.json">card</a> · <a href="docs/assets/scenarios/pb_scen_rst_001.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/06_pb_scen_rst_002_reviewer_clicks_without_case_evidence.json"><img src="docs/assets/safety-signs/pb_scen_rst_002_reviewer_clicks_without_case_evidence.svg" alt="Safety sign for PB-SCEN-RST-002 - Reviewer Clicks Without Case Evidence" width="260"></a><br>
+  <sub><code>PB-SCEN-RST-002</code><br><strong>Reviewer Clicks Without Case Evidence</strong><br><a href="data/scenarios/06_pb_scen_rst_002_reviewer_clicks_without_case_evidence.json">card</a> · <a href="docs/assets/scenarios/pb_scen_rst_002.svg">poster</a></sub>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+  <a href="data/scenarios/07_pb_scen_rst_003_reviewer_entity_wired_only_to_approve.json"><img src="docs/assets/safety-signs/pb_scen_rst_003_reviewer_entity_wired_only_to_approve.svg" alt="Safety sign for PB-SCEN-RST-003 - Reviewer Entity Wired Only to Approve" width="260"></a><br>
+  <sub><code>PB-SCEN-RST-003</code><br><strong>Reviewer Entity Wired Only to Approve</strong><br><a href="data/scenarios/07_pb_scen_rst_003_reviewer_entity_wired_only_to_approve.json">card</a> · <a href="docs/assets/scenarios/pb_scen_rst_003.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/08_pb_scen_rst_004_bulk_approval_after_model_summary_only.json"><img src="docs/assets/safety-signs/pb_scen_rst_004_bulk_approval_after_model_summary_only.svg" alt="Safety sign for PB-SCEN-RST-004 - Bulk Approval After Model Summary Only" width="260"></a><br>
+  <sub><code>PB-SCEN-RST-004</code><br><strong>Bulk Approval After Model Summary Only</strong><br><a href="data/scenarios/08_pb_scen_rst_004_bulk_approval_after_model_summary_only.json">card</a> · <a href="docs/assets/scenarios/pb_scen_rst_004.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/09_pb_scen_dhr_001_human_reviewer_after_final_action.json"><img src="docs/assets/safety-signs/pb_scen_dhr_001_human_reviewer_after_final_action.svg" alt="Safety sign for PB-SCEN-DHR-001 - Human Reviewer After Final Action" width="260"></a><br>
+  <sub><code>PB-SCEN-DHR-001</code><br><strong>Human Reviewer After Final Action</strong><br><a href="data/scenarios/09_pb_scen_dhr_001_human_reviewer_after_final_action.json">card</a> · <a href="docs/assets/scenarios/pb_scen_dhr_001.svg">poster</a></sub>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+  <a href="data/scenarios/10_pb_scen_dhr_002_human_can_comment_but_not_change_outcome.json"><img src="docs/assets/safety-signs/pb_scen_dhr_002_human_can_comment_but_not_change_outcome.svg" alt="Safety sign for PB-SCEN-DHR-002 - Human Can Comment But Not Change Outcome" width="260"></a><br>
+  <sub><code>PB-SCEN-DHR-002</code><br><strong>Human Can Comment But Not Change Outcome</strong><br><a href="data/scenarios/10_pb_scen_dhr_002_human_can_comment_but_not_change_outcome.json">card</a> · <a href="docs/assets/scenarios/pb_scen_dhr_002.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/11_pb_scen_dhr_003_default_approve_on_reviewer_timeout.json"><img src="docs/assets/safety-signs/pb_scen_dhr_003_default_approve_on_reviewer_timeout.svg" alt="Safety sign for PB-SCEN-DHR-003 - Default-approve on Reviewer Timeout" width="260"></a><br>
+  <sub><code>PB-SCEN-DHR-003</code><br><strong>Default-approve on Reviewer Timeout</strong><br><a href="data/scenarios/11_pb_scen_dhr_003_default_approve_on_reviewer_timeout.json">card</a> · <a href="docs/assets/scenarios/pb_scen_dhr_003.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/12_pb_scen_ud_001_final_denial_on_missing_receipts.json"><img src="docs/assets/safety-signs/pb_scen_ud_001_final_denial_on_missing_receipts.svg" alt="Safety sign for PB-SCEN-UD-001 - Final Denial on Missing Receipts" width="260"></a><br>
+  <sub><code>PB-SCEN-UD-001</code><br><strong>Final Denial on Missing Receipts</strong><br><a href="data/scenarios/12_pb_scen_ud_001_final_denial_on_missing_receipts.json">card</a> · <a href="docs/assets/scenarios/pb_scen_ud_001.svg">poster</a></sub>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+  <a href="data/scenarios/13_pb_scen_ud_002_approval_despite_duplicate_charge.json"><img src="docs/assets/safety-signs/pb_scen_ud_002_approval_despite_duplicate_charge.svg" alt="Safety sign for PB-SCEN-UD-002 - Approval Despite Duplicate Charge" width="260"></a><br>
+  <sub><code>PB-SCEN-UD-002</code><br><strong>Approval Despite Duplicate Charge</strong><br><a href="data/scenarios/13_pb_scen_ud_002_approval_despite_duplicate_charge.json">card</a> · <a href="docs/assets/scenarios/pb_scen_ud_002.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/14_pb_scen_ud_003_weak_documentation_overclaimed.json"><img src="docs/assets/safety-signs/pb_scen_ud_003_weak_documentation_overclaimed.svg" alt="Safety sign for PB-SCEN-UD-003 - Weak Documentation Overclaimed" width="260"></a><br>
+  <sub><code>PB-SCEN-UD-003</code><br><strong>Weak Documentation Overclaimed</strong><br><a href="data/scenarios/14_pb_scen_ud_003_weak_documentation_overclaimed.json">card</a> · <a href="docs/assets/scenarios/pb_scen_ud_003.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/15_pb_scen_ud_004_final_adverse_action_without_notice.json"><img src="docs/assets/safety-signs/pb_scen_ud_004_final_adverse_action_without_notice.svg" alt="Safety sign for PB-SCEN-UD-004 - Final Adverse Action Without Notice" width="260"></a><br>
+  <sub><code>PB-SCEN-UD-004</code><br><strong>Final Adverse Action Without Notice</strong><br><a href="data/scenarios/15_pb_scen_ud_004_final_adverse_action_without_notice.json">card</a> · <a href="docs/assets/scenarios/pb_scen_ud_004.svg">poster</a></sub>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+  <a href="data/scenarios/16_pb_scen_habc_001_agent_told_it_has_approving_official_authority.json"><img src="docs/assets/safety-signs/pb_scen_habc_001_agent_told_it_has_approving_official_authority.svg" alt="Safety sign for PB-SCEN-HABC-001 - Agent Told It Has Approving Official Authority" width="260"></a><br>
+  <sub><code>PB-SCEN-HABC-001</code><br><strong>Agent Told It Has Approving Official Authority</strong><br><a href="data/scenarios/16_pb_scen_habc_001_agent_told_it_has_approving_official_authority.json">card</a> · <a href="docs/assets/scenarios/pb_scen_habc_001.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/17_pb_scen_habc_002_override_human_review_tool_exists.json"><img src="docs/assets/safety-signs/pb_scen_habc_002_override_human_review_tool_exists.svg" alt="Safety sign for PB-SCEN-HABC-002 - override_human_review Tool Exists" width="260"></a><br>
+  <sub><code>PB-SCEN-HABC-002</code><br><strong>override_human_review Tool Exists</strong><br><a href="data/scenarios/17_pb_scen_habc_002_override_human_review_tool_exists.json">card</a> · <a href="docs/assets/scenarios/pb_scen_habc_002.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/18_pb_scen_habc_003_submit_final_decision_without_human_authorization.json"><img src="docs/assets/safety-signs/pb_scen_habc_003_submit_final_decision_without_human_authorization.svg" alt="Safety sign for PB-SCEN-HABC-003 - submit_final_decision Without Human Authorization" width="260"></a><br>
+  <sub><code>PB-SCEN-HABC-003</code><br><strong>submit_final_decision Without Human Authorization</strong><br><a href="data/scenarios/18_pb_scen_habc_003_submit_final_decision_without_human_authorization.json">card</a> · <a href="docs/assets/scenarios/pb_scen_habc_003.svg">poster</a></sub>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+  <a href="data/scenarios/19_pb_scen_aud_001_audit_log_whitewash.json"><img src="docs/assets/safety-signs/pb_scen_aud_001_audit_log_whitewash.svg" alt="Safety sign for PB-SCEN-AUD-001 - Audit Log Whitewash" width="260"></a><br>
+  <sub><code>PB-SCEN-AUD-001</code><br><strong>Audit Log Whitewash</strong><br><a href="data/scenarios/19_pb_scen_aud_001_audit_log_whitewash.json">card</a> · <a href="docs/assets/scenarios/pb_scen_aud_001.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/20_pb_scen_aud_002_evidence_reviewed_that_wasn_t.json"><img src="docs/assets/safety-signs/pb_scen_aud_002_evidence_reviewed_that_wasn_t.svg" alt="Safety sign for PB-SCEN-AUD-002 - Evidence Reviewed That Wasn&#x27;t" width="260"></a><br>
+  <sub><code>PB-SCEN-AUD-002</code><br><strong>Evidence Reviewed That Wasn&#x27;t</strong><br><a href="data/scenarios/20_pb_scen_aud_002_evidence_reviewed_that_wasn_t.json">card</a> · <a href="docs/assets/scenarios/pb_scen_aud_002.svg">poster</a></sub>
+</td>
+<td width="33%" valign="top">
+  <a href="data/scenarios/21_pb_scen_aud_003_human_review_fabricated_in_the_record.json"><img src="docs/assets/safety-signs/pb_scen_aud_003_human_review_fabricated_in_the_record.svg" alt="Safety sign for PB-SCEN-AUD-003 - Human Review Fabricated in the Record" width="260"></a><br>
+  <sub><code>PB-SCEN-AUD-003</code><br><strong>Human Review Fabricated in the Record</strong><br><a href="data/scenarios/21_pb_scen_aud_003_human_review_fabricated_in_the_record.json">card</a> · <a href="docs/assets/scenarios/pb_scen_aud_003.svg">poster</a></sub>
+</td>
+</tr>
+</table>
 
 If a card looks like hell, good. The specimen is supposed to be unsafe. The harness is supposed to be boring, bounded, cited, and scrubbed.
 
